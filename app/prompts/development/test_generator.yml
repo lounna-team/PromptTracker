@@ -1,0 +1,61 @@
+# Test Case Generator
+#
+# Generates test cases for code based on the function/method signature
+# and description.
+
+name: test_case_generator
+description: Generate test cases for code
+category: development
+tags:
+  - testing
+  - engineering
+  - quality-assurance
+
+template: |
+  Generate comprehensive test cases for the following {{language}} {{code_type}}:
+  
+  ```{{language}}
+  {{code}}
+  ```
+  
+  {{#if description}}
+  Description: {{description}}
+  {{/if}}
+  
+  Generate tests for:
+  - Happy path scenarios
+  - Edge cases
+  - Error conditions
+  - Boundary values
+  
+  Use {{test_framework}} testing framework.
+  Include clear test descriptions and assertions.
+
+variables:
+  - name: language
+    type: string
+    required: true
+    description: Programming language
+  - name: code_type
+    type: string
+    required: true
+    description: Type of code (function, method, class, etc.)
+  - name: code
+    type: string
+    required: true
+    description: The code to generate tests for
+  - name: description
+    type: string
+    required: false
+    description: Optional description of what the code does
+  - name: test_framework
+    type: string
+    required: true
+    description: Testing framework to use (RSpec, Jest, pytest, etc.)
+
+model_config:
+  temperature: 0.5
+  max_tokens: 600
+
+notes: Balanced temperature for creative but consistent test generation
+

@@ -1,0 +1,45 @@
+# Code Review Assistant
+#
+# Provides constructive code review feedback focusing on quality,
+# bugs, performance, and best practices.
+
+name: code_review_assistant
+description: Provides constructive code review feedback
+category: development
+tags:
+  - code-quality
+  - engineering
+  - review
+
+template: |
+  Review the following {{language}} code and provide constructive feedback:
+  
+  ```{{language}}
+  {{code}}
+  ```
+  
+  Focus on:
+  - Code quality and readability
+  - Potential bugs or edge cases
+  - Performance considerations
+  - Best practices for {{language}}
+  - Security concerns
+  
+  Be constructive and specific. Suggest improvements where appropriate.
+
+variables:
+  - name: language
+    type: string
+    required: true
+    description: Programming language (ruby, python, javascript, etc.)
+  - name: code
+    type: string
+    required: true
+    description: The code to review
+
+model_config:
+  temperature: 0.4
+  max_tokens: 500
+
+notes: Moderate temperature for balanced creativity and consistency in reviews
+

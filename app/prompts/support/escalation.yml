@@ -1,0 +1,57 @@
+# Customer Support Escalation Prompt
+#
+# Used when escalating a customer issue to a senior support agent or manager.
+# Provides context and maintains professional tone.
+
+name: customer_support_escalation
+description: Escalate customer issue to senior support
+category: support
+tags:
+  - escalation
+  - internal
+  - high-priority
+
+template: |
+  I'm escalating this {{issue_type}} issue to you for {{customer_name}}.
+  
+  Issue Summary: {{issue_summary}}
+  
+  Customer Sentiment: {{sentiment}}
+  Priority: {{priority}}
+  
+  Previous Actions Taken:
+  {{previous_actions}}
+  
+  Please review and provide guidance or take over the conversation.
+
+variables:
+  - name: customer_name
+    type: string
+    required: true
+  - name: issue_type
+    type: string
+    required: true
+    description: Type of issue (billing, technical, refund, etc.)
+  - name: issue_summary
+    type: string
+    required: true
+    description: Brief summary of the issue
+  - name: sentiment
+    type: string
+    required: false
+    description: Customer sentiment (frustrated, calm, angry, etc.)
+  - name: priority
+    type: string
+    required: true
+    description: Priority level (low, medium, high, urgent)
+  - name: previous_actions
+    type: string
+    required: true
+    description: List of actions already taken
+
+model_config:
+  temperature: 0.3
+  max_tokens: 300
+
+notes: Professional escalation format for internal use
+

@@ -1,0 +1,48 @@
+# Email Reply Drafter
+#
+# Drafts professional email replies based on context and tone.
+
+name: email_reply_drafter
+description: Draft professional email replies
+category: email
+tags:
+  - productivity
+  - writing
+  - communication
+
+template: |
+  Draft a professional email reply with the following details:
+  
+  Tone: {{tone}}
+  Context: {{context}}
+  Key Points to Address:
+  {{key_points}}
+  
+  {{#if include_signature}}
+  Include a professional closing.
+  {{/if}}
+
+variables:
+  - name: tone
+    type: string
+    required: true
+    description: Desired tone (formal, friendly, apologetic, etc.)
+  - name: context
+    type: string
+    required: true
+    description: Context of the email conversation
+  - name: key_points
+    type: string
+    required: true
+    description: Key points that must be addressed in the reply
+  - name: include_signature
+    type: boolean
+    required: false
+    description: Whether to include a professional closing
+
+model_config:
+  temperature: 0.7
+  max_tokens: 400
+
+notes: Flexible tone control for different email scenarios
+

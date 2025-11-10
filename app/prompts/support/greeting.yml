@@ -1,0 +1,35 @@
+# Customer Support Greeting Prompt
+#
+# This prompt is used to greet customers when they first contact support.
+# It sets a friendly, professional tone and acknowledges their issue.
+
+name: customer_support_greeting
+description: Initial greeting for customer support interactions
+category: support
+tags:
+  - customer-facing
+  - greeting
+  - high-priority
+
+template: |
+  Hi {{customer_name}}! Thanks for contacting us. I'm here to help with your {{issue_category}} question. What's going on?
+
+variables:
+  - name: customer_name
+    type: string
+    required: true
+    description: The customer's first name
+  - name: issue_category
+    type: string
+    required: true
+    description: Category of the issue (billing, technical, account, etc.)
+
+model_config:
+  temperature: 0.7
+  max_tokens: 120
+  top_p: 1.0
+
+notes: |
+  This is the current active version. Previous versions were either too formal (v1)
+  or too casual (v2). This version strikes the right balance.
+

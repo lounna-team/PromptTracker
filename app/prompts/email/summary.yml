@@ -1,0 +1,34 @@
+# Email Thread Summarizer
+#
+# Generates concise summaries of long email threads.
+# Useful for quickly understanding email conversations.
+
+name: email_summary_generator
+description: Generates concise summaries of long email threads
+category: email
+tags:
+  - productivity
+  - summarization
+  - internal
+
+template: |
+  Summarize the following email thread in 2-3 sentences. Focus on:
+  - Main topic/decision
+  - Key action items
+  - Important deadlines
+  
+  Email Thread:
+  {{email_thread}}
+
+variables:
+  - name: email_thread
+    type: string
+    required: true
+    description: The full email thread to summarize
+
+model_config:
+  temperature: 0.3
+  max_tokens: 200
+
+notes: Low temperature for factual, consistent summaries
+

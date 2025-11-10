@@ -1,0 +1,36 @@
+===============================================================================
+
+PromptTracker has been installed! 🎉
+
+Next steps:
+
+1. Run migrations:
+   rake db:migrate
+
+2. (Optional) Load sample data:
+   rake db:seed
+
+3. Create your first prompt file:
+   Create a YAML file in app/prompts/
+
+   Example: app/prompts/my_prompt.yml
+   ---
+   name: my_first_prompt
+   description: My first prompt
+   template: "Hello {{name}}!"
+   variables:
+     - name: name
+       type: string
+       required: true
+
+4. Sync prompts to database:
+   rake prompt_tracker:sync
+
+5. View available rake tasks:
+   rake -T prompt_tracker
+
+For more information, visit:
+https://github.com/yourusername/prompt_tracker
+
+===============================================================================
+

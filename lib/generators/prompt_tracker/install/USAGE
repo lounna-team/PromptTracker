@@ -1,0 +1,12 @@
+Description:
+    Installs PromptTracker in your Rails application by creating:
+    - Configuration initializer (config/initializers/prompt_tracker.rb)
+    - Prompts directory (app/prompts/)
+
+Example:
+    rails generate prompt_tracker:install
+
+    This will create:
+        config/initializers/prompt_tracker.rb
+        app/prompts/.keep
+

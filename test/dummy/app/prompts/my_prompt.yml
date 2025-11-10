@@ -1,0 +1,6 @@
+name: my_prompt
+template: "Hello {{name}}!"
+variables:
+  - name: name
+    type: string
+    required: true

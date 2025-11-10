@@ -1,0 +1,197 @@
+# frozen_string_literal: true
+
+module PromptTracker
+  # Application-wide helper methods for PromptTracker views
+  module ApplicationHelper
+    # Format USD amount with dollar sign
+    #
+    # @param amount [Float, nil] the amount in USD
+    # @return [String] formatted amount (e.g., "$1.23")
+    # @example
+    #   format_cost(1.234) # => "$1.23"
+    #   format_cost(nil) # => "$0.00"
+    def format_cost(amount)
+      return "$0.00" if amount.nil?
+
+      "$#{format('%.4f', amount)}"
+    end
+
+    # Format duration in milliseconds to human-readable format
+    #
+    # @param ms [Integer, Float, nil] duration in milliseconds
+    # @return [String] formatted duration
+    # @example
+    #   format_duration(1234) # => "1.23s"
+    #   format_duration(234) # => "234ms"
+    #   format_duration(nil) # => "N/A"
+    def format_duration(ms)
+      return "N/A" if ms.nil?
+
+      if ms >= 1000
+        "#{(ms / 1000.0).round(2)}s"
+      else
+        "#{ms.round}ms"
+      end
+    end
+
+    # Format token count with commas
+    #
+    # @param count [Integer, nil] token count
+    # @return [String] formatted count
+    # @example
+    #   format_tokens(1234) # => "1,234"
+    #   format_tokens(nil) # => "0"
+    def format_tokens(count)
+      return "0" if count.nil?
+
+      count.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
+    end
+
+    # Generate HTML badge for status
+    #
+    # @param status [String] the status value
+    # @return [String] HTML badge
+    # @example
+    #   status_badge("active") # => "<span class='badge badge-success'>active</span>"
+    def status_badge(status)
+      color = case status.to_s
+              when "active" then "success"
+              when "deprecated" then "warning"
+              when "draft" then "secondary"
+              when "archived" then "dark"
+              when "pending" then "info"
+              when "completed" then "success"
+              when "failed" then "danger"
+              else "secondary"
+              end
+
+      content_tag(:span, status, class: "badge badge-#{color}")
+    end
+
+    # Generate colored badge for score
+    #
+    # @param score [Float] the score value
+    # @param min [Float] minimum score
+    # @param max [Float] maximum score
+    # @return [String] HTML badge with color
+    # @example
+    #   score_badge(4.5, 0, 5) # => "<span class='badge badge-success'>4.5</span>"
+    def score_badge(score, min = 0, max = 5)
+      return content_tag(:span, "N/A", class: "badge badge-secondary") if score.nil?
+
+      percentage = ((score - min) / (max - min) * 100).round
+      color = if percentage >= 80
+                "success"
+              elsif percentage >= 60
+                "primary"
+              elsif percentage >= 40
+                "warning"
+              else
+                "danger"
+              end
+
+      content_tag(:span, score.round(2), class: "badge badge-#{color}")
+    end
+
+    # Get icon for provider
+    #
+    # @param provider [String] the provider name
+    # @return [String] icon class or emoji
+    # @example
+    #   provider_icon("openai") # => "🤖"
+    def provider_icon(provider)
+      case provider.to_s.downcase
+      when "openai" then "🤖"
+      when "anthropic" then "🧠"
+      when "google" then "🔍"
+      when "cohere" then "💬"
+      else "🔮"
+      end
+    end
+
+    # Get badge for source
+    #
+    # @param source [String] the source value (file/web_ui/api)
+    # @return [String] HTML badge
+    # @example
+    #   source_badge("file") # => "<span class='badge badge-primary'>📄 file</span>"
+    def source_badge(source)
+      icon = case source.to_s
+             when "file" then "📄"
+             when "web_ui" then "🌐"
+             when "api" then "🔌"
+             else "❓"
+             end
+
+      color = case source.to_s
+              when "file" then "primary"
+              when "web_ui" then "info"
+              when "api" then "secondary"
+              else "secondary"
+              end
+
+      content_tag(:span, "#{icon} #{source}", class: "badge badge-#{color}")
+    end
+
+    # Format percentage
+    #
+    # @param value [Float] the percentage value (0-100)
+    # @return [String] formatted percentage
+    # @example
+    #   format_percentage(85.5) # => "85.5%"
+    def format_percentage(value)
+      return "N/A" if value.nil?
+
+      "#{value.round(1)}%"
+    end
+
+    # Calculate percentage change between two values
+    #
+    # @param old_value [Float] the old value
+    # @param new_value [Float] the new value
+    # @return [String] formatted percentage change with + or -
+    # @example
+    #   percentage_change(100, 120) # => "+20.0%"
+    #   percentage_change(100, 80) # => "-20.0%"
+    def percentage_change(old_value, new_value)
+      return "N/A" if old_value.nil? || new_value.nil? || old_value.zero?
+
+      change = ((new_value - old_value) / old_value.to_f * 100).round(1)
+      sign = change.positive? ? "+" : ""
+      "#{sign}#{change}%"
+    end
+
+    # Truncate text with ellipsis
+    #
+    # @param text [String] the text to truncate
+    # @param length [Integer] maximum length
+    # @return [String] truncated text
+    def truncate_text(text, length = 100)
+      return "" if text.nil?
+
+      text.length > length ? "#{text[0...length]}..." : text
+    end
+
+    # Format timestamp
+    #
+    # @param time [Time, nil] the timestamp
+    # @return [String] formatted time
+    # @example
+    #   format_timestamp(Time.now) # => "2025-01-08 14:30"
+    def format_timestamp(time)
+      return "N/A" if time.nil?
+
+      time.strftime("%Y-%m-%d %H:%M")
+    end
+
+    # Format relative time
+    #
+    # @param time [Time, nil] the timestamp
+    # @return [String] relative time (e.g., "2 hours ago")
+    def format_relative_time(time)
+      return "N/A" if time.nil?
+
+      time_ago_in_words(time) + " ago"
+    end
+  end
+end
