@@ -25,4 +25,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rails", ">= 7.2.3"
   spec.add_dependency "kaminari", "~> 1.2"
   spec.add_dependency "groupdate", "~> 6.0"
+  spec.add_dependency "liquid", "~> 5.5"
 end

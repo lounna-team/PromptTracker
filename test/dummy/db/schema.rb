@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_01_04_000006) do
+ActiveRecord::Schema[7.2].define(version: 2025_01_12_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -59,6 +59,25 @@ ActiveRecord::Schema[7.2].define(version: 2025_01_04_000006) do
     t.index ["evaluator_type"], name: "index_prompt_tracker_evaluations_on_evaluator_type"
     t.index ["llm_response_id"], name: "index_prompt_tracker_evaluations_on_llm_response_id"
     t.index ["score"], name: "index_evaluations_on_score"
+  end
+
+  create_table "prompt_tracker_evaluator_configs", force: :cascade do |t|
+    t.bigint "prompt_id", null: false
+    t.string "evaluator_key", null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "config", default: {}, null: false
+    t.string "run_mode", default: "async", null: false
+    t.integer "priority", default: 0, null: false
+    t.decimal "weight", precision: 5, scale: 2, default: "1.0", null: false
+    t.string "depends_on"
+    t.integer "min_dependency_score"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["depends_on"], name: "index_evaluator_configs_on_depends_on"
+    t.index ["enabled"], name: "index_evaluator_configs_on_enabled"
+    t.index ["prompt_id", "evaluator_key"], name: "index_evaluator_configs_on_prompt_and_key", unique: true
+    t.index ["prompt_id", "priority"], name: "index_evaluator_configs_on_prompt_and_priority"
+    t.index ["prompt_id"], name: "index_prompt_tracker_evaluator_configs_on_prompt_id"
   end
 
   create_table "prompt_tracker_llm_responses", force: :cascade do |t|
@@ -126,13 +145,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_01_04_000006) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "score_aggregation_strategy", default: "weighted_average"
     t.index ["archived_at"], name: "index_prompt_tracker_prompts_on_archived_at"
     t.index ["category"], name: "index_prompt_tracker_prompts_on_category"
     t.index ["name"], name: "index_prompt_tracker_prompts_on_name", unique: true
+    t.index ["score_aggregation_strategy"], name: "index_prompts_on_aggregation_strategy"
   end
 
   add_foreign_key "prompt_tracker_ab_tests", "prompt_tracker_prompts", column: "prompt_id"
   add_foreign_key "prompt_tracker_evaluations", "prompt_tracker_llm_responses", column: "llm_response_id"
+  add_foreign_key "prompt_tracker_evaluator_configs", "prompt_tracker_prompts", column: "prompt_id"
   add_foreign_key "prompt_tracker_llm_responses", "prompt_tracker_ab_tests", column: "ab_test_id"
   add_foreign_key "prompt_tracker_llm_responses", "prompt_tracker_prompt_versions", column: "prompt_version_id"
   add_foreign_key "prompt_tracker_prompt_versions", "prompt_tracker_prompts", column: "prompt_id"

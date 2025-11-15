@@ -164,7 +164,8 @@ module PromptTracker
       v3 = PromptVersion.create!(@valid_attributes.merge(version_number: 3))
       v2 = PromptVersion.create!(@valid_attributes.merge(version_number: 2))
 
-      versions = PromptVersion.by_version.to_a
+      # Scope to this prompt's versions only (not all versions in DB including fixtures)
+      versions = @prompt.prompt_versions.by_version.to_a
       assert_equal [v3, v2, v1], versions
     end
 

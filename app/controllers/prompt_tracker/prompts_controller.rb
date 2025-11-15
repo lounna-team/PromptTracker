@@ -53,7 +53,7 @@ module PromptTracker
     # GET /prompts/:id
     # Show prompt details with all versions
     def show
-      @prompt = Prompt.includes(prompt_versions: :llm_responses).find(params[:id])
+      @prompt = Prompt.includes(prompt_versions: :llm_responses, evaluator_configs: []).find(params[:id])
       @versions = @prompt.prompt_versions.order(version_number: :desc)
       @active_version = @prompt.active_version
       @latest_version = @prompt.latest_version

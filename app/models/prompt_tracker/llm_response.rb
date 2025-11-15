@@ -57,6 +57,9 @@ module PromptTracker
              dependent: :destroy,
              inverse_of: :llm_response
 
+    # Callbacks
+    after_create :trigger_auto_evaluation
+
     # Validations
     validates :rendered_prompt, presence: true
     validates :status, presence: true, inclusion: { in: STATUSES }
@@ -202,7 +205,75 @@ module PromptTracker
       status == "pending"
     end
 
+    # Returns the overall score based on the prompt's aggregation strategy.
+    # This is the primary method for getting a response's quality score.
+    #
+    # @return [Float] overall score (0 if no evaluations)
+    def overall_score
+      return 0 if evaluations.empty?
+
+      strategy = prompt&.score_aggregation_strategy || "simple_average"
+
+      case strategy
+      when "simple_average"
+        calculate_simple_average
+      when "weighted_average"
+        calculate_weighted_average
+      when "minimum"
+        calculate_minimum_score
+      when "custom"
+        calculate_custom_score
+      else
+        calculate_simple_average
+      end
+    end
+
+    # Returns detailed breakdown of all evaluation scores with weights.
+    #
+    # @return [Array<Hash>] array of evaluation details
+    def evaluation_breakdown
+      evaluations.map do |evaluation|
+        config = prompt&.evaluator_configs&.find_by(evaluator_key: evaluation.evaluator_id)
+        {
+          evaluator_id: evaluation.evaluator_id,
+          evaluator_name: config&.name || evaluation.evaluator_id.to_s.titleize,
+          evaluator_type: evaluation.evaluator_type,
+          score: evaluation.score,
+          weight: config&.weight || 1.0,
+          normalized_weight: config&.normalized_weight || 0,
+          feedback: evaluation.feedback,
+          criteria_scores: evaluation.criteria_scores,
+          created_at: evaluation.created_at
+        }
+      end
+    end
+
+    # Checks if response passes all evaluations above a threshold.
+    #
+    # @param threshold [Integer] minimum score required (default: 80)
+    # @return [Boolean] true if all evaluations >= threshold
+    def passes_threshold?(threshold = 80)
+      return false if evaluations.empty?
+
+      evaluations.all? { |evaluation| evaluation.score >= threshold }
+    end
+
+    # Returns the evaluation with the lowest score.
+    #
+    # @return [Evaluation, nil] weakest evaluation or nil if none
+    def weakest_evaluation
+      evaluations.min_by(&:score)
+    end
+
+    # Returns the evaluation with the highest score.
+    #
+    # @return [Evaluation, nil] strongest evaluation or nil if none
+    def strongest_evaluation
+      evaluations.max_by(&:score)
+    end
+
     # Returns the average evaluation score for this response.
+    # @deprecated Use {#overall_score} instead for strategy-aware scoring
     #
     # @return [Float, nil] average score or nil if no evaluations
     def average_evaluation_score
@@ -239,6 +310,54 @@ module PromptTracker
     end
 
     private
+
+    # Triggers automatic evaluation after response is created
+    # @return [void]
+    def trigger_auto_evaluation
+      AutoEvaluationService.evaluate(self)
+    rescue StandardError => e
+      Rails.logger.error("Auto-evaluation failed for response #{id}: #{e.message}")
+      # Don't raise - response creation should succeed even if evaluation fails
+    end
+
+    # Calculates simple average of all evaluation scores
+    # @return [Float] average score
+    def calculate_simple_average
+      evaluations.average(:score)&.round(2) || 0
+    end
+
+    # Calculates weighted average based on evaluator config weights
+    # @return [Float] weighted average score
+    def calculate_weighted_average
+      return calculate_simple_average unless prompt
+
+      total_weight = 0
+      weighted_sum = 0
+
+      evaluations.each do |evaluation|
+        config = prompt.evaluator_configs.find_by(evaluator_key: evaluation.evaluator_id)
+        weight = config&.weight || 1.0
+
+        weighted_sum += evaluation.score * weight
+        total_weight += weight
+      end
+
+      total_weight > 0 ? (weighted_sum / total_weight).round(2) : 0
+    end
+
+    # Returns the minimum score from all evaluations
+    # @return [Float] minimum score
+    def calculate_minimum_score
+      evaluations.minimum(:score) || 0
+    end
+
+    # Calculates custom score (override in your application if needed)
+    # @return [Float] custom score
+    def calculate_custom_score
+      # Default to weighted average
+      # Override this method in your application for custom logic
+      calculate_weighted_average
+    end
 
     # Validates that variables_used is a hash
     def variables_used_must_be_hash

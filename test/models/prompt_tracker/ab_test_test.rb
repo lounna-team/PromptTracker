@@ -6,9 +6,44 @@ module PromptTracker
   class AbTestTest < ActiveSupport::TestCase
     # Setup
     def setup
-      @prompt = prompts(:greeting)
-      @version_1 = prompt_versions(:greeting_v1)
-      @version_2 = prompt_versions(:greeting_v2)
+      # Clean up any existing test data to avoid uniqueness conflicts
+      AbTest.delete_all
+      LlmResponse.delete_all
+      PromptVersion.delete_all
+      Prompt.delete_all
+
+      # Create test data manually (following pattern from other tests)
+      @prompt = Prompt.create!(
+        name: "greeting",
+        description: "Customer greeting prompt",
+        category: "support",
+        tags: [ "customer-facing", "support" ],
+        created_by: "test@example.com"
+      )
+
+      @version_1 = @prompt.prompt_versions.create!(
+        template: "Hello {{name}}, how can I help you today?",
+        version_number: 1,
+        status: "active",
+        source: "file",
+        variables_schema: [
+          { "name" => "name", "type" => "string", "required" => true }
+        ],
+        model_config: {},
+        notes: "Original version"
+      )
+
+      @version_2 = @prompt.prompt_versions.create!(
+        template: "Hi {{name}}! Need help?",
+        version_number: 2,
+        status: "draft",
+        source: "web_ui",
+        variables_schema: [
+          { "name" => "name", "type" => "string", "required" => true }
+        ],
+        model_config: {},
+        notes: "Shorter version for testing"
+      )
 
       @valid_attributes = {
         prompt: @prompt,
@@ -229,8 +264,28 @@ module PromptTracker
 
     test "for_prompt scope should return tests for specific prompt" do
       other_prompt = Prompt.create!(name: "other_prompt", description: "Other")
+      other_version = other_prompt.prompt_versions.create!(
+        template: "Other template",
+        version_number: 1,
+        status: "active",
+        source: "file"
+      )
+
       AbTest.create!(@valid_attributes)
-      AbTest.create!(@valid_attributes.merge(prompt: other_prompt, name: "Other test"))
+      AbTest.create!(
+        prompt: other_prompt,
+        name: "Other test",
+        description: "Testing other prompt",
+        hypothesis: "Other hypothesis",
+        metric_to_optimize: "response_time",
+        optimization_direction: "minimize",
+        traffic_split: { "A" => 100 },
+        variants: [
+          { "name" => "A", "version_id" => other_version.id, "description" => "Only version" }
+        ],
+        confidence_level: 0.95,
+        minimum_sample_size: 100
+      )
 
       assert_equal 1, AbTest.for_prompt(@prompt.id).count
       assert_equal @prompt, AbTest.for_prompt(@prompt.id).first.prompt

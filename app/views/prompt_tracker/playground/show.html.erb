@@ -1,0 +1,435 @@
+<div class="container-fluid mt-4">
+  <div class="row mb-3">
+    <div class="col">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><%= link_to "Prompts", prompts_path %></li>
+          <% if @prompt %>
+            <li class="breadcrumb-item"><%= link_to @prompt.name, prompt_path(@prompt) %></li>
+          <% end %>
+          <li class="breadcrumb-item active" aria-current="page">Playground</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col">
+      <h1>
+        <i class="bi bi-play-circle"></i>
+        <% if @prompt %>
+          Playground: <%= @prompt.name %>
+        <% else %>
+          Prompt Playground
+        <% end %>
+      </h1>
+      <p class="text-muted">
+        Draft and test your prompt template with live preview.
+        Supports both Mustache <code>{{variable}}</code> and Liquid <code>{{ variable | filter }}</code> syntax.
+      </p>
+    </div>
+    <div class="col-auto">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#keyboardShortcutsModal">
+        <i class="bi bi-keyboard"></i> Keyboard Shortcuts
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#templateExamplesModal">
+        <i class="bi bi-lightbulb"></i> Examples
+      </button>
+    </div>
+  </div>
+
+  <!-- Alert for messages -->
+  <div id="playground-alert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+    <span id="playground-alert-message"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+
+  <!-- Split pane layout -->
+  <div class="row">
+    <!-- Left pane: Template editor -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-code-square"></i>
+            Template
+          </h5>
+          <div>
+            <span class="badge bg-secondary me-2" id="template-engine-badge">Auto-detect</span>
+            <span class="badge bg-info" id="char-count">0 chars</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="template-editor" class="form-label">Prompt Template</label>
+            <textarea
+              id="template-editor"
+              class="form-control font-monospace"
+              rows="15"
+              placeholder="Enter your prompt template here...&#10;&#10;Examples:&#10;  Mustache: Hello {{name}}!&#10;  Liquid: Hello {{ name | capitalize }}!&#10;  Liquid conditional: {% if premium %}Premium user{% endif %}"
+            ><%= @version&.template %></textarea>
+            <div class="form-text">
+              Use <code>{{variable}}</code> for simple substitution or Liquid syntax for advanced features.
+            </div>
+          </div>
+
+          <!-- Liquid syntax help -->
+          <div class="accordion" id="syntaxHelp">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#liquidHelp">
+                  <i class="bi bi-question-circle me-2"></i>
+                  Liquid Syntax Help
+                </button>
+              </h2>
+              <div id="liquidHelp" class="accordion-collapse collapse" data-bs-parent="#syntaxHelp">
+                <div class="accordion-body">
+                  <h6>Filters</h6>
+                  <code>{{ name | upcase }}</code> - Convert to uppercase<br>
+                  <code>{{ name | downcase }}</code> - Convert to lowercase<br>
+                  <code>{{ name | capitalize }}</code> - Capitalize first letter<br>
+                  <code>{{ text | truncate: 100 }}</code> - Truncate to 100 chars<br>
+
+                  <h6 class="mt-3">Conditionals</h6>
+                  <code>{% if premium %}Premium{% else %}Basic{% endif %}</code><br>
+
+                  <h6 class="mt-3">Loops</h6>
+                  <code>{% for item in items %}{{ item }}{% endfor %}</code><br>
+
+                  <a href="https://shopify.github.io/liquid/" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                    Full Liquid Documentation
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right pane: Variables and preview -->
+    <div class="col-lg-6 mb-4">
+      <!-- Variables section -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-input-cursor-text"></i>
+            Variables
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="variables-container">
+            <% if @sample_variables.any? %>
+              <% @sample_variables.each do |name, value| %>
+                <div class="mb-2">
+                  <label for="var-<%= name %>" class="form-label"><code><%= name %></code></label>
+                  <input
+                    type="text"
+                    class="form-control variable-input"
+                    id="var-<%= name %>"
+                    data-variable-name="<%= name %>"
+                    value="<%= value %>"
+                    placeholder="Enter value for <%= name %>"
+                  >
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-muted">No variables detected. Start typing in the template editor.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview section -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-eye"></i>
+            Live Preview
+            <span id="preview-status" class="badge bg-secondary ms-2" style="display: none;">
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              Updating...
+            </span>
+          </h5>
+          <button id="refresh-preview-btn" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="preview-container" class="border rounded p-3 bg-light" style="min-height: 200px; white-space: pre-wrap; font-family: inherit;">
+            <p class="text-muted">Preview will appear here...</p>
+          </div>
+          <div id="preview-error" class="alert alert-danger mt-3" style="display: none;"></div>
+          <div class="mt-2">
+            <small class="text-muted">
+              <i class="bi bi-info-circle"></i>
+              Preview updates automatically as you type (500ms delay)
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="row mt-3">
+    <div class="col">
+      <% unless @prompt %>
+        <!-- Prompt name input for standalone mode -->
+        <div class="mb-3" style="max-width: 400px;">
+          <label for="prompt-name-input" class="form-label">Prompt Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="prompt-name-input"
+            placeholder="Enter a name for this prompt"
+            required
+          >
+          <div class="form-text">Required when creating a new prompt</div>
+        </div>
+      <% end %>
+
+      <button id="save-draft-btn" class="btn btn-primary">
+        <i class="bi bi-save"></i>
+        <% if @prompt %>
+          Save as Draft Version
+        <% else %>
+          Create Prompt
+        <% end %>
+      </button>
+      <% if @prompt %>
+        <a href="<%= prompt_path(@prompt) %>" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle"></i>
+          Cancel
+        </a>
+      <% else %>
+        <a href="<%= prompts_path %>" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle"></i>
+          Cancel
+        </a>
+      <% end %>
+    </div>
+  </div>
+</div>
+<!-- End of main container -->
+
+<!-- Modals (outside container to avoid z-index issues) -->
+
+<!-- Fix z-index for modals to appear above backdrop -->
+<script>
+  // Fix modal z-index issue - Bootstrap creates backdrop AFTER modal in DOM
+  // Solution: Move modals to end of body and ensure proper z-index
+  document.addEventListener('DOMContentLoaded', function() {
+    const keyboardModal = document.getElementById('keyboardShortcutsModal');
+    const examplesModal = document.getElementById('templateExamplesModal');
+
+    // Move modals to end of body (after any backdrops)
+    if (keyboardModal && !keyboardModal.hasAttribute('data-moved')) {
+      document.body.appendChild(keyboardModal);
+      keyboardModal.setAttribute('data-moved', 'true');
+    }
+    if (examplesModal && !examplesModal.hasAttribute('data-moved')) {
+      document.body.appendChild(examplesModal);
+      examplesModal.setAttribute('data-moved', 'true');
+    }
+
+    // Function to ensure modal appears above backdrop
+    function ensureModalOnTop(modalElement) {
+      if (!modalElement) return;
+
+      // When modal starts to show
+      modalElement.addEventListener('show.bs.modal', function(e) {
+        console.log('Modal showing:', this.id);
+        // Move modal to end of body again (in case backdrop was added)
+        document.body.appendChild(this);
+      });
+
+      // After modal is shown
+      modalElement.addEventListener('shown.bs.modal', function(e) {
+        console.log('Modal shown:', this.id);
+        // Ensure modal is after backdrop in DOM
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 0) {
+          // Move modal after the last backdrop
+          const lastBackdrop = backdrops[backdrops.length - 1];
+          lastBackdrop.parentNode.insertBefore(this, lastBackdrop.nextSibling);
+        }
+      });
+    }
+
+    // Apply to both modals
+    ensureModalOnTop(keyboardModal);
+    ensureModalOnTop(examplesModal);
+  });
+</script>
+
+<!-- Keyboard Shortcuts Modal -->
+<div class="modal fade" id="keyboardShortcutsModal" tabindex="-1" aria-labelledby="keyboardShortcutsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="keyboardShortcutsModalLabel">
+          <i class="bi bi-keyboard"></i> Keyboard Shortcuts
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm">
+          <tbody>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+              <td>Refresh preview</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>S</kbd></td>
+              <td>Save draft</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>/</kbd></td>
+              <td>Toggle syntax help</td>
+            </tr>
+            <tr>
+              <td><kbd>Tab</kbd></td>
+              <td>Insert 2 spaces (in template editor)</td>
+            </tr>
+            <tr>
+              <td><kbd>Esc</kbd></td>
+              <td>Close modals</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="text-muted mb-0">
+          <small><i class="bi bi-info-circle"></i> Use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd> on Mac</small>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Template Examples Modal -->
+<div class="modal fade" id="templateExamplesModal" tabindex="-1" aria-labelledby="templateExamplesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="templateExamplesModalLabel">
+          <i class="bi bi-lightbulb"></i> Template Examples
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="accordion" id="examplesAccordion">
+          <!-- Simple Mustache Example -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example1">
+                Simple Variable Substitution (Mustache)
+              </button>
+            </h2>
+            <div id="example1" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+              <div class="accordion-body">
+                <pre class="bg-light p-3 rounded mb-2"><code>Hello {{name}}! Welcome to {{company}}.</code></pre>
+                <p class="mb-2"><strong>Variables:</strong> <code>name</code>, <code>company</code></p>
+                <button class="btn btn-sm btn-primary use-example-btn" data-template="Hello {{name}}! Welcome to {{company}}.">
+                  Use This Template
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Liquid Filters Example -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example2">
+                Text Formatting with Liquid Filters
+              </button>
+            </h2>
+            <div id="example2" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+              <div class="accordion-body">
+                <pre class="bg-light p-3 rounded mb-2"><code>Dear {{ customer_name | capitalize }},
+
+Thank you for contacting {{ company_name | upcase }} support.
+
+Issue: {{ issue_description | truncate: 100 }}</code></pre>
+                <p class="mb-2"><strong>Variables:</strong> <code>customer_name</code>, <code>company_name</code>, <code>issue_description</code></p>
+                <button class="btn btn-sm btn-primary use-example-btn" data-template="Dear {{ customer_name | capitalize }},&#10;&#10;Thank you for contacting {{ company_name | upcase }} support.&#10;&#10;Issue: {{ issue_description | truncate: 100 }}">
+                  Use This Template
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conditional Example -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example3">
+                Conditional Content (Liquid)
+              </button>
+            </h2>
+            <div id="example3" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+              <div class="accordion-body">
+                <pre class="bg-light p-3 rounded mb-2"><code>Hello {{ name }}!
+
+{% if premium %}
+You're a premium member - enjoy exclusive benefits!
+{% else %}
+Upgrade to premium for more features.
+{% endif %}
+
+Best regards,
+The Team</code></pre>
+                <p class="mb-2"><strong>Variables:</strong> <code>name</code>, <code>premium</code> (boolean)</p>
+                <button class="btn btn-sm btn-primary use-example-btn" data-template="Hello {{ name }}!&#10;&#10;{% if premium %}&#10;You're a premium member - enjoy exclusive benefits!&#10;{% else %}&#10;Upgrade to premium for more features.&#10;{% endif %}&#10;&#10;Best regards,&#10;The Team">
+                  Use This Template
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loop Example -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example4">
+                Loops (Liquid)
+              </button>
+            </h2>
+            <div id="example4" class="accordion-collapse collapse" data-bs-parent="#examplesAccordion">
+              <div class="accordion-body">
+                <pre class="bg-light p-3 rounded mb-2"><code>Order Summary for {{ customer_name }}:
+
+{% for item in items %}
+- {{ item }}
+{% endfor %}
+
+Total items: {{ items.size }}</code></pre>
+                <p class="mb-2"><strong>Variables:</strong> <code>customer_name</code>, <code>items</code> (array)</p>
+                <button class="btn btn-sm btn-primary use-example-btn" data-template="Order Summary for {{ customer_name }}:&#10;&#10;{% for item in items %}&#10;- {{ item }}&#10;{% endfor %}&#10;&#10;Total items: {{ items.size }}">
+                  Use This Template
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="<%= asset_path 'prompt_tracker/playground.js' %>"></script>
+
+<%= javascript_tag do %>
+  document.addEventListener('DOMContentLoaded', function() {
+    const playground = new PromptPlayground({
+      <% if @prompt %>
+        promptId: <%= @prompt.id %>,
+        previewUrl: '<%= preview_prompt_playground_path(@prompt) %>',
+        saveUrl: '<%= save_prompt_playground_path(@prompt) %>',
+      <% else %>
+        promptId: null,
+        previewUrl: '<%= preview_playground_path %>',
+        saveUrl: '<%= save_playground_path %>',
+      <% end %>
+      isStandalone: <%= @prompt.nil? %>
+    });
+  });
+<% end %>

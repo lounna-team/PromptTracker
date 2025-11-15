@@ -23,6 +23,14 @@ module PromptTracker
   #   support_prompts = Prompt.in_category("support")
   #
   class Prompt < ApplicationRecord
+    # Constants
+    AGGREGATION_STRATEGIES = %w[
+      simple_average
+      weighted_average
+      minimum
+      custom
+    ].freeze
+
     # Associations
     has_many :prompt_versions,
              class_name: "PromptTracker::PromptVersion",
@@ -31,6 +39,11 @@ module PromptTracker
 
     has_many :ab_tests,
              class_name: "PromptTracker::AbTest",
+             dependent: :destroy,
+             inverse_of: :prompt
+
+    has_many :evaluator_configs,
+             class_name: "PromptTracker::EvaluatorConfig",
              dependent: :destroy,
              inverse_of: :prompt
 
@@ -57,6 +70,10 @@ module PromptTracker
                 message: "must contain only lowercase letters, numbers, and underscores"
               },
               allow_blank: true
+
+    validates :score_aggregation_strategy,
+              inclusion: { in: AGGREGATION_STRATEGIES },
+              allow_nil: true
 
     validate :tags_must_be_array
 

@@ -141,7 +141,7 @@ module PromptTracker
                   response.tokens_total
                 when "success_rate"
                   response.status == "success" ? 1.0 : 0.0
-                when "evaluation_score"
+                when "quality_score", "evaluation_score"
                   # Get average evaluation score
                   avg_score = response.evaluations.average(:score)
                   avg_score&.to_f
@@ -312,4 +312,3 @@ module PromptTracker
     end
   end
 end
-

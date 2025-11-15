@@ -90,25 +90,28 @@ module PromptTracker
 
     # Renders the template with the provided variables.
     #
-    # Uses simple Mustache-style {{variable}} substitution.
+    # Uses TemplateRenderer service which supports both Liquid and Mustache syntax.
+    # Auto-detects template type based on syntax, or can be forced with engine parameter.
     #
     # @param variables [Hash] the variables to substitute
+    # @param engine [Symbol] the template engine to use (:liquid, :mustache, or :auto)
     # @return [String] the rendered template
     # @raise [ArgumentError] if required variables are missing
+    # @raise [Liquid::SyntaxError] if Liquid template has syntax errors
     #
-    # @example
+    # @example Render with auto-detection
     #   version.render(name: "John", issue: "billing")
     #   # => "Hello John, how can I help with billing?"
-    def render(variables = {})
+    #
+    # @example Render with Liquid
+    #   version.render({ name: "john" }, engine: :liquid)
+    #   # => "Hello JOHN!" (if template uses {{ name | upcase }})
+    def render(variables = {}, engine: :auto)
       variables = variables.with_indifferent_access
       validate_required_variables!(variables)
 
-      rendered = template.dup
-      variables.each do |key, value|
-        rendered.gsub!("{{#{key}}}", value.to_s)
-      end
-
-      rendered
+      renderer = TemplateRenderer.new(template)
+      renderer.render(variables, engine: engine)
     end
 
     # Activates this version and deprecates all other versions of the same prompt.

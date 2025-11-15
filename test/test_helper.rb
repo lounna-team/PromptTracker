@@ -1,3 +1,7 @@
+# Start SimpleCov before loading any application code
+require "simplecov"
+SimpleCov.command_name "Minitest"
+
 # Configure Rails Environment
 ENV["RAILS_ENV"] = "test"
 

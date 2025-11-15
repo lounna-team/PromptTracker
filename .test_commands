@@ -1,0 +1,91 @@
+# Quick Test Commands Reference
+# Copy-paste these commands for quick testing
+
+# ============================================================================
+# RUN ALL TESTS
+# ============================================================================
+
+# Option 1: Shell script (colored output, recommended) ⭐
+./bin/test_all
+
+# Option 2: Simple one-liner (also recommended)
+bundle exec rails test && bundle exec rspec
+
+# Option 3: Rake task
+bundle exec rake test_all
+
+# Option 4: Default rake task
+bundle exec rake
+
+# ============================================================================
+# RUN INDIVIDUAL SUITES
+# ============================================================================
+
+# Minitest only (~412 tests)
+bundle exec rails test
+
+# RSpec only (~100 tests)
+bundle exec rspec
+
+# ============================================================================
+# RUN SPECIFIC FILES
+# ============================================================================
+
+# Minitest - specific file
+bundle exec rails test test/models/prompt_tracker/prompt_test.rb
+
+# RSpec - specific file
+bundle exec rspec spec/models/prompt_tracker/evaluator_config_spec.rb
+
+# RSpec - with documentation format
+bundle exec rspec --format documentation
+
+# ============================================================================
+# RUN SPECIFIC TESTS
+# ============================================================================
+
+# Minitest - specific test by line number
+bundle exec rails test test/models/prompt_tracker/prompt_test.rb:10
+
+# RSpec - specific example by line number
+bundle exec rspec spec/models/prompt_tracker/evaluator_config_spec.rb:25
+
+# ============================================================================
+# RUN BY CATEGORY
+# ============================================================================
+
+# All model tests (Minitest)
+bundle exec rails test test/models/**/*_test.rb
+
+# All service tests (Minitest)
+bundle exec rails test test/services/**/*_test.rb
+
+# All evaluator tests (Minitest)
+bundle exec rails test test/services/prompt_tracker/evaluators/**/*_test.rb
+
+# ============================================================================
+# DEBUGGING
+# ============================================================================
+
+# Reset test database
+RAILS_ENV=test bundle exec rails db:reset
+
+# Run with verbose output
+bundle exec rails test -v
+
+# Run RSpec with backtrace
+bundle exec rspec --backtrace
+
+# ============================================================================
+# COVERAGE
+# ============================================================================
+
+# Check test coverage (if SimpleCov is installed)
+COVERAGE=true bundle exec rake test_all
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+# What GitHub Actions will run
+bundle exec rails test && bundle exec rspec

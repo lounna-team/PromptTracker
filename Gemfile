@@ -10,6 +10,23 @@ gem "pg", "~> 1.5"
 gem "sprockets-rails"
 
 gem "pry-byebug"
+gem "ostruct" # Required for Ruby 3.5+ compatibility
+
+# Testing
+group :development, :test do
+  gem "rspec-rails", "~> 6.1"
+  gem "factory_bot_rails", "~> 6.4"
+  gem "faker", "~> 3.2"
+end
+
+group :test do
+  gem "shoulda-matchers", "~> 6.0"
+  gem "database_cleaner-active_record", "~> 2.1"
+  gem "simplecov", require: false
+  gem "webmock", "~> 3.19"
+  gem "vcr", "~> 6.2"
+  gem "rails-controller-testing", "~> 1.0" # For assigns and assert_template in controller tests
+end
 
 # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
 gem "rubocop-rails-omakase", require: false

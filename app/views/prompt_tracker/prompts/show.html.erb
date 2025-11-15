@@ -14,6 +14,9 @@
     <p class="text-muted"><%= @prompt.description %></p>
   </div>
   <div class="col-auto">
+    <%= link_to prompt_playground_path(@prompt), class: "btn btn-primary me-2" do %>
+      <i class="bi bi-play-circle"></i> Open in Playground
+    <% end %>
     <%= link_to new_prompt_ab_test_path(@prompt), class: "btn btn-success me-2" do %>
       <i class="bi bi-graph-up-arrow"></i> Create A/B Test
     <% end %>
@@ -153,6 +156,16 @@
     </div>
   </div>
 </div>
+
+<!-- Auto-Evaluation Configuration -->
+<div class="row mb-4">
+  <div class="col-12">
+    <%= render "evaluator_configs", prompt: @prompt %>
+  </div>
+</div>
+
+<!-- Evaluator Modals (outside card to avoid z-index issues) -->
+<%= render "evaluator_modals", prompt: @prompt %>
 
 <!-- Versions List -->
 <div class="card">

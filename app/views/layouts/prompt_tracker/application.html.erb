@@ -118,6 +118,11 @@
             <%= link_to "Prompts", prompts_path, class: "nav-link #{'active' if controller_name == 'prompts'}" %>
           </li>
           <li class="nav-item">
+            <%= link_to playground_path, class: "nav-link #{'active' if controller_name == 'playground'}" do %>
+              <i class="bi bi-play-circle"></i> Playground
+            <% end %>
+          </li>
+          <li class="nav-item">
             <%= link_to "Responses", llm_responses_path, class: "nav-link #{'active' if controller_name == 'llm_responses'}" %>
           </li>
           <li class="nav-item">

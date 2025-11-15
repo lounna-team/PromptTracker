@@ -57,6 +57,7 @@ module PromptTracker
     # Create new A/B test
     def create
       @ab_test = @prompt.ab_tests.build(ab_test_params)
+      normalize_traffic_split(@ab_test)
 
       if @ab_test.save
         redirect_to ab_test_path(@ab_test), notice: "A/B test created successfully."
@@ -85,7 +86,10 @@ module PromptTracker
         return
       end
 
-      if @ab_test.update(ab_test_params)
+      @ab_test.assign_attributes(ab_test_params)
+      normalize_traffic_split(@ab_test)
+
+      if @ab_test.save
         redirect_to ab_test_path(@ab_test), notice: "A/B test updated successfully."
       else
         @available_versions = @ab_test.prompt.prompt_versions.where(status: ["active", "draft"]).order(version_number: :desc)
@@ -221,6 +225,16 @@ module PromptTracker
         traffic_split: {},
         variants: [:name, :version_id]
       )
+    end
+
+    # Normalize traffic_split hash values to integers
+    # This is needed because form params come as strings
+    def normalize_traffic_split(ab_test)
+      return unless ab_test.traffic_split.is_a?(Hash)
+
+      ab_test.traffic_split = ab_test.traffic_split.transform_values do |value|
+        value.is_a?(String) ? value.to_i : value
+      end
     end
 
     # Calculate statistics for each variant

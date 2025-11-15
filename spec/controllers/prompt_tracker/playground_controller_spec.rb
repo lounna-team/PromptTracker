@@ -1,0 +1,168 @@
+# frozen_string_literal: true
+
+require "rails_helper"
+
+module PromptTracker
+  RSpec.describe PlaygroundController, type: :controller do
+    routes { PromptTracker::Engine.routes }
+
+    let!(:prompt) { create(:prompt) }
+    let!(:version) { create(:prompt_version, prompt: prompt, template: "Hello {{name}}!", status: "active") }
+
+    describe "GET #show" do
+      it "renders the playground page" do
+        get :show, params: { prompt_id: prompt.id }
+
+        expect(response).to have_http_status(:success)
+        expect(assigns(:prompt)).to eq(prompt)
+        expect(assigns(:version)).to eq(version)
+      end
+
+      it "extracts variables from template" do
+        get :show, params: { prompt_id: prompt.id }
+
+        expect(assigns(:variables)).to include("name")
+      end
+
+      it "builds sample variables hash" do
+        get :show, params: { prompt_id: prompt.id }
+
+        expect(assigns(:sample_variables)).to be_a(Hash)
+        expect(assigns(:sample_variables)).to have_key("name")
+      end
+    end
+
+    describe "POST #preview" do
+      it "renders template successfully" do
+        post :preview, params: {
+          prompt_id: prompt.id,
+          template: "Hello {{name}}!",
+          variables: { name: "John" }
+        }, format: :json
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["rendered"]).to eq("Hello John!")
+        expect(json["engine"]).to eq("mustache")
+      end
+
+      it "detects Liquid templates" do
+        post :preview, params: {
+          prompt_id: prompt.id,
+          template: "Hello {{ name | upcase }}!",
+          variables: { name: "john" }
+        }, format: :json
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["rendered"]).to eq("Hello JOHN!")
+        expect(json["engine"]).to eq("liquid")
+      end
+
+      it "returns errors for invalid templates" do
+        post :preview, params: {
+          prompt_id: prompt.id,
+          template: "{% if %}",
+          variables: {}
+        }, format: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be false
+        expect(json["errors"]).to be_present
+      end
+
+      it "extracts variables from template" do
+        post :preview, params: {
+          prompt_id: prompt.id,
+          template: "Hello {{name}}, welcome to {{place}}!",
+          variables: { name: "Alice", place: "Wonderland" }
+        }, format: :json
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["variables_detected"]).to include("name", "place")
+      end
+    end
+
+    describe "POST #save" do
+      it "creates a new draft version" do
+        expect {
+          post :save, params: {
+            prompt_id: prompt.id,
+            template: "New template {{var}}",
+            notes: "Test draft"
+          }, format: :json
+        }.to change(PromptVersion, :count).by(1)
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["version_id"]).to be_present
+
+        new_version = PromptVersion.find(json["version_id"])
+        expect(new_version.template).to eq("New template {{var}}")
+        expect(new_version.status).to eq("draft")
+        expect(new_version.source).to eq("web_ui")
+        expect(new_version.notes).to eq("Test draft")
+      end
+
+      it "returns errors for invalid template" do
+        post :save, params: {
+          prompt_id: prompt.id,
+          template: "",
+          notes: "Empty template"
+        }, format: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be false
+        expect(json["errors"]).to be_present
+      end
+    end
+
+    describe "private methods" do
+      controller do
+        def test_extract_variables
+          render json: { variables: extract_variables_from_template(params[:template]) }
+        end
+      end
+
+      before do
+        routes.draw do
+          post "test_extract_variables" => "prompt_tracker/playground#test_extract_variables"
+        end
+      end
+
+      it "extracts Mustache variables" do
+        post :test_extract_variables, params: { template: "{{name}} {{age}}" }
+
+        json = JSON.parse(response.body)
+        expect(json["variables"]).to match_array(["name", "age"])
+      end
+
+      it "extracts Liquid filter variables" do
+        post :test_extract_variables, params: { template: "{{ name | upcase }}" }
+
+        json = JSON.parse(response.body)
+        expect(json["variables"]).to include("name")
+      end
+
+      it "extracts Liquid conditional variables" do
+        post :test_extract_variables, params: { template: "{% if premium %}Yes{% endif %}" }
+
+        json = JSON.parse(response.body)
+        expect(json["variables"]).to include("premium")
+      end
+
+      it "extracts Liquid loop variables" do
+        post :test_extract_variables, params: { template: "{% for item in items %}{{ item }}{% endfor %}" }
+
+        json = JSON.parse(response.body)
+        expect(json["variables"]).to include("items")
+      end
+    end
+  end
+end
