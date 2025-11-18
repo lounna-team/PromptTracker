@@ -5,11 +5,14 @@
 
 puts "🌱 Seeding PromptTracker database..."
 
-# Clean up existing data
+# Clean up existing data (order matters due to foreign key constraints)
 puts "  Cleaning up existing data..."
 PromptTracker::Evaluation.delete_all
+PromptTracker::PromptTestRun.delete_all  # Delete test runs before LLM responses
+PromptTracker::PromptTest.delete_all
 PromptTracker::LlmResponse.delete_all
 PromptTracker::AbTest.delete_all
+PromptTracker::EvaluatorConfig.delete_all
 PromptTracker::PromptVersion.delete_all
 PromptTracker::Prompt.delete_all
 
@@ -175,7 +178,370 @@ code_review_v1 = code_review.prompt_versions.create!(
 )
 
 # ============================================================================
-# 4. Create Sample LLM Responses
+# 4. Create Sample Tests
+# ============================================================================
+
+puts "  Creating sample tests..."
+
+# Tests for support greeting v3 (active version)
+test_greeting_premium = support_greeting_v3.prompt_tests.create!(
+  name: "Premium Customer Greeting",
+  description: "Test greeting for premium customers with billing issues",
+  template_variables: { "customer_name" => "John Smith", "issue_category" => "billing" },
+  expected_patterns: ["John Smith", "billing"],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 0,
+      "config" => { "min_length" => 10, "max_length" => 500 }
+    }
+  ],
+  tags: ["premium", "billing"],
+  enabled: true
+)
+
+test_greeting_technical = support_greeting_v3.prompt_tests.create!(
+  name: "Technical Support Greeting",
+  description: "Test greeting for technical support inquiries",
+  template_variables: { "customer_name" => "Sarah Johnson", "issue_category" => "technical" },
+  expected_patterns: ["Sarah Johnson", "technical"],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 0,
+      "config" => { "min_length" => 10, "max_length" => 500 }
+    }
+  ],
+  tags: ["technical"],
+  enabled: true
+)
+
+test_greeting_account = support_greeting_v3.prompt_tests.create!(
+  name: "Account Issue Greeting",
+  description: "Test greeting for account-related questions",
+  template_variables: { "customer_name" => "Mike Davis", "issue_category" => "account" },
+  expected_patterns: ["Mike Davis", "account"],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 0,
+      "config" => { "min_length" => 10, "max_length" => 500 }
+    }
+  ],
+  tags: ["account"],
+  enabled: true
+)
+
+test_greeting_general = support_greeting_v3.prompt_tests.create!(
+  name: "General Inquiry Greeting",
+  description: "Test greeting for general customer inquiries",
+  template_variables: { "customer_name" => "Emily Chen", "issue_category" => "general" },
+  expected_patterns: ["Emily Chen", "general"],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 0,
+      "config" => { "min_length" => 10, "max_length" => 500 }
+    }
+  ],
+  tags: ["general"],
+  enabled: true
+)
+
+# Disabled test for edge case
+test_greeting_edge = support_greeting_v3.prompt_tests.create!(
+  name: "Edge Case - Very Long Name",
+  description: "Test greeting with unusually long customer name",
+  template_variables: { "customer_name" => "Alexander Maximilian Christopher Wellington III", "issue_category" => "billing" },
+  expected_patterns: ["Alexander", "billing"],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [],
+  tags: ["edge-case"],
+  enabled: false
+)
+
+# ============================================================================
+# Advanced Tests with Multiple Evaluators
+# ============================================================================
+
+puts "  Creating advanced tests with multiple evaluators..."
+
+# Test 1: Comprehensive Quality Check with Multiple Evaluators
+test_comprehensive_quality = support_greeting_v3.prompt_tests.create!(
+  name: "Comprehensive Quality Check",
+  description: "Tests greeting quality with multiple evaluators including LLM judge, length, and keyword checks",
+  template_variables: { "customer_name" => "Jennifer Martinez", "issue_category" => "refund request" },
+  expected_patterns: [
+    "Jennifer",
+    "refund",
+    "\\b(help|assist|support)\\b",  # Must contain help/assist/support
+    "^Hi\\s+\\w+"  # Must start with "Hi" followed by a name
+  ],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 80,
+      "weight" => 0.2,
+      "config" => {
+        "min_length" => 50,
+        "max_length" => 200,
+        "ideal_min" => 80,
+        "ideal_max" => 150
+      }
+    },
+    {
+      "evaluator_key" => "keyword_check",
+      "threshold" => 90,
+      "weight" => 0.3,
+      "config" => {
+        "required_keywords" => ["help", "refund"],
+        "forbidden_keywords" => ["unfortunately", "cannot", "unable"],
+        "case_sensitive" => false
+      }
+    },
+    {
+      "evaluator_key" => "gpt4_judge",
+      "threshold" => 85,
+      "weight" => 0.5,
+      "config" => {
+        "judge_model" => "gpt-4o",
+        "criteria" => ["helpfulness", "professionalism", "clarity", "tone"],
+        "custom_instructions" => "Evaluate if the greeting is warm, professional, and acknowledges the customer's refund request appropriately.",
+        "score_min" => 0,
+        "score_max" => 100
+      }
+    }
+  ],
+  tags: ["comprehensive", "quality", "critical"],
+  enabled: true
+)
+
+# Test 2: Complex Pattern Matching for Email Format
+test_email_format = email_summary_v1.prompt_tests.create!(
+  name: "Email Summary Format Validation",
+  description: "Validates email summary format with complex regex patterns",
+  template_variables: {
+    "email_thread" => "From: john@example.com\nSubject: Q4 Planning\n\nHi team, let's discuss Q4 goals..."
+  },
+  expected_patterns: [
+    "\\b(discuss|planning|goals?)\\b",  # Must mention discussion/planning/goals
+    "\\b(Q4|quarter|fourth quarter)\\b",  # Must reference Q4
+    "^[A-Z]",  # Must start with capital letter
+    "\\.$",  # Must end with period
+    "\\b\\d{1,2}\\s+(sentences?|points?)\\b"  # Should mention number of sentences/points
+  ],
+  expected_output: nil,
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.3 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 75,
+      "weight" => 0.25,
+      "config" => {
+        "min_length" => 100,
+        "max_length" => 400,
+        "ideal_min" => 150,
+        "ideal_max" => 300
+      }
+    },
+    {
+      "evaluator_key" => "format_check",
+      "threshold" => 80,
+      "weight" => 0.25,
+      "config" => {
+        "expected_format" => "plain",
+        "strict" => false
+      }
+    },
+    {
+      "evaluator_key" => "gpt4_judge",
+      "threshold" => 80,
+      "weight" => 0.5,
+      "config" => {
+        "judge_model" => "gpt-4o",
+        "criteria" => ["accuracy", "conciseness", "completeness"],
+        "custom_instructions" => "Evaluate if the summary captures the key points of the email thread concisely and accurately.",
+        "score_min" => 0,
+        "score_max" => 100
+      }
+    }
+  ],
+  tags: ["format", "validation", "email"],
+  enabled: true
+)
+
+# Test 3: Code Review Quality with LLM Judge
+test_code_review_quality = code_review_v1.prompt_tests.create!(
+  name: "Code Review Quality Assessment",
+  description: "Tests code review feedback quality with LLM judge and keyword validation",
+  template_variables: {
+    "language" => "ruby",
+    "code" => "def calculate_total(items)\n  items.map { |i| i[:price] }.sum\nend"
+  },
+  expected_patterns: [
+    "\\b(quality|readability|performance|best practice)\\b",  # Must mention quality aspects
+    "\\b(bug|edge case|error|exception)\\b",  # Must mention potential issues
+    "\\b(consider|suggest|recommend|improve)\\b",  # Must provide suggestions
+    "```ruby",  # Must include code block
+    "\\bsum\\b"  # Must reference the sum method
+  ],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 70,
+      "weight" => 0.15,
+      "config" => {
+        "min_length" => 200,
+        "max_length" => 1000,
+        "ideal_min" => 300,
+        "ideal_max" => 700
+      }
+    },
+    {
+      "evaluator_key" => "keyword_check",
+      "threshold" => 85,
+      "weight" => 0.25,
+      "config" => {
+        "required_keywords" => ["code", "quality", "readability"],
+        "forbidden_keywords" => ["terrible", "awful", "stupid"],
+        "case_sensitive" => false
+      }
+    },
+    {
+      "evaluator_key" => "gpt4_judge",
+      "threshold" => 90,
+      "weight" => 0.6,
+      "config" => {
+        "judge_model" => "gpt-4o",
+        "criteria" => ["helpfulness", "technical_accuracy", "professionalism", "completeness"],
+        "custom_instructions" => "Evaluate if the code review is constructive, technically accurate, and provides actionable feedback. The review should identify potential issues and suggest improvements.",
+        "score_min" => 0,
+        "score_max" => 100
+      }
+    }
+  ],
+  tags: ["code-review", "quality", "technical"],
+  enabled: true
+)
+
+# Test 4: Exact Output Match with Multiple Evaluators
+test_exact_match = support_greeting_v3.prompt_tests.create!(
+  name: "Exact Output Validation",
+  description: "Tests for exact expected output with additional quality checks",
+  template_variables: { "customer_name" => "Alice", "issue_category" => "password reset" },
+  expected_output: "Hi Alice! Thanks for contacting us. I'm here to help with your password reset question. What's going on?",
+  expected_patterns: [
+    "^Hi Alice!",
+    "password reset",
+    "What's going on\\?$"
+  ],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 90,
+      "weight" => 0.3,
+      "config" => {
+        "min_length" => 50,
+        "max_length" => 150,
+        "ideal_min" => 80,
+        "ideal_max" => 120
+      }
+    },
+    {
+      "evaluator_key" => "gpt4_judge",
+      "threshold" => 95,
+      "weight" => 0.7,
+      "config" => {
+        "judge_model" => "gpt-4o",
+        "criteria" => ["accuracy", "tone", "clarity"],
+        "custom_instructions" => "Evaluate if the greeting matches the expected format and tone for a password reset inquiry.",
+        "score_min" => 0,
+        "score_max" => 100
+      }
+    }
+  ],
+  tags: ["exact-match", "critical", "smoke"],
+  enabled: true
+)
+
+# Test 5: Complex Regex Patterns for Technical Content
+test_technical_patterns = code_review_v1.prompt_tests.create!(
+  name: "Technical Content Pattern Validation",
+  description: "Validates technical content with complex regex patterns for code snippets, technical terms, and formatting",
+  template_variables: {
+    "language" => "python",
+    "code" => "def process_data(data):\n    return [x * 2 for x in data if x > 0]"
+  },
+  expected_patterns: [
+    "```python[\\s\\S]*```",  # Must contain Python code block
+    "\\b(list comprehension|comprehension)\\b",  # Must mention list comprehension
+    "\\b(filter|filtering|condition)\\b",  # Must mention filtering
+    "\\b(performance|efficiency|optimization)\\b",  # Must discuss performance
+    "\\b(edge case|edge-case|boundary)\\b",  # Must mention edge cases
+    "\\b(empty|None|null|zero)\\b",  # Must consider empty/null cases
+    "(?i)\\b(test|testing|unit test)\\b",  # Must mention testing (case insensitive)
+    "\\b[A-Z][a-z]+\\s+[a-z]+\\s+[a-z]+",  # Must have proper sentences
+    "\\d+",  # Must contain at least one number
+    "\\b(could|should|might|consider|recommend)\\b"  # Must use suggestive language
+  ],
+  model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
+  evaluator_configs: [
+    {
+      "evaluator_key" => "length_check",
+      "threshold" => 75,
+      "weight" => 0.2,
+      "config" => {
+        "min_length" => 250,
+        "max_length" => 1200,
+        "ideal_min" => 400,
+        "ideal_max" => 800
+      }
+    },
+    {
+      "evaluator_key" => "keyword_check",
+      "threshold" => 80,
+      "weight" => 0.2,
+      "config" => {
+        "required_keywords" => ["comprehension", "performance", "edge case"],
+        "forbidden_keywords" => [],
+        "case_sensitive" => false
+      }
+    },
+    {
+      "evaluator_key" => "format_check",
+      "threshold" => 85,
+      "weight" => 0.1,
+      "config" => {
+        "expected_format" => "markdown",
+        "strict" => false
+      }
+    },
+    {
+      "evaluator_key" => "gpt4_judge",
+      "threshold" => 88,
+      "weight" => 0.5,
+      "config" => {
+        "judge_model" => "gpt-4o",
+        "criteria" => ["technical_accuracy", "completeness", "helpfulness", "professionalism"],
+        "custom_instructions" => "Evaluate the technical accuracy and completeness of the code review. It should identify the list comprehension, discuss performance implications, mention edge cases, and suggest testing.",
+        "score_min" => 0,
+        "score_max" => 100
+      }
+    }
+  ],
+  tags: ["technical", "complex-patterns", "code-review"],
+  enabled: true
+)
+
+# ============================================================================
+# 5. Create Sample LLM Responses
 # ============================================================================
 
 puts "  Creating sample LLM responses..."
@@ -186,7 +552,7 @@ puts "  Creating sample LLM responses..."
     rendered_prompt: "Hi John! Thanks for contacting us. I'm here to help with your billing question. What's going on?",
     variables_used: { "customer_name" => "John", "issue_category" => "billing" },
     provider: "openai",
-    model: "gpt-4",
+    model: "gpt-4o",
     user_id: "user_#{i + 1}",
     session_id: "session_#{i + 1}",
     environment: "production"
@@ -208,7 +574,7 @@ failed_response = support_greeting_v3.llm_responses.create!(
   rendered_prompt: "Hi Jane! Thanks for contacting us. I'm here to help with your technical question. What's going on?",
   variables_used: { "customer_name" => "Jane", "issue_category" => "technical" },
   provider: "openai",
-  model: "gpt-4",
+  model: "gpt-4o",
   user_id: "user_6",
   session_id: "session_6",
   environment: "production"
@@ -261,7 +627,7 @@ end
     rendered_prompt: "Summarize the following email thread in 2-3 sentences:\n\nLong email thread here...",
     variables_used: { "email_thread" => "Long email thread here..." },
     provider: "openai",
-    model: "gpt-4",
+    model: "gpt-4o",
     user_id: "user_email_#{i + 1}",
     environment: "production"
   )
@@ -321,7 +687,7 @@ successful_responses.each_with_index do |response, i|
         "professionalism" => rand(4..5)
       },
       evaluator_type: "llm_judge",
-      evaluator_id: "gpt-4",
+      evaluator_id: "gpt-4o",
       feedback: "The response is helpful and maintains a professional yet friendly tone.",
       metadata: {
         "reasoning" => "Good balance of professionalism and warmth",
@@ -384,7 +750,7 @@ puts "  Creating A/B test responses..."
     rendered_prompt: "Hi #{['Alice', 'Bob', 'Charlie'][i % 3]}! Thanks for contacting us. I'm here to help with your billing question. What's going on?",
     variables_used: { "customer_name" => ['Alice', 'Bob', 'Charlie'][i % 3], "issue_category" => "billing" },
     provider: "openai",
-    model: "gpt-4",
+    model: "gpt-4o",
     user_id: "ab_test_user_a_#{i + 1}",
     session_id: "ab_test_session_a_#{i + 1}",
     environment: "production",
@@ -417,7 +783,7 @@ end
     rendered_prompt: "Hey #{['Dave', 'Eve', 'Frank'][i % 3]}! What's up with billing?",
     variables_used: { "customer_name" => ['Dave', 'Eve', 'Frank'][i % 3], "issue_category" => "billing" },
     provider: "openai",
-    model: "gpt-4",
+    model: "gpt-4o",
     user_id: "ab_test_user_b_#{i + 1}",
     session_id: "ab_test_session_b_#{i + 1}",
     environment: "production",
@@ -484,6 +850,8 @@ puts "  - #{PromptTracker::PromptVersion.count} prompt versions"
 puts "    - #{PromptTracker::PromptVersion.active.count} active"
 puts "    - #{PromptTracker::PromptVersion.draft.count} draft"
 puts "    - #{PromptTracker::PromptVersion.deprecated.count} deprecated"
+puts "  - #{PromptTracker::PromptTest.count} prompt tests"
+puts "    - #{PromptTracker::PromptTest.enabled.count} enabled"
 puts "  - #{PromptTracker::LlmResponse.count} LLM responses"
 puts "    - #{PromptTracker::LlmResponse.successful.count} successful"
 puts "    - #{PromptTracker::LlmResponse.failed.count} failed"
@@ -501,4 +869,11 @@ puts "\n🎉 Ready to explore!"
 puts "\n💡 Tips:"
 puts "  - Visit /prompt_tracker to see all prompts"
 puts "  - Check out the running A/B test: '#{ab_test_greeting_running.name}'"
+puts "  - View tests for customer_support_greeting v3 (#{support_greeting_v3.prompt_tests.count} tests)"
+puts "  - Advanced tests include:"
+puts "    • Comprehensive Quality Check (3 evaluators: length, keyword, LLM judge)"
+puts "    • Email Summary Format Validation (complex regex patterns)"
+puts "    • Code Review Quality Assessment (LLM judge + keyword validation)"
+puts "    • Exact Output Validation (exact match + quality checks)"
+puts "    • Technical Content Pattern Validation (10 complex regex patterns + 4 evaluators)"
 puts "  - Create new A/B tests with draft versions v4 and v5"

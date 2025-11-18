@@ -19,12 +19,21 @@
         <i class="bi bi-play-circle"></i>
         <% if @prompt %>
           Playground: <%= @prompt.name %>
+          <% if @version %>
+            <span class="badge bg-primary">v<%= @version.version_number %></span>
+          <% end %>
         <% else %>
           Prompt Playground
         <% end %>
       </h1>
       <p class="text-muted">
-        Draft and test your prompt template with live preview.
+        <% if @prompt_version %>
+          Testing specific version <%= @version.version_number %> of <%= @prompt.name %>.
+        <% elsif @prompt %>
+          Editing <%= @prompt.name %> (using <%= @version ? "v#{@version.version_number}" : "no version" %>).
+        <% else %>
+          Draft and test your prompt template with live preview.
+        <% end %>
         Supports both Mustache <code>{{variable}}</code> and Liquid <code>{{ variable | filter }}</code> syntax.
       </p>
     </div>
@@ -190,20 +199,39 @@
         </div>
       <% end %>
 
-      <button id="save-draft-btn" class="btn btn-primary">
-        <i class="bi bi-save"></i>
-        <% if @prompt %>
-          Save as Draft Version
-        <% else %>
-          Create Prompt
-        <% end %>
-      </button>
       <% if @prompt %>
+        <% if @version && !@version.has_responses? %>
+          <!-- Dropdown button for versions without responses -->
+          <div class="btn-group" role="group">
+            <button id="save-update-btn" type="button" class="btn btn-primary">
+              <i class="bi bi-save"></i> Update This Version
+            </button>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <button id="save-new-version-btn" class="dropdown-item" type="button">
+                  <i class="bi bi-plus-circle"></i> Save as New Version
+                </button>
+              </li>
+            </ul>
+          </div>
+        <% else %>
+          <!-- Single button for versions with responses or no version -->
+          <button id="save-draft-btn" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save as Draft Version
+          </button>
+        <% end %>
         <a href="<%= prompt_path(@prompt) %>" class="btn btn-outline-secondary">
           <i class="bi bi-x-circle"></i>
           Cancel
         </a>
       <% else %>
+        <!-- Standalone mode -->
+        <button id="save-draft-btn" class="btn btn-primary">
+          <i class="bi bi-save"></i> Create Prompt
+        </button>
         <a href="<%= prompts_path %>" class="btn btn-outline-secondary">
           <i class="bi bi-x-circle"></i>
           Cancel
@@ -420,16 +448,28 @@ Total items: {{ items.size }}</code></pre>
 <%= javascript_tag do %>
   document.addEventListener('DOMContentLoaded', function() {
     const playground = new PromptPlayground({
-      <% if @prompt %>
+      <% if @prompt_version %>
         promptId: <%= @prompt.id %>,
+        versionId: <%= @prompt_version.id %>,
+        versionHasResponses: <%= @prompt_version.has_responses? %>,
+        previewUrl: '<%= preview_prompt_prompt_version_playground_path(@prompt, @prompt_version) %>',
+        saveUrl: '<%= save_prompt_prompt_version_playground_path(@prompt, @prompt_version) %>',
+        isStandalone: false
+      <% elsif @prompt %>
+        promptId: <%= @prompt.id %>,
+        <% if @version %>
+          versionId: <%= @version.id %>,
+          versionHasResponses: <%= @version.has_responses? %>,
+        <% end %>
         previewUrl: '<%= preview_prompt_playground_path(@prompt) %>',
         saveUrl: '<%= save_prompt_playground_path(@prompt) %>',
+        isStandalone: false
       <% else %>
         promptId: null,
         previewUrl: '<%= preview_playground_path %>',
         saveUrl: '<%= save_playground_path %>',
+        isStandalone: true
       <% end %>
-      isStandalone: <%= @prompt.nil? %>
     });
   });
 <% end %>

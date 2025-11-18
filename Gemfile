@@ -12,6 +12,19 @@ gem "sprockets-rails"
 gem "pry-byebug"
 gem "ostruct" # Required for Ruby 3.5+ compatibility
 
+# LLM API clients - unified interface for all providers
+gem "ruby_llm"
+
+# Background job processing
+gem "sidekiq", "~> 7.0"
+gem "redis", "~> 5.0"
+
+# Development
+group :development do
+  gem "annotate", "~> 3.2"
+  gem "dotenv-rails"
+end
+
 # Testing
 group :development, :test do
   gem "rspec-rails", "~> 6.1"

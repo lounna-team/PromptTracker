@@ -93,7 +93,8 @@ module PromptTracker
           post :save, params: {
             prompt_id: prompt.id,
             template: "New template {{var}}",
-            notes: "Test draft"
+            notes: "Test draft",
+            save_action: "new_version"
           }, format: :json
         }.to change(PromptVersion, :count).by(1)
 
@@ -101,12 +102,80 @@ module PromptTracker
         json = JSON.parse(response.body)
         expect(json["success"]).to be true
         expect(json["version_id"]).to be_present
+        expect(json["action"]).to eq("created")
 
         new_version = PromptVersion.find(json["version_id"])
         expect(new_version.template).to eq("New template {{var}}")
         expect(new_version.status).to eq("draft")
         expect(new_version.source).to eq("web_ui")
         expect(new_version.notes).to eq("Test draft")
+      end
+
+      it "updates existing version when save_action is 'update' and version has no responses" do
+        draft_version = create(:prompt_version, prompt: prompt, status: "draft", template: "Old template")
+
+        expect {
+          post :save, params: {
+            prompt_id: prompt.id,
+            prompt_version_id: draft_version.id,
+            template: "Updated template {{var}}",
+            notes: "Updated notes",
+            save_action: "update"
+          }, format: :json
+        }.not_to change(PromptVersion, :count)
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["version_id"]).to eq(draft_version.id)
+        expect(json["action"]).to eq("updated")
+
+        draft_version.reload
+        expect(draft_version.template).to eq("Updated template {{var}}")
+        expect(draft_version.notes).to eq("Updated notes")
+      end
+
+      it "creates new version when save_action is 'update' but version has responses" do
+        version_with_responses = create(:prompt_version, prompt: prompt, status: "active")
+        create(:llm_response, prompt_version: version_with_responses)
+
+        expect {
+          post :save, params: {
+            prompt_id: prompt.id,
+            prompt_version_id: version_with_responses.id,
+            template: "New template {{var}}",
+            notes: "Should create new version",
+            save_action: "update"
+          }, format: :json
+        }.to change(PromptVersion, :count).by(1)
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["action"]).to eq("created")
+
+        # Original version should be unchanged
+        version_with_responses.reload
+        expect(version_with_responses.template).not_to eq("New template {{var}}")
+      end
+
+      it "creates new version when save_action is 'new_version' even if version has no responses" do
+        draft_version = create(:prompt_version, prompt: prompt, status: "draft")
+
+        expect {
+          post :save, params: {
+            prompt_id: prompt.id,
+            prompt_version_id: draft_version.id,
+            template: "New template {{var}}",
+            notes: "Force new version",
+            save_action: "new_version"
+          }, format: :json
+        }.to change(PromptVersion, :count).by(1)
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be true
+        expect(json["action"]).to eq("created")
       end
 
       it "returns errors for invalid template" do

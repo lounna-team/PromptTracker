@@ -4,6 +4,8 @@
 class PromptPlayground {
   constructor(options) {
     this.promptId = options.promptId;
+    this.versionId = options.versionId || null;
+    this.versionHasResponses = options.versionHasResponses || false;
     this.previewUrl = options.previewUrl;
     this.saveUrl = options.saveUrl;
     this.isStandalone = options.isStandalone || false;
@@ -23,6 +25,8 @@ class PromptPlayground {
     this.engineBadge = document.getElementById('template-engine-badge');
     this.refreshBtn = document.getElementById('refresh-preview-btn');
     this.saveDraftBtn = document.getElementById('save-draft-btn');
+    this.saveUpdateBtn = document.getElementById('save-update-btn');
+    this.saveNewVersionBtn = document.getElementById('save-new-version-btn');
     this.alertContainer = document.getElementById('playground-alert');
     this.alertMessage = document.getElementById('playground-alert-message');
     this.promptNameInput = document.getElementById('prompt-name-input');
@@ -50,10 +54,26 @@ class PromptPlayground {
       this.updatePreview();
     });
 
-    // Save draft button
-    this.saveDraftBtn.addEventListener('click', () => {
-      this.saveDraft();
-    });
+    // Save draft button (for standalone or simple save)
+    if (this.saveDraftBtn) {
+      this.saveDraftBtn.addEventListener('click', () => {
+        this.saveDraft('new_version');
+      });
+    }
+
+    // Save update button (update existing version)
+    if (this.saveUpdateBtn) {
+      this.saveUpdateBtn.addEventListener('click', () => {
+        this.saveDraft('update');
+      });
+    }
+
+    // Save new version button (create new version)
+    if (this.saveNewVersionBtn) {
+      this.saveNewVersionBtn.addEventListener('click', () => {
+        this.saveDraft('new_version');
+      });
+    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -270,7 +290,7 @@ class PromptPlayground {
     this.previewContainer.innerHTML = '<p class="text-muted">Fix errors to see preview...</p>';
   }
 
-  async saveDraft() {
+  async saveDraft(saveAction = 'new_version') {
     const template = this.templateEditor.value;
 
     if (!template.trim()) {
@@ -291,15 +311,22 @@ class PromptPlayground {
       promptName = this.promptNameInput.value.trim();
     }
 
-    const notes = prompt('Add notes for this draft version (optional):');
+    const notes = prompt('Add notes for this version (optional):');
     if (notes === null) return; // User cancelled
 
-    this.saveDraftBtn.disabled = true;
-    this.saveDraftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    // Disable all save buttons and show loading state
+    const activeButton = saveAction === 'update' ? this.saveUpdateBtn :
+                        (this.saveNewVersionBtn || this.saveDraftBtn);
+
+    if (activeButton) {
+      activeButton.disabled = true;
+      activeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    }
 
     const requestBody = {
       template: template,
-      notes: notes
+      notes: notes,
+      save_action: saveAction
     };
 
     if (this.isStandalone) {
@@ -321,25 +348,37 @@ class PromptPlayground {
       if (data.success) {
         if (this.isStandalone) {
           this.showAlert(`Prompt "${promptName}" created successfully!`, 'success');
+        } else if (data.action === 'updated') {
+          this.showAlert(`Version ${data.version_number} updated successfully!`, 'success');
         } else {
-          this.showAlert(`Draft version ${data.version_number} saved successfully!`, 'success');
+          this.showAlert(`Draft version ${data.version_number} created successfully!`, 'success');
         }
         setTimeout(() => {
           window.location.href = data.redirect_url;
         }, 1500);
       } else {
         this.showAlert('Error: ' + data.errors.join(', '), 'danger');
-        this.saveDraftBtn.disabled = false;
-        this.saveDraftBtn.innerHTML = this.isStandalone
-          ? '<i class="bi bi-save"></i> Create Prompt'
-          : '<i class="bi bi-save"></i> Save as Draft Version';
+        this.resetSaveButtons(saveAction);
       }
     } catch (error) {
       this.showAlert('Network error: ' + error.message, 'danger');
+      this.resetSaveButtons(saveAction);
+    }
+  }
+
+  resetSaveButtons(saveAction) {
+    if (this.isStandalone && this.saveDraftBtn) {
       this.saveDraftBtn.disabled = false;
-      this.saveDraftBtn.innerHTML = this.isStandalone
-        ? '<i class="bi bi-save"></i> Create Prompt'
-        : '<i class="bi bi-save"></i> Save as Draft Version';
+      this.saveDraftBtn.innerHTML = '<i class="bi bi-save"></i> Create Prompt';
+    } else if (saveAction === 'update' && this.saveUpdateBtn) {
+      this.saveUpdateBtn.disabled = false;
+      this.saveUpdateBtn.innerHTML = '<i class="bi bi-save"></i> Update This Version';
+    } else if (this.saveNewVersionBtn) {
+      this.saveNewVersionBtn.disabled = false;
+      this.saveNewVersionBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Save as New Version';
+    } else if (this.saveDraftBtn) {
+      this.saveDraftBtn.disabled = false;
+      this.saveDraftBtn.innerHTML = '<i class="bi bi-save"></i> Save as Draft Version';
     }
   }
 

@@ -77,10 +77,6 @@ module PromptTracker
       result = evaluator.evaluate
 
       create_evaluation(config, result)
-    rescue StandardError => e
-      Rails.logger.error("Sync evaluation failed for #{config.evaluator_key}: #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
-      # Don't raise - continue with other evaluators
     end
 
     # Schedules an asynchronous evaluation as a background job
@@ -93,8 +89,6 @@ module PromptTracker
         config.id,
         check_dependency: config.has_dependency?
       )
-    rescue StandardError => e
-      Rails.logger.error("Failed to schedule async evaluation for #{config.evaluator_key}: #{e.message}")
     end
 
     # Creates an evaluation record from evaluator result

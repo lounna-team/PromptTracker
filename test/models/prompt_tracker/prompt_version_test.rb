@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_prompt_versions
+#
+#  created_at       :datetime         not null
+#  created_by       :string
+#  id               :bigint           not null, primary key
+#  model_config     :jsonb
+#  notes            :text
+#  prompt_id        :bigint           not null
+#  source           :string           default("file"), not null
+#  status           :string           default("draft"), not null
+#  template         :text             not null
+#  updated_at       :datetime         not null
+#  variables_schema :jsonb
+#  version_number   :integer          not null
+#
 require "test_helper"
 
 module PromptTracker

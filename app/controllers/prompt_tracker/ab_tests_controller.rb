@@ -119,8 +119,6 @@ module PromptTracker
 
       @ab_test.start!
       redirect_to ab_test_path(@ab_test), notice: "A/B test started successfully."
-    rescue StandardError => e
-      redirect_to ab_test_path(@ab_test), alert: "Failed to start test: #{e.message}"
     end
 
     # POST /ab_tests/:id/pause
@@ -133,8 +131,6 @@ module PromptTracker
 
       @ab_test.pause!
       redirect_to ab_test_path(@ab_test), notice: "A/B test paused successfully."
-    rescue StandardError => e
-      redirect_to ab_test_path(@ab_test), alert: "Failed to pause test: #{e.message}"
     end
 
     # POST /ab_tests/:id/resume
@@ -147,8 +143,6 @@ module PromptTracker
 
       @ab_test.resume!
       redirect_to ab_test_path(@ab_test), notice: "A/B test resumed successfully."
-    rescue StandardError => e
-      redirect_to ab_test_path(@ab_test), alert: "Failed to resume test: #{e.message}"
     end
 
     # POST /ab_tests/:id/complete
@@ -174,8 +168,6 @@ module PromptTracker
       else
         redirect_to ab_test_path(@ab_test), notice: "A/B test completed successfully."
       end
-    rescue StandardError => e
-      redirect_to ab_test_path(@ab_test), alert: "Failed to complete test: #{e.message}"
     end
 
     # POST /ab_tests/:id/cancel
@@ -188,8 +180,6 @@ module PromptTracker
 
       @ab_test.cancel!
       redirect_to ab_test_path(@ab_test), notice: "A/B test cancelled successfully."
-    rescue StandardError => e
-      redirect_to ab_test_path(@ab_test), alert: "Failed to cancel test: #{e.message}"
     end
 
     # GET /ab_tests/:id/analyze

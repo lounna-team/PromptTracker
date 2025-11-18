@@ -142,18 +142,15 @@ module PromptTracker
     test "should propagate LLM errors" do
       error_raised = false
 
-      begin
-        @controller.track_llm_call(
-          "test_prompt",
-          variables: { name: "Test" },
-          provider: "openai",
-          model: "gpt-4"
-        ) do |_prompt|
-          raise StandardError, "API error"
-        end
-      rescue StandardError => e
-        error_raised = true
-        assert_equal "API error", e.message
+
+      @controller.track_llm_call(
+        "test_prompt",
+        variables: { name: "Test" },
+        provider: "openai",
+        model: "gpt-4"
+      ) do |_prompt|
+        raise StandardError, "API error"
+      end
       end
 
       assert error_raised

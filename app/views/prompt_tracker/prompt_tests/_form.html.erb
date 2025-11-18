@@ -1,0 +1,731 @@
+<%= form_with(model: [@prompt, @version, @test], url: @test.new_record? ? prompt_prompt_version_prompt_tests_path(@prompt, @version) : prompt_prompt_version_prompt_test_path(@prompt, @version, @test), local: true) do |f| %>
+  <% if @test.errors.any? %>
+    <div class="alert alert-danger">
+      <h5><%= pluralize(@test.errors.count, "error") %> prohibited this test from being saved:</h5>
+      <ul class="mb-0">
+        <% @test.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Basic Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Basic Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <%= f.label :name, class: "form-label" %>
+            <%= f.text_field :name, class: "form-control", placeholder: "e.g., test_greeting_response" %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :description, class: "form-label" %>
+            <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Describe what this test validates..." %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :enabled, class: "form-label" %>
+            <div class="form-check">
+              <%= f.check_box :enabled, class: "form-check-input" %>
+              <%= f.label :enabled, "Enable this test", class: "form-check-label" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Template Variables -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Template Variables</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Provide test values for the variables defined in this prompt version</p>
+
+          <% if @version.variables_schema.present? %>
+            <% current_vars = @test.template_variables || {} %>
+
+            <% @version.variables_schema.each do |var| %>
+              <% var_name = var["name"] || var[:name] %>
+              <% var_type = var["type"] || var[:type] || "string" %>
+              <% is_required = var["required"] || var[:required] %>
+              <% current_value = current_vars[var_name] || current_vars[var_name.to_sym] %>
+
+              <div class="mb-3">
+                <label class="form-label">
+                  <%= var_name %>
+                  <% if is_required %>
+                    <span class="badge bg-warning text-dark">required</span>
+                  <% end %>
+                  <small class="text-muted">(<%= var_type %>)</small>
+                </label>
+
+                <% case var_type %>
+                <% when "string", "text" %>
+                  <input type="text"
+                         class="form-control template-variable-input"
+                         data-var-name="<%= var_name %>"
+                         data-var-type="string"
+                         value="<%= current_value || "test_#{var_name}" %>"
+                         placeholder="Enter <%= var_name %>">
+
+                <% when "integer", "number" %>
+                  <input type="number"
+                         class="form-control template-variable-input"
+                         data-var-name="<%= var_name %>"
+                         data-var-type="number"
+                         value="<%= current_value || 42 %>"
+                         placeholder="Enter <%= var_name %>">
+
+                <% when "boolean" %>
+                  <select class="form-select template-variable-input"
+                          data-var-name="<%= var_name %>"
+                          data-var-type="boolean">
+                    <option value="true" <%= 'selected' if current_value == true || current_value == "true" %>>true</option>
+                    <option value="false" <%= 'selected' if current_value == false || current_value == "false" %>>false</option>
+                  </select>
+
+                <% when "array" %>
+                  <textarea class="form-control font-monospace template-variable-input"
+                            data-var-name="<%= var_name %>"
+                            data-var-type="array"
+                            rows="3"
+                            placeholder='["item1", "item2"]'><%= current_value.is_a?(Array) ? JSON.pretty_generate(current_value) : (current_value || "[]") %></textarea>
+                  <small class="text-muted">Enter as JSON array</small>
+
+                <% when "object" %>
+                  <textarea class="form-control font-monospace template-variable-input"
+                            data-var-name="<%= var_name %>"
+                            data-var-type="object"
+                            rows="4"
+                            placeholder='{"key": "value"}'><%= current_value.is_a?(Hash) ? JSON.pretty_generate(current_value) : (current_value || "{}") %></textarea>
+                  <small class="text-muted">Enter as JSON object</small>
+
+                <% else %>
+                  <input type="text"
+                         class="form-control template-variable-input"
+                         data-var-name="<%= var_name %>"
+                         data-var-type="string"
+                         value="<%= current_value || "test_value" %>"
+                         placeholder="Enter <%= var_name %>">
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Hidden field to store the JSON -->
+            <%= f.hidden_field :template_variables, id: "template_variables_json" %>
+
+            <script>
+              // Update JSON when any variable input changes
+              document.querySelectorAll('.template-variable-input').forEach(input => {
+                input.addEventListener('change', updateTemplateVariablesJson);
+                input.addEventListener('input', updateTemplateVariablesJson);
+              });
+
+              function updateTemplateVariablesJson() {
+                const variables = {};
+                document.querySelectorAll('.template-variable-input').forEach(input => {
+                  const varName = input.dataset.varName;
+                  const varType = input.dataset.varType;
+                  let value = input.value;
+
+                  // Convert value based on type
+                  if (varType === 'number') {
+                    value = parseFloat(value) || 0;
+                  } else if (varType === 'boolean') {
+                    value = value === 'true';
+                  } else if (varType === 'array' || varType === 'object') {
+                    try {
+                      value = JSON.parse(value);
+                    } catch (e) {
+                      value = varType === 'array' ? [] : {};
+                    }
+                  }
+
+                  variables[varName] = value;
+                });
+
+                document.getElementById('template_variables_json').value = JSON.stringify(variables);
+              }
+
+              // Initialize on page load
+              updateTemplateVariablesJson();
+            </script>
+
+          <% else %>
+            <div class="alert alert-warning small mb-3">
+              This prompt version has no variables defined.
+            </div>
+            <%= f.hidden_field :template_variables, value: "{}" %>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Expected Output -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Expected Output (Optional)</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Exact text that the response should match (leave empty to skip exact match)</p>
+          <%= f.text_area :expected_output, class: "form-control", rows: 4, placeholder: "Expected exact output..." %>
+        </div>
+      </div>
+
+      <!-- Expected Patterns -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Expected Patterns (Optional)</h5>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-pattern-btn">
+            <i class="bi bi-plus-circle"></i> Add Pattern
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Regex patterns that the response should match</p>
+
+          <div id="patterns-list">
+            <% current_patterns = @test.expected_patterns || [] %>
+            <% if current_patterns.empty? %>
+              <div class="text-muted text-center py-3" id="no-patterns-message">
+                <i class="bi bi-info-circle"></i> No patterns defined. Click "Add Pattern" to add one.
+              </div>
+            <% else %>
+              <% current_patterns.each_with_index do |pattern, index| %>
+                <div class="input-group mb-2 pattern-item">
+                  <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                  <input type="text" class="form-control pattern-input" value="<%= pattern %>" placeholder="e.g., /Hello/ or /\d{3}-\d{4}/">
+                  <button type="button" class="btn btn-outline-danger remove-pattern-btn">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+
+          <!-- Hidden field to store the JSON -->
+          <%= f.hidden_field :expected_patterns, id: "expected_patterns_json" %>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const patternsList = document.getElementById('patterns-list');
+              const addPatternBtn = document.getElementById('add-pattern-btn');
+              const noMessage = document.getElementById('no-patterns-message');
+
+              // Add pattern button
+              addPatternBtn.addEventListener('click', function() {
+                if (noMessage) noMessage.remove();
+
+                const patternItem = document.createElement('div');
+                patternItem.className = 'input-group mb-2 pattern-item';
+                patternItem.innerHTML = `
+                  <span class="input-group-text"><i class="bi bi-regex"></i></span>
+                  <input type="text" class="form-control pattern-input" placeholder="e.g., /Hello/ or /\\d{3}-\\d{4}/">
+                  <button type="button" class="btn btn-outline-danger remove-pattern-btn">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                `;
+
+                patternsList.appendChild(patternItem);
+
+                // Add event listeners
+                patternItem.querySelector('.pattern-input').addEventListener('input', updatePatternsJson);
+                patternItem.querySelector('.remove-pattern-btn').addEventListener('click', function() {
+                  patternItem.remove();
+                  updatePatternsJson();
+
+                  // Show no patterns message if empty
+                  if (patternsList.querySelectorAll('.pattern-item').length === 0) {
+                    patternsList.innerHTML = '<div class="text-muted text-center py-3" id="no-patterns-message"><i class="bi bi-info-circle"></i> No patterns defined. Click "Add Pattern" to add one.</div>';
+                  }
+                });
+
+                updatePatternsJson();
+              });
+
+              // Remove pattern buttons
+              document.querySelectorAll('.remove-pattern-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  this.closest('.pattern-item').remove();
+                  updatePatternsJson();
+
+                  // Show no patterns message if empty
+                  if (patternsList.querySelectorAll('.pattern-item').length === 0) {
+                    patternsList.innerHTML = '<div class="text-muted text-center py-3" id="no-patterns-message"><i class="bi bi-info-circle"></i> No patterns defined. Click "Add Pattern" to add one.</div>';
+                  }
+                });
+              });
+
+              // Update JSON when any pattern input changes
+              document.querySelectorAll('.pattern-input').forEach(input => {
+                input.addEventListener('input', updatePatternsJson);
+              });
+
+              function updatePatternsJson() {
+                const patterns = [];
+                document.querySelectorAll('.pattern-input').forEach(input => {
+                  if (input.value.trim()) {
+                    patterns.push(input.value.trim());
+                  }
+                });
+                document.getElementById('expected_patterns_json').value = JSON.stringify(patterns);
+              }
+
+              // Initialize on page load
+              updatePatternsJson();
+            });
+          </script>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Model Configuration -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Model Configuration</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">LLM model settings for this test</p>
+
+          <% current_config = @test.model_config || { "provider" => "openai", "model" => "gpt-4", "temperature" => 0.7 } %>
+
+          <div class="mb-3">
+            <label class="form-label">Provider</label>
+            <select class="form-select" id="model_provider" name="model_provider">
+              <option value="openai" <%= 'selected' if current_config["provider"] == "openai" %>>OpenAI</option>
+              <option value="anthropic" <%= 'selected' if current_config["provider"] == "anthropic" %>>Anthropic</option>
+              <option value="google" <%= 'selected' if current_config["provider"] == "google" %>>Google</option>
+              <option value="azure" <%= 'selected' if current_config["provider"] == "azure" %>>Azure OpenAI</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Model</label>
+            <select class="form-select" id="model_name" name="model_name">
+              <!-- OpenAI models -->
+              <optgroup label="OpenAI" id="openai_models" <%= 'style=display:none;' unless current_config["provider"] == "openai" %>>
+                <option value="gpt-4" <%= 'selected' if current_config["model"] == "gpt-4" %>>GPT-4</option>
+                <option value="gpt-4-turbo" <%= 'selected' if current_config["model"] == "gpt-4-turbo" %>>GPT-4 Turbo</option>
+                <option value="gpt-3.5-turbo" <%= 'selected' if current_config["model"] == "gpt-3.5-turbo" %>>GPT-3.5 Turbo</option>
+              </optgroup>
+              <!-- Anthropic models -->
+              <optgroup label="Anthropic" id="anthropic_models" <%= 'style=display:none;' unless current_config["provider"] == "anthropic" %>>
+                <option value="claude-3-opus" <%= 'selected' if current_config["model"] == "claude-3-opus" %>>Claude 3 Opus</option>
+                <option value="claude-3-sonnet" <%= 'selected' if current_config["model"] == "claude-3-sonnet" %>>Claude 3 Sonnet</option>
+                <option value="claude-3-haiku" <%= 'selected' if current_config["model"] == "claude-3-haiku" %>>Claude 3 Haiku</option>
+              </optgroup>
+              <!-- Google models -->
+              <optgroup label="Google" id="google_models" <%= 'style=display:none;' unless current_config["provider"] == "google" %>>
+                <option value="gemini-pro" <%= 'selected' if current_config["model"] == "gemini-pro" %>>Gemini Pro</option>
+                <option value="gemini-ultra" <%= 'selected' if current_config["model"] == "gemini-ultra" %>>Gemini Ultra</option>
+              </optgroup>
+              <!-- Azure models -->
+              <optgroup label="Azure OpenAI" id="azure_models" <%= 'style=display:none;' unless current_config["provider"] == "azure" %>>
+                <option value="gpt-4" <%= 'selected' if current_config["model"] == "gpt-4" %>>GPT-4</option>
+                <option value="gpt-35-turbo" <%= 'selected' if current_config["model"] == "gpt-35-turbo" %>>GPT-3.5 Turbo</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Temperature</label>
+            <input type="number" class="form-control" id="model_temperature" name="model_temperature"
+                   step="0.1" min="0" max="2" value="<%= current_config["temperature"] || 0.7 %>">
+            <small class="text-muted">0 = deterministic, 2 = very creative</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Max Tokens (optional)</label>
+            <input type="number" class="form-control" id="model_max_tokens" name="model_max_tokens"
+                   value="<%= current_config["max_tokens"] %>" placeholder="Leave empty for default">
+          </div>
+
+          <!-- Hidden field to store the JSON -->
+          <%= f.hidden_field :model_config, id: "model_config_json" %>
+        </div>
+      </div>
+
+      <script>
+        // Update model options based on provider selection
+        document.getElementById('model_provider').addEventListener('change', function() {
+          const provider = this.value;
+          document.querySelectorAll('#model_name optgroup').forEach(group => {
+            group.style.display = 'none';
+          });
+          const targetGroup = document.getElementById(provider + '_models');
+          if (targetGroup) {
+            targetGroup.style.display = 'block';
+            // Select first option in the group
+            const firstOption = targetGroup.querySelector('option');
+            if (firstOption) firstOption.selected = true;
+          }
+          updateModelConfigJson();
+        });
+
+        // Update JSON when any field changes
+        ['model_provider', 'model_name', 'model_temperature', 'model_max_tokens'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('change', updateModelConfigJson);
+        });
+
+        function updateModelConfigJson() {
+          const config = {
+            provider: document.getElementById('model_provider').value,
+            model: document.getElementById('model_name').value,
+            temperature: parseFloat(document.getElementById('model_temperature').value)
+          };
+          const maxTokens = document.getElementById('model_max_tokens').value;
+          if (maxTokens) config.max_tokens = parseInt(maxTokens);
+
+          document.getElementById('model_config_json').value = JSON.stringify(config);
+        }
+
+        // Initialize on page load
+        updateModelConfigJson();
+      </script>
+
+      <!-- Evaluator Configs -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Evaluators (Optional)</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Select evaluators to run for this test</p>
+
+          <% available_evaluators = PromptTracker::EvaluatorRegistry.all %>
+          <% current_evaluators = @test.evaluator_configs || [] %>
+
+          <div id="evaluators-list">
+            <% available_evaluators.each do |key, meta| %>
+              <% existing_config = current_evaluators.find { |e| e["evaluator_key"] == key.to_s || e[:evaluator_key] == key } %>
+              <% is_selected = existing_config.present? %>
+
+              <div class="card mb-2 evaluator-item" data-evaluator-key="<%= key %>">
+                <div class="card-body p-3">
+                  <div class="form-check">
+                    <input class="form-check-input evaluator-checkbox" type="checkbox"
+                           id="evaluator_<%= key %>"
+                           data-evaluator-key="<%= key %>"
+                           <%= 'checked' if is_selected %>>
+                    <label class="form-check-label" for="evaluator_<%= key %>">
+                      <strong><i class="bi bi-<%= meta[:icon] %>"></i> <%= meta[:name] %></strong>
+                      <br>
+                      <small class="text-muted"><%= meta[:description] %></small>
+                      <span class="badge bg-secondary"><%= meta[:category] %></span>
+                    </label>
+                  </div>
+
+                  <div class="evaluator-config mt-2 <%= 'collapse' unless is_selected %>" id="config_<%= key %>">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <label class="form-label small">Threshold (%)</label>
+                        <input type="number" class="form-control form-control-sm evaluator-threshold"
+                               data-evaluator-key="<%= key %>"
+                               min="0" max="100"
+                               value="<%= existing_config&.dig('threshold') || existing_config&.dig(:threshold) || 80 %>">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small">Weight</label>
+                        <input type="number" class="form-control form-control-sm evaluator-weight"
+                               data-evaluator-key="<%= key %>"
+                               step="0.1" min="0" max="1"
+                               value="<%= existing_config&.dig('weight') || existing_config&.dig(:weight) || 0.5 %>">
+                      </div>
+                    </div>
+
+                    <% if meta[:config_schema].present? %>
+                      <div class="mt-2">
+                        <label class="form-label small">Configuration</label>
+                        <div class="evaluator-config-form-container" data-evaluator-key="<%= key %>">
+                          <!-- Dynamic form will be loaded here -->
+                          <div class="text-center py-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                              <span class="visually-hidden">Loading...</span>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- Hidden field to store config JSON -->
+                        <input type="hidden" class="evaluator-config-json" data-evaluator-key="<%= key %>" value='<%= JSON.generate(existing_config&.dig('config') || existing_config&.dig(:config) || meta[:default_config] || {}) %>'>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Hidden field to store the JSON -->
+          <%= f.hidden_field :evaluator_configs, id: "evaluator_configs_json" %>
+        </div>
+      </div>
+
+      <script>
+        // Load dynamic configuration forms for evaluators
+        document.addEventListener('DOMContentLoaded', function() {
+          // Load config forms for all evaluators with config_schema
+          document.querySelectorAll('.evaluator-config-form-container').forEach(container => {
+            const evaluatorKey = container.dataset.evaluatorKey;
+            loadEvaluatorConfigForm(evaluatorKey, container);
+          });
+        });
+
+        function loadEvaluatorConfigForm(evaluatorKey, container) {
+          const url = `/prompt_tracker/evaluator_configs/config_form?evaluator_key=${evaluatorKey}`;
+
+          fetch(url)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Configuration form not found');
+              }
+              return response.text();
+            })
+            .then(html => {
+              container.innerHTML = html;
+
+              // Add event listeners to all form inputs to sync with hidden field
+              container.querySelectorAll('input, select, textarea').forEach(input => {
+                input.addEventListener('change', () => syncEvaluatorConfig(evaluatorKey));
+                input.addEventListener('input', () => syncEvaluatorConfig(evaluatorKey));
+              });
+
+              // Load existing config values into the form
+              loadExistingConfigValues(evaluatorKey, container);
+            })
+            .catch(error => {
+              console.error('Error loading configuration form:', error);
+              container.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                  <small>No custom form available. Using default configuration.</small>
+                </div>
+              `;
+            });
+        }
+
+        function loadExistingConfigValues(evaluatorKey, container) {
+          const hiddenField = document.querySelector(`.evaluator-config-json[data-evaluator-key="${evaluatorKey}"]`);
+          if (!hiddenField || !hiddenField.value) return;
+
+          try {
+            const config = JSON.parse(hiddenField.value);
+
+            // Set values for all form inputs based on config
+            Object.keys(config).forEach(key => {
+              const input = container.querySelector(`[name="config[${key}]"]`);
+              if (input) {
+                if (input.type === 'checkbox') {
+                  input.checked = config[key];
+                } else if (input.tagName === 'SELECT' && input.multiple) {
+                  // Handle multi-select
+                  const values = Array.isArray(config[key]) ? config[key] : [config[key]];
+                  Array.from(input.options).forEach(option => {
+                    option.selected = values.includes(option.value);
+                  });
+                } else {
+                  input.value = typeof config[key] === 'object' ? JSON.stringify(config[key]) : config[key];
+                }
+              }
+            });
+          } catch (e) {
+            console.error('Error loading existing config values:', e);
+          }
+        }
+
+        function syncEvaluatorConfig(evaluatorKey) {
+          const container = document.querySelector(`.evaluator-config-form-container[data-evaluator-key="${evaluatorKey}"]`);
+          const hiddenField = document.querySelector(`.evaluator-config-json[data-evaluator-key="${evaluatorKey}"]`);
+
+          if (!container || !hiddenField) return;
+
+          const config = {};
+
+          // Collect all form values
+          container.querySelectorAll('[name^="config["]').forEach(input => {
+            const match = input.name.match(/config\[([^\]]+)\]/);
+            if (!match) return;
+
+            const key = match[1];
+
+            if (input.type === 'checkbox') {
+              config[key] = input.checked;
+            } else if (input.tagName === 'SELECT' && input.multiple) {
+              // Handle multi-select
+              config[key] = Array.from(input.selectedOptions).map(opt => opt.value);
+            } else if (input.type === 'number') {
+              config[key] = parseFloat(input.value) || 0;
+            } else {
+              config[key] = input.value;
+            }
+          });
+
+          hiddenField.value = JSON.stringify(config);
+          updateEvaluatorConfigsJson();
+        }
+
+        // Toggle evaluator config visibility
+        document.querySelectorAll('.evaluator-checkbox').forEach(checkbox => {
+          checkbox.addEventListener('change', function() {
+            const key = this.dataset.evaluatorKey;
+            const configDiv = document.getElementById('config_' + key);
+            if (this.checked) {
+              configDiv.classList.remove('collapse');
+            } else {
+              configDiv.classList.add('collapse');
+            }
+            updateEvaluatorConfigsJson();
+          });
+        });
+
+        // Update JSON when any evaluator field changes
+        document.querySelectorAll('.evaluator-threshold, .evaluator-weight').forEach(input => {
+          input.addEventListener('change', updateEvaluatorConfigsJson);
+          input.addEventListener('input', updateEvaluatorConfigsJson);
+        });
+
+        function updateEvaluatorConfigsJson() {
+          const configs = [];
+          document.querySelectorAll('.evaluator-checkbox:checked').forEach(checkbox => {
+            const key = checkbox.dataset.evaluatorKey;
+            const threshold = document.querySelector(`.evaluator-threshold[data-evaluator-key="${key}"]`)?.value || 80;
+            const weight = document.querySelector(`.evaluator-weight[data-evaluator-key="${key}"]`)?.value || 0.5;
+            const configHiddenField = document.querySelector(`.evaluator-config-json[data-evaluator-key="${key}"]`);
+
+            let config = {};
+            if (configHiddenField && configHiddenField.value) {
+              try {
+                config = JSON.parse(configHiddenField.value);
+              } catch (e) {
+                config = {};
+              }
+            }
+
+            configs.push({
+              evaluator_key: key,
+              threshold: parseFloat(threshold),
+              weight: parseFloat(weight),
+              config: config
+            });
+          });
+
+          document.getElementById('evaluator_configs_json').value = JSON.stringify(configs);
+        }
+
+        // Initialize on page load
+        updateEvaluatorConfigsJson();
+      </script>
+
+      <!-- Tags -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Tags (Optional)</h5>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-tag-btn">
+            <i class="bi bi-plus-circle"></i> Add Tag
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Tags for organizing and filtering tests</p>
+
+          <div id="tags-list">
+            <% current_tags = @test.tags || [] %>
+            <% if current_tags.empty? %>
+              <div class="text-muted text-center py-3" id="no-tags-message">
+                <i class="bi bi-info-circle"></i> No tags defined. Click "Add Tag" to add one.
+              </div>
+            <% else %>
+              <% current_tags.each_with_index do |tag, index| %>
+                <div class="input-group mb-2 tag-item">
+                  <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                  <input type="text" class="form-control tag-input" value="<%= tag %>" placeholder="e.g., smoke, critical, regression">
+                  <button type="button" class="btn btn-outline-danger remove-tag-btn">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+
+          <!-- Hidden field to store the JSON -->
+          <%= f.hidden_field :tags, id: "tags_json" %>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const tagsList = document.getElementById('tags-list');
+              const addTagBtn = document.getElementById('add-tag-btn');
+              const noTagsMessage = document.getElementById('no-tags-message');
+
+              // Add tag button
+              addTagBtn.addEventListener('click', function() {
+                if (noTagsMessage) noTagsMessage.remove();
+
+                const tagItem = document.createElement('div');
+                tagItem.className = 'input-group mb-2 tag-item';
+                tagItem.innerHTML = `
+                  <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                  <input type="text" class="form-control tag-input" placeholder="e.g., smoke, critical, regression">
+                  <button type="button" class="btn btn-outline-danger remove-tag-btn">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                `;
+
+                tagsList.appendChild(tagItem);
+
+                // Add event listeners
+                tagItem.querySelector('.tag-input').addEventListener('input', updateTagsJson);
+                tagItem.querySelector('.remove-tag-btn').addEventListener('click', function() {
+                  tagItem.remove();
+                  updateTagsJson();
+
+                  // Show no tags message if empty
+                  if (tagsList.querySelectorAll('.tag-item').length === 0) {
+                    tagsList.innerHTML = '<div class="text-muted text-center py-3" id="no-tags-message"><i class="bi bi-info-circle"></i> No tags defined. Click "Add Tag" to add one.</div>';
+                  }
+                });
+
+                updateTagsJson();
+              });
+
+              // Remove tag buttons
+              document.querySelectorAll('.remove-tag-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  this.closest('.tag-item').remove();
+                  updateTagsJson();
+
+                  // Show no tags message if empty
+                  if (tagsList.querySelectorAll('.tag-item').length === 0) {
+                    tagsList.innerHTML = '<div class="text-muted text-center py-3" id="no-tags-message"><i class="bi bi-info-circle"></i> No tags defined. Click "Add Tag" to add one.</div>';
+                  }
+                });
+              });
+
+              // Update JSON when any tag input changes
+              document.querySelectorAll('.tag-input').forEach(input => {
+                input.addEventListener('input', updateTagsJson);
+              });
+
+              function updateTagsJson() {
+                const tags = [];
+                document.querySelectorAll('.tag-input').forEach(input => {
+                  if (input.value.trim()) {
+                    tags.push(input.value.trim());
+                  }
+                });
+                document.getElementById('tags_json').value = JSON.stringify(tags);
+              }
+
+              // Initialize on page load
+              updateTagsJson();
+            });
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between">
+    <%= link_to "Cancel", @test.new_record? ? prompt_prompt_version_prompt_tests_path(@prompt, @version) : prompt_prompt_version_prompt_test_path(@prompt, @version, @test), class: "btn btn-outline-secondary" %>
+    <%= f.submit @test.new_record? ? "Create Test" : "Update Test", class: "btn btn-primary" %>
+  </div>
+<% end %>

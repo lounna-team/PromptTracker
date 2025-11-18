@@ -212,9 +212,6 @@ module PromptTracker
         ) do |_prompt|
           raise StandardError, "API timeout"
         end
-      rescue StandardError => e
-        error_raised = true
-        assert_equal "API timeout", e.message
       end
 
       assert error_raised, "Error should have been raised"

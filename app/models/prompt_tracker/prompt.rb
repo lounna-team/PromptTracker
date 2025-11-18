@@ -1,5 +1,20 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_prompts
+#
+#  archived_at                :datetime
+#  category                   :string
+#  created_at                 :datetime         not null
+#  created_by                 :string
+#  description                :text
+#  id                         :bigint           not null, primary key
+#  name                       :string           not null
+#  score_aggregation_strategy :string           default("weighted_average")
+#  tags                       :jsonb
+#  updated_at                 :datetime         not null
+#
 module PromptTracker
   # Represents a prompt template container.
   #
@@ -44,6 +59,11 @@ module PromptTracker
 
     has_many :evaluator_configs,
              class_name: "PromptTracker::EvaluatorConfig",
+             dependent: :destroy,
+             inverse_of: :prompt
+
+    has_many :prompt_test_suites,
+             class_name: "PromptTracker::PromptTestSuite",
              dependent: :destroy,
              inverse_of: :prompt
 

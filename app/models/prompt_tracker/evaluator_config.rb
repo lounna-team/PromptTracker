@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_evaluator_configs
+#
+#  config               :jsonb            not null
+#  created_at           :datetime         not null
+#  depends_on           :string
+#  enabled              :boolean          default(TRUE), not null
+#  evaluator_key        :string           not null
+#  id                   :bigint           not null, primary key
+#  min_dependency_score :integer
+#  priority             :integer          default(0), not null
+#  prompt_id            :bigint           not null
+#  run_mode             :string           default("async"), not null
+#  updated_at           :datetime         not null
+#  weight               :decimal(5, 2)    default(1.0), not null
+#
 module PromptTracker
   # Represents configuration for an evaluator that should run automatically for a prompt.
   #

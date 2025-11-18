@@ -1,0 +1,11 @@
+---
+:concurrency: 5
+:queues:
+  - default
+  - prompt_tracker_evaluators
+  - prompt_tracker_tests
+
+# Redis connection
+:redis:
+  url: <%= ENV.fetch("REDIS_URL", "redis://localhost:6379/0") %>
+

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# PromptTracker Development Server
+# Starts Redis, Sidekiq, and Rails in parallel
+
+set -e
+
+echo "🚀 Starting PromptTracker development environment..."
+echo ""
+
+# Check if Redis is installed
+if ! command -v redis-server &> /dev/null; then
+    echo "❌ Redis is not installed!"
+    echo "   Install with: brew install redis (macOS) or apt-get install redis-server (Ubuntu)"
+    exit 1
+fi
+
+# Check if Redis is already running
+if redis-cli ping &> /dev/null; then
+    echo "✅ Redis is already running"
+else
+    echo "⚠️  Redis is not running. Please start it in a separate terminal:"
+    echo "   redis-server"
+    echo ""
+    read -p "Press Enter when Redis is running..."
+fi
+
+# Start Sidekiq and Rails in parallel
+echo ""
+echo "Starting services..."
+echo "  - Sidekiq worker (background jobs)"
+echo "  - Rails server (http://localhost:3000)"
+echo ""
+echo "Press Ctrl+C to stop all services"
+echo ""
+
+# Trap Ctrl+C and kill all background processes
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+# Start Sidekiq in background (point to dummy Rails app for engine development)
+bundle exec sidekiq -C config/sidekiq.yml -r ./test/dummy/config/environment.rb &
+
+# Start Rails server in foreground
+bundle exec rails server

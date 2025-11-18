@@ -24,38 +24,51 @@
 <!-- Criteria -->
 <div class="mb-3">
   <label class="form-label">Evaluation Criteria</label>
-  <div class="form-check">
-    <input type="checkbox" name="config[criteria][]" value="accuracy" class="form-check-input" id="criteria_accuracy" checked>
-    <label class="form-check-label" for="criteria_accuracy">Accuracy</label>
+  <p class="text-muted small mb-2">Select the criteria the judge will use to evaluate responses. Each criterion has a specific evaluation prompt.</p>
+
+  <%
+    criteria_options = {
+      "accuracy" => "Is the response factually correct and accurate?",
+      "helpfulness" => "Is the response helpful and addresses the user's needs?",
+      "clarity" => "Is the response clear and easy to understand?",
+      "tone" => "Is the tone appropriate and professional?",
+      "professionalism" => "Does the response maintain a professional demeanor?",
+      "completeness" => "Does the response fully address the question?",
+      "conciseness" => "Is the response concise without unnecessary information?",
+      "relevance" => "Is the response relevant to the user's question?",
+      "technical_accuracy" => "Is the technical information correct and precise?"
+    }
+  %>
+
+  <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+    <% criteria_options.each do |value, description| %>
+      <div class="form-check mb-2">
+        <input class="form-check-input"
+               type="checkbox"
+               name="config[criteria][]"
+               value="<%= value %>"
+               id="criteria_<%= value %>"
+               <%= 'checked' if ['accuracy', 'helpfulness', 'clarity'].include?(value) %>>
+        <label class="form-check-label" for="criteria_<%= value %>">
+          <strong><%= value.titleize %></strong>
+          <br>
+          <small class="text-muted"><%= description %></small>
+        </label>
+      </div>
+    <% end %>
   </div>
-  <div class="form-check">
-    <input type="checkbox" name="config[criteria][]" value="helpfulness" class="form-check-input" id="criteria_helpfulness" checked>
-    <label class="form-check-label" for="criteria_helpfulness">Helpfulness</label>
-  </div>
-  <div class="form-check">
-    <input type="checkbox" name="config[criteria][]" value="clarity" class="form-check-input" id="criteria_clarity" checked>
-    <label class="form-check-label" for="criteria_clarity">Clarity</label>
-  </div>
-  <div class="form-check">
-    <input type="checkbox" name="config[criteria][]" value="relevance" class="form-check-input" id="criteria_relevance">
-    <label class="form-check-label" for="criteria_relevance">Relevance</label>
-  </div>
-  <div class="form-check">
-    <input type="checkbox" name="config[criteria][]" value="completeness" class="form-check-input" id="criteria_completeness">
-    <label class="form-check-label" for="criteria_completeness">Completeness</label>
-  </div>
-  <small class="form-text text-muted">
-    Select the criteria the LLM judge should evaluate.
+  <small class="form-text text-muted mt-2">
+    <i class="bi bi-info-circle"></i> The judge LLM will be asked these specific questions for each selected criterion.
   </small>
 </div>
 
 <!-- Custom Instructions -->
 <div class="mb-3">
   <label class="form-label">Custom Instructions (Optional)</label>
-  <textarea name="config[custom_instructions]" 
-            class="form-control" 
+  <textarea name="config[custom_instructions]"
+            class="form-control"
             rows="4"
-            placeholder="Additional instructions for the judge..."></textarea>
+            placeholder="Define what the evaluator assesses (e.g., 'Evaluate as a customer support manager' or 'Focus on technical correctness for a senior developer audience')"></textarea>
   <small class="form-text text-muted">
     Provide any additional context or specific instructions for the LLM judge.
   </small>
@@ -65,19 +78,19 @@
 <div class="row">
   <div class="col-md-6 mb-3">
     <label class="form-label">Minimum Score</label>
-    <input type="number" 
-           name="config[score_min]" 
-           class="form-control" 
-           value="0" 
+    <input type="number"
+           name="config[score_min]"
+           class="form-control"
+           value="0"
            min="0"
            required>
   </div>
   <div class="col-md-6 mb-3">
     <label class="form-label">Maximum Score</label>
-    <input type="number" 
-           name="config[score_max]" 
-           class="form-control" 
-           value="100" 
+    <input type="number"
+           name="config[score_max]"
+           class="form-control"
+           value="100"
            min="0"
            required>
   </div>
@@ -87,4 +100,3 @@
   <i class="bi bi-exclamation-triangle"></i>
   <strong>Note:</strong> LLM judge evaluations require API calls and will run asynchronously. Make sure you have configured your API keys.
 </div>
-

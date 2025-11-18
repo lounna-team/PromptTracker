@@ -1,5 +1,34 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_llm_responses
+#
+#  ab_test_id        :bigint
+#  ab_variant        :string
+#  context           :jsonb
+#  cost_usd          :decimal(10, 6)
+#  created_at        :datetime         not null
+#  environment       :string
+#  error_message     :text
+#  error_type        :string
+#  id                :bigint           not null, primary key
+#  model             :string           not null
+#  prompt_version_id :bigint           not null
+#  provider          :string           not null
+#  rendered_prompt   :text             not null
+#  response_metadata :jsonb
+#  response_text     :text
+#  response_time_ms  :integer
+#  session_id        :string
+#  status            :string           default("pending"), not null
+#  tokens_completion :integer
+#  tokens_prompt     :integer
+#  tokens_total      :integer
+#  updated_at        :datetime         not null
+#  user_id           :string
+#  variables_used    :jsonb
+#
 require "test_helper"
 
 module PromptTracker

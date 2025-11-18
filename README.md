@@ -21,6 +21,32 @@ A comprehensive Rails 7.2 engine for managing, tracking, and analyzing LLM promp
 
 ## Quick Start
 
+### Development Setup (with Sidekiq + Redis)
+
+For full async support with parallel job execution and real-time updates:
+
+```bash
+# 1. Start Redis
+redis-server
+
+# 2. Start Sidekiq + Rails (in another terminal)
+bin/dev
+```
+
+Or start services separately:
+```bash
+# Terminal 1: Redis
+redis-server
+
+# Terminal 2: Sidekiq
+bundle exec sidekiq
+
+# Terminal 3: Rails
+bin/rails server
+```
+
+See [SIDEKIQ_SETUP.md](SIDEKIQ_SETUP.md) for detailed setup instructions.
+
 ### Run All Tests
 
 ```bash
@@ -36,6 +62,7 @@ open coverage/index.html
 ## Usage
 
 See the comprehensive documentation:
+- [SIDEKIQ_SETUP.md](SIDEKIQ_SETUP.md) - **Sidekiq + Redis setup for async jobs and real-time updates**
 - [TESTING.md](TESTING.md) - Testing guide
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - Implementation details
 - [docs/EVALUATOR_SYSTEM_DESIGN.md](docs/EVALUATOR_SYSTEM_DESIGN.md) - Evaluator system design

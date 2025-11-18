@@ -6,6 +6,17 @@ require "rails/all"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# Load environment variables from the engine root (not dummy app root)
+if defined?(Dotenv)
+  engine_root = File.expand_path("../../..", __dir__)
+  Dotenv.load(
+    File.join(engine_root, ".env.#{Rails.env}.local"),
+    File.join(engine_root, ".env.local"),
+    File.join(engine_root, ".env.#{Rails.env}"),
+    File.join(engine_root, ".env")
+  )
+end
+
 module Dummy
   class Application < Rails::Application
     config.load_defaults Rails::VERSION::STRING.to_f
@@ -17,6 +28,9 @@ module Dummy
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
+
+    # Configure ActiveJob to use Sidekiq
+    config.active_job.queue_adapter = :sidekiq
 
     # Configuration for the application, engines, and railties goes here.
     #

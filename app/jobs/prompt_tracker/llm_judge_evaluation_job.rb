@@ -33,25 +33,9 @@ module PromptTracker
       # Build the evaluator with the provided config
       evaluator = EvaluatorRegistry.build(evaluator_key, llm_response, config)
 
-      # Run the evaluator with a block that calls the LLM API
-      # NOTE: This is a mock implementation. In production, you would:
-      # 1. Call the actual LLM API (OpenAI, Anthropic, etc.)
-      # 2. Pass the API response to the evaluator
-      evaluation = evaluator.evaluate do |judge_prompt|
-        # TODO: Replace this with actual LLM API call
-        # Example for OpenAI:
-        # client = OpenAI::Client.new
-        # response = client.chat(
-        #   parameters: {
-        #     model: config[:judge_model] || "gpt-4",
-        #     messages: [{ role: "user", content: judge_prompt }]
-        #   }
-        # )
-        # response.dig("choices", 0, "message", "content")
-
-        # Mock response for now
-        generate_mock_judge_response(config, llm_response)
-      end
+      # Run the evaluator - it now calls RubyLLM directly!
+      # No block needed - the evaluator handles the LLM API call internally
+      evaluation = evaluator.evaluate
 
       # Update metadata with job info
       evaluation.update!(
@@ -67,48 +51,6 @@ module PromptTracker
         "LLM Judge evaluation completed for response #{llm_response_id}: " \
         "Score #{evaluation.score}/#{config[:score_max]}"
       )
-    rescue StandardError => e
-      Rails.logger.error(
-        "LLM Judge evaluation failed for response #{llm_response_id}: #{e.message}"
-      )
-      raise
-    end
-
-    private
-
-    # Generates a mock LLM judge response for testing
-    # TODO: Remove this when actual LLM API integration is implemented
-    #
-    # @param config [Hash] The judge configuration
-    # @param llm_response [LlmResponse] The response being evaluated
-    # @return [String] Mock judge response in expected format
-    def generate_mock_judge_response(config, llm_response)
-      score_max = config[:score_max] || 100
-      criteria = config[:criteria] || []
-
-      # Generate random but reasonable scores
-      overall_score = rand(score_max * 0.6..score_max * 0.95).round(1)
-
-      criteria_scores = criteria.map do |criterion|
-        score = rand(score_max * 0.5..score_max).round(1)
-        "#{criterion}: #{score}"
-      end.join("\n")
-
-      <<~RESPONSE
-        OVERALL SCORE: #{overall_score}
-
-        CRITERIA SCORES:
-        #{criteria_scores}
-
-        FEEDBACK:
-        [MOCK EVALUATION] This is a simulated LLM judge evaluation.
-        The response appears to be well-structured and addresses the prompt appropriately.
-        To enable real LLM judge evaluations, configure your LLM API credentials and
-        update the LlmJudgeEvaluationJob to call the actual API.
-
-        Response length: #{llm_response.response_text.length} characters
-        Model used: #{llm_response.model}
-      RESPONSE
     end
   end
 end

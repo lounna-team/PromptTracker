@@ -63,10 +63,6 @@ module PromptTracker
     rescue ActiveRecord::RecordNotFound => e
       Rails.logger.error("Evaluation job failed - record not found: #{e.message}")
       # Don't retry if record doesn't exist
-    rescue StandardError => e
-      Rails.logger.error("Evaluation job failed for #{config&.evaluator_key}: #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
-      raise # Let retry logic handle it
     end
   end
 end

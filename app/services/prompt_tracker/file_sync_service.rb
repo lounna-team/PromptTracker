@@ -164,11 +164,6 @@ module PromptTracker
         success: false,
         error: "Database validation error: #{e.message}"
       }
-    rescue StandardError => e
-      {
-        success: false,
-        error: "Unexpected error: #{e.message}"
-      }
     end
 
     # Validate all YAML files without syncing to database.

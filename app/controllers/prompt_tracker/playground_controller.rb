@@ -6,16 +6,25 @@ module PromptTracker
   # Can be used standalone or in the context of an existing prompt.
   class PlaygroundController < ApplicationController
     before_action :set_prompt, if: -> { params[:prompt_id].present? }
+    before_action :set_prompt_version, if: -> { params[:prompt_version_id].present? }
     before_action :set_version, only: [:show]
 
     # GET /playground (standalone)
-    # GET /prompts/:prompt_id/playground (edit existing)
+    # GET /prompts/:prompt_id/playground (edit existing prompt - uses active/latest version)
+    # GET /prompts/:prompt_id/versions/:prompt_version_id/playground (edit specific version)
     # Show the playground interface
     def show
-      if @prompt
+      if @prompt_version
+        # Version-specific playground
+        @prompt = @prompt_version.prompt
+        @version = @prompt_version
+        @variables = extract_variables_from_template(@version.template)
+      elsif @prompt
+        # Prompt-level playground (shortcut to active/latest version)
         @version = @prompt.active_version || @prompt.latest_version
         @variables = extract_variables_from_template(@version&.template || "")
       else
+        # Standalone playground
         @version = nil
         @variables = []
       end
@@ -68,34 +77,56 @@ module PromptTracker
     end
 
     # POST /playground/save (standalone - creates new prompt)
-    # POST /prompts/:prompt_id/playground/save (creates new version)
-    # Save the template as a new draft version or new prompt
+    # POST /prompts/:prompt_id/playground/save (creates new version or updates existing)
+    # POST /prompts/:prompt_id/versions/:prompt_version_id/playground/save (updates specific version or creates new)
+    # Save the template as a new draft version, update existing version, or new prompt
     def save
       template = params[:template]
       notes = params[:notes]
       prompt_name = params[:prompt_name]
+      save_action = params[:save_action] # 'update' or 'new_version'
 
       if @prompt
-        # Editing existing prompt - create new version
-        version = @prompt.prompt_versions.build(
-          template: template,
-          status: "draft",
-          source: "web_ui",
-          notes: notes
-        )
-
-        if version.save
-          render json: {
-            success: true,
-            version_id: version.id,
-            version_number: version.version_number,
-            redirect_url: prompt_path(@prompt)
-          }
+        # Check if we should update existing version or create new one
+        if save_action == 'update' && @prompt_version && !@prompt_version.has_responses?
+          # Update existing version (only if it has no responses)
+          if @prompt_version.update(template: template, notes: notes)
+            render json: {
+              success: true,
+              version_id: @prompt_version.id,
+              version_number: @prompt_version.version_number,
+              redirect_url: prompt_path(@prompt),
+              action: 'updated'
+            }
+          else
+            render json: {
+              success: false,
+              errors: @prompt_version.errors.full_messages
+            }, status: :unprocessable_entity
+          end
         else
-          render json: {
-            success: false,
-            errors: version.errors.full_messages
-          }, status: :unprocessable_entity
+          # Create new version
+          version = @prompt.prompt_versions.build(
+            template: template,
+            status: "draft",
+            source: "web_ui",
+            notes: notes
+          )
+
+          if version.save
+            render json: {
+              success: true,
+              version_id: version.id,
+              version_number: version.version_number,
+              redirect_url: prompt_path(@prompt),
+              action: 'created'
+            }
+          else
+            render json: {
+              success: false,
+              errors: version.errors.full_messages
+            }, status: :unprocessable_entity
+          end
         end
       else
         # Standalone mode - create new prompt
@@ -140,6 +171,10 @@ module PromptTracker
 
     def set_prompt
       @prompt = Prompt.find(params[:prompt_id])
+    end
+
+    def set_prompt_version
+      @prompt_version = PromptVersion.find(params[:prompt_version_id])
     end
 
     def set_version

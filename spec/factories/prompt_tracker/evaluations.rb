@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_evaluations
+#
+#  created_at      :datetime         not null
+#  criteria_scores :jsonb
+#  evaluator_id    :string
+#  evaluator_type  :string           not null
+#  feedback        :text
+#  id              :bigint           not null, primary key
+#  llm_response_id :bigint           not null
+#  metadata        :jsonb
+#  score           :decimal(10, 2)   not null
+#  score_max       :decimal(10, 2)   default(5.0)
+#  score_min       :decimal(10, 2)   default(0.0)
+#  updated_at      :datetime         not null
+#
 FactoryBot.define do
   factory :evaluation, class: "PromptTracker::Evaluation" do
     association :llm_response, factory: :llm_response

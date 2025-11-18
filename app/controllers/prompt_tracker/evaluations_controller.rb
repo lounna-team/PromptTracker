@@ -156,9 +156,6 @@ module PromptTracker
 
       redirect_to llm_response_path(@response),
                   notice: "#{metadata[:name]} evaluation completed! Score: #{evaluation.score}"
-    rescue StandardError => e
-      redirect_to llm_response_path(@response),
-                  alert: "Error running evaluator: #{e.message}"
     end
 
     # Creates an LLM judge evaluation (runs evaluator directly)
@@ -184,9 +181,6 @@ module PromptTracker
 
       redirect_to llm_response_path(@response),
                   notice: "LLM Judge evaluation started! The results will appear shortly."
-    rescue StandardError => e
-      redirect_to llm_response_path(@response),
-                  alert: "Error starting LLM evaluation: #{e.message}"
     end
 
     # Process configuration parameters from form

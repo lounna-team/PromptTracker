@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_prompt_versions
+#
+#  created_at       :datetime         not null
+#  created_by       :string
+#  id               :bigint           not null, primary key
+#  model_config     :jsonb
+#  notes            :text
+#  prompt_id        :bigint           not null
+#  source           :string           default("file"), not null
+#  status           :string           default("draft"), not null
+#  template         :text             not null
+#  updated_at       :datetime         not null
+#  variables_schema :jsonb
+#  version_number   :integer          not null
+#
 module PromptTracker
   # Represents a specific version of a prompt template.
   #
@@ -43,6 +60,11 @@ module PromptTracker
     has_many :evaluations,
              through: :llm_responses,
              class_name: "PromptTracker::Evaluation"
+
+    has_many :prompt_tests,
+             class_name: "PromptTracker::PromptTest",
+             dependent: :destroy,
+             inverse_of: :prompt_version
 
     # Validations
     validates :template, presence: true

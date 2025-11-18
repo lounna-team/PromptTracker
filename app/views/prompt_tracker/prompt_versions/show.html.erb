@@ -14,7 +14,18 @@
     <p class="text-muted"><%= @prompt.description %></p>
   </div>
   <div class="col-auto">
-    <%= link_to compare_prompt_prompt_version_path(@prompt, @version), class: "btn btn-info" do %>
+    <% unless @version.active? %>
+      <%= button_to activate_prompt_prompt_version_path(@prompt, @version), method: :post, class: "btn btn-success me-2", data: { confirm: "Activate this version? This will deprecate all other versions." } do %>
+        <i class="bi bi-check-circle"></i> Activate Version
+      <% end %>
+    <% end %>
+    <%= link_to prompt_prompt_version_playground_path(@prompt, @version), class: "btn btn-primary me-2" do %>
+      <i class="bi bi-play-circle"></i> Test in Playground
+    <% end %>
+    <%= link_to prompt_prompt_version_prompt_tests_path(@prompt, @version), class: "btn btn-outline-primary me-2" do %>
+      <i class="bi bi-check2-square"></i> Tests
+    <% end %>
+    <%= link_to compare_prompt_prompt_version_path(@prompt, @version), class: "btn btn-outline-info" do %>
       <i class="bi bi-arrow-left-right"></i> Compare Versions
     <% end %>
   </div>

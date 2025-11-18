@@ -12,3 +12,7 @@
 # Test coverage
 /coverage/
 /.coverage
+
+# Environment variables
+.env
+.env.local

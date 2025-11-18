@@ -1,5 +1,31 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: prompt_tracker_ab_tests
+#
+#  cancelled_at              :datetime
+#  completed_at              :datetime
+#  confidence_level          :float            default(0.95)
+#  created_at                :datetime         not null
+#  created_by                :string
+#  description               :text
+#  hypothesis                :string
+#  id                        :bigint           not null, primary key
+#  metadata                  :jsonb
+#  metric_to_optimize        :string           not null
+#  minimum_detectable_effect :float            default(0.05)
+#  minimum_sample_size       :integer          default(100)
+#  name                      :string           not null
+#  optimization_direction    :string           default("minimize"), not null
+#  prompt_id                 :bigint           not null
+#  results                   :jsonb
+#  started_at                :datetime
+#  status                    :string           default("draft"), not null
+#  traffic_split             :jsonb            not null
+#  updated_at                :datetime         not null
+#  variants                  :jsonb            not null
+#
 require "test_helper"
 
 module PromptTracker

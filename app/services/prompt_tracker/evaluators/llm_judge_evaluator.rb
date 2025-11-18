@@ -9,27 +9,27 @@ module PromptTracker
     #
     # @example Evaluate with default criteria
     #   evaluator = LlmJudgeEvaluator.new(llm_response, {
-    #     judge_model: "gpt-4",
+    #     judge_model: "gpt-4o",
     #     criteria: ["accuracy", "helpfulness", "tone"]
     #   })
-    #   evaluation = evaluator.evaluate do |judge_prompt|
-    #     # Call your LLM API here
-    #     OpenAI.chat(model: "gpt-4", messages: [{ role: "user", content: judge_prompt }])
-    #   end
+    #   evaluation = evaluator.evaluate  # Uses RubyLLM with structured outputs
     #
     # @example Custom evaluation prompt
     #   evaluator = LlmJudgeEvaluator.new(llm_response, {
-    #     judge_model: "claude-3-opus",
+    #     judge_model: "claude-3-5-sonnet-20241022",
     #     criteria: ["technical_accuracy"],
     #     custom_instructions: "Focus on technical correctness for a senior developer audience"
     #   })
+    #   evaluation = evaluator.evaluate
     #
     class LlmJudgeEvaluator
       attr_reader :llm_response, :config
 
       # Default configuration
+      # Note: Using gpt-4o because it supports structured outputs
+      # gpt-4 (non-turbo) does NOT support structured outputs
       DEFAULT_CONFIG = {
-        judge_model: "gpt-4",
+        judge_model: "gpt-4o",
         criteria: %w[accuracy helpfulness tone],
         score_min: 0,
         score_max: 5,
@@ -48,34 +48,41 @@ module PromptTracker
 
       def initialize(llm_response, config = {})
         @llm_response = llm_response
-        @config = DEFAULT_CONFIG.merge(config)
+        # Convert string keys to symbol keys to ensure proper merging with DEFAULT_CONFIG
+        # Use symbolize_keys to handle nested hashes and ensure clean merge
+        symbolized_config = config.is_a?(Hash) ? config.deep_symbolize_keys : {}
+        @config = DEFAULT_CONFIG.merge(symbolized_config)
       end
 
-      # Evaluate the response using an LLM judge
+      # Evaluate the response using an LLM judge with structured output
       #
-      # @yield [judge_prompt] Yields the evaluation prompt to send to the judge LLM
-      # @yieldparam judge_prompt [String] the prompt to send to the judge
-      # @yieldreturn [String, Hash] the judge's response (text or structured response)
+      # This method uses RubyLLM with structured schemas to guarantee valid JSON responses.
+      # No more regex parsing or fragile text extraction!
+      #
       # @return [Evaluation] the created evaluation
       #
-      # @example
-      #   evaluation = evaluator.evaluate do |judge_prompt|
-      #     OpenAI.chat(
-      #       model: "gpt-4",
-      #       messages: [{ role: "user", content: judge_prompt }]
-      #     )
-      #   end
-      def evaluate(&block)
-        raise ArgumentError, "Block required to call judge LLM" unless block_given?
-
+      # @example Evaluate with RubyLLM (automatic)
+      #   evaluation = evaluator.evaluate
+      #
+      def evaluate
         # Generate the evaluation prompt
         judge_prompt = build_judge_prompt
 
-        # Call the judge LLM
-        judge_response = yield(judge_prompt)
+        # Check if we should use mock mode
+        if use_mock_mode?
+          parsed = generate_mock_evaluation
+        else
+          # Build RubyLLM schema for structured output
+          schema = build_schema
 
-        # Parse the judge's response
-        parsed = parse_judge_response(judge_response)
+          # Call the judge LLM with structured output
+          chat = RubyLLM.chat(model: config[:judge_model]).with_schema(schema)
+          response = chat.ask(judge_prompt)
+
+          # Response content is already a structured hash!
+          # Convert to hash with indifferent access to handle both string and symbol keys
+          parsed = response.content.with_indifferent_access
+        end
 
         # Create the evaluation
         EvaluationService.create_llm_judge(
@@ -90,12 +97,25 @@ module PromptTracker
             judge_model: config[:judge_model],
             criteria: config[:criteria],
             judge_prompt: judge_prompt,
-            raw_judge_response: judge_response.to_s
+            raw_judge_response: use_mock_mode? ? "MOCK_RESPONSE" : response.raw.to_s,
+            used_structured_output: true,
+            mock_mode: use_mock_mode?
           }
         )
       end
 
       private
+
+      # Build RubyLLM schema for structured output
+      #
+      # @return [Class] a RubyLLM::Schema subclass
+      def build_schema
+        LlmJudgeSchema.for_criteria(
+          criteria: config[:criteria],
+          score_min: config[:score_min],
+          score_max: config[:score_max]
+        )
+      end
 
       # Build the prompt to send to the judge LLM
       #
@@ -107,10 +127,10 @@ module PromptTracker
         end.join("\n")
 
         custom_section = if config[:custom_instructions]
-                           "\n\nAdditional Instructions:\n#{config[:custom_instructions]}"
-                         else
-                           ""
-                         end
+          "\n\nAdditional Instructions:\n#{config[:custom_instructions]}"
+        else
+          ""
+        end
 
         <<~PROMPT
           You are an expert evaluator of AI-generated responses. Please evaluate the following LLM response.
@@ -125,98 +145,41 @@ module PromptTracker
           #{criteria_list}
           #{custom_section}
 
-          Please provide your evaluation in the following format:
+          Please provide your evaluation with:
+          - overall_score: A number from #{config[:score_min]} to #{config[:score_max]}
+          - criteria_scores: A score for each criterion (#{config[:criteria].join(', ')})
+          - feedback: Detailed explanation of your scores
 
-          OVERALL SCORE: [score from #{config[:score_min]} to #{config[:score_max]}]
-
-          CRITERIA SCORES:
-          #{config[:criteria].map { |c| "#{c}: [score from #{config[:score_min]} to #{config[:score_max]}]" }.join("\n")}
-
-          FEEDBACK:
-          [Your detailed feedback explaining the scores]
+          Your response will be automatically structured as JSON.
         PROMPT
       end
 
-      # Parse the judge LLM's response
+      # Check if we should use mock mode
       #
-      # @param response [String, Hash] the judge's response
-      # @return [Hash] parsed scores and feedback
-      def parse_judge_response(response)
-        text = extract_text(response)
+      # @return [Boolean] true if mock mode is enabled
+      def use_mock_mode?
+        ENV["PROMPT_TRACKER_USE_REAL_LLM"] != "true"
+      end
+
+      # Generate a mock evaluation for testing
+      #
+      # @return [Hash] mock evaluation data
+      def generate_mock_evaluation
+        # Generate realistic mock scores
+        overall_score = rand(config[:score_min]..config[:score_max])
+
+        # Generate criteria scores
+        criteria_scores = {}
+        config[:criteria].each do |criterion|
+          criteria_scores[criterion.to_sym] = rand(config[:score_min]..config[:score_max])
+        end
 
         {
-          overall_score: extract_overall_score(text),
-          criteria_scores: extract_criteria_scores(text),
-          feedback: extract_feedback(text)
+          overall_score: overall_score,
+          criteria_scores: criteria_scores,
+          feedback: "MOCK EVALUATION: This is a simulated evaluation. In production, this would be generated by #{config[:judge_model]}."
         }
-      end
-
-      # Extract text from various response formats
-      #
-      # @param response [String, Hash] the response
-      # @return [String] extracted text
-      def extract_text(response)
-        return response if response.is_a?(String)
-
-        # Try common LLM response formats
-        response.dig("choices", 0, "message", "content") ||
-          response.dig("content", 0, "text") ||
-          response["text"] ||
-          response.to_s
-      end
-
-      # Extract overall score from judge response
-      #
-      # @param text [String] the judge's response text
-      # @return [Float] the overall score
-      def extract_overall_score(text)
-        # Look for "OVERALL SCORE: X" or "Overall: X"
-        match = text.match(/OVERALL\s+SCORE:\s*([\d.]+)/i) ||
-                text.match(/Overall:\s*([\d.]+)/i)
-
-        if match
-          match[1].to_f
-        else
-          # Fallback: average of criteria scores
-          criteria_scores = extract_criteria_scores(text)
-          criteria_scores.values.sum / criteria_scores.length.to_f
-        end
-      end
-
-      # Extract criteria scores from judge response
-      #
-      # @param text [String] the judge's response text
-      # @return [Hash] hash of criterion to score
-      def extract_criteria_scores(text)
-        scores = {}
-
-        config[:criteria].each do |criterion|
-          # Look for "criterion: X" or "criterion - X"
-          pattern = /#{Regexp.escape(criterion)}[:\-\s]+([\d.]+)/i
-          match = text.match(pattern)
-
-          scores[criterion] = match ? match[1].to_f : config[:score_max] / 2.0
-        end
-
-        scores
-      end
-
-      # Extract feedback from judge response
-      #
-      # @param text [String] the judge's response text
-      # @return [String] the feedback text
-      def extract_feedback(text)
-        # Look for "FEEDBACK:" section
-        match = text.match(/FEEDBACK:\s*(.+)/im)
-
-        if match
-          match[1].strip
-        else
-          # Fallback: use the entire response
-          text.strip
-        end
       end
     end
   end
 end
-

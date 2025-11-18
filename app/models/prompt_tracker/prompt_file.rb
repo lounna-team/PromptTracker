@@ -195,9 +195,6 @@ module PromptTracker
       rescue Psych::SyntaxError => e
         @errors << "Invalid YAML syntax: #{e.message}"
         return
-      rescue StandardError => e
-        @errors << "Error reading file: #{e.message}"
-        return
       end
 
       # Validate data is a hash
@@ -286,4 +283,3 @@ module PromptTracker
     end
   end
 end
-

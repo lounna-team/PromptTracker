@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rails_helper"
+require "ruby_llm/schema"
 
 RSpec.describe PromptTracker::LlmJudgeEvaluationJob, type: :job do
   include ActiveJob::TestHelper
@@ -11,11 +12,32 @@ RSpec.describe PromptTracker::LlmJudgeEvaluationJob, type: :job do
   let(:config) do
     {
       judge_model: "gpt-4",
-      criteria: ["accuracy", "relevance", "clarity"],
+      criteria: [ "accuracy", "relevance", "clarity" ],
       custom_instructions: "Be strict in your evaluation",
       score_min: 0,
       score_max: 100
     }
+  end
+
+  # Mock RubyLLM responses
+  let(:chat_double) { double("RubyLLM::Chat") }
+  let(:schema_chat_double) { double("RubyLLM::Chat with schema") }
+  let(:response_double) do
+    double(
+      "RubyLLM::Response",
+      content: {
+        overall_score: 85.0,
+        criteria_scores: { accuracy: 90.0, relevance: 85.0, clarity: 80.0 },
+        feedback: "Good response with accurate information."
+      },
+      raw: double("raw response")
+    )
+  end
+
+  before do
+    allow(RubyLLM).to receive(:chat).and_return(chat_double)
+    allow(chat_double).to receive(:with_schema).and_return(schema_chat_double)
+    allow(schema_chat_double).to receive(:ask).and_return(response_double)
   end
 
   describe "#perform" do
@@ -107,39 +129,6 @@ RSpec.describe PromptTracker::LlmJudgeEvaluationJob, type: :job do
       # Verify the job class has retry_on configured
       # This is a meta-test to ensure retry configuration exists
       expect(described_class).to respond_to(:retry_on)
-    end
-  end
-
-  describe "#generate_mock_judge_response" do
-    it "generates a response with overall score" do
-      job = described_class.new
-      response = job.send(:generate_mock_judge_response, config, llm_response)
-
-      expect(response).to include("OVERALL SCORE:")
-    end
-
-    it "includes criteria scores" do
-      job = described_class.new
-      response = job.send(:generate_mock_judge_response, config, llm_response)
-
-      config[:criteria].each do |criterion|
-        expect(response).to include(criterion)
-      end
-    end
-
-    it "includes feedback section" do
-      job = described_class.new
-      response = job.send(:generate_mock_judge_response, config, llm_response)
-
-      expect(response).to include("FEEDBACK:")
-    end
-
-    it "includes response metadata" do
-      job = described_class.new
-      response = job.send(:generate_mock_judge_response, config, llm_response)
-
-      expect(response).to include("Response length:")
-      expect(response).to include("Model used:")
     end
   end
 end

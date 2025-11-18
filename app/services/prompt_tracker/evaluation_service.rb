@@ -182,7 +182,6 @@ module PromptTracker
     # @raise [InvalidScoreError] if score is outside the valid range
     def self.validate_score!(score, score_min, score_max)
       return if score.nil?
-
       if score < score_min || score > score_max
         raise InvalidScoreError,
               "Score #{score} is outside valid range [#{score_min}, #{score_max}]"
@@ -192,4 +191,3 @@ module PromptTracker
     private_class_method :validate_response!, :validate_score!
   end
 end
-

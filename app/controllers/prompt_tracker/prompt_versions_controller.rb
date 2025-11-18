@@ -4,11 +4,11 @@ module PromptTracker
   # Controller for viewing prompt versions
   class PromptVersionsController < ApplicationController
     before_action :set_prompt
+    before_action :set_version, only: [:show, :compare, :activate]
 
     # GET /prompts/:prompt_id/versions/:id
     # Show version details with responses
     def show
-      @version = @prompt.prompt_versions.includes(:llm_responses).find(params[:id])
       @responses = @version.llm_responses.order(created_at: :desc).page(params[:page]).per(20)
 
       # Calculate metrics
@@ -26,8 +26,6 @@ module PromptTracker
     # GET /prompts/:prompt_id/versions/:id/compare
     # Compare this version with another
     def compare
-      @version = @prompt.prompt_versions.find(params[:id])
-
       # Get comparison version (from params or default to previous version)
       if params[:compare_with].present?
         @compare_version = @prompt.prompt_versions.find(params[:compare_with])
@@ -57,10 +55,26 @@ module PromptTracker
       @all_versions = @prompt.prompt_versions.order(version_number: :desc)
     end
 
+    # POST /prompts/:prompt_id/versions/:id/activate
+    # Activate this version and deprecate all others
+    def activate
+      unless @version.draft? || @version.deprecated?
+        redirect_to prompt_prompt_version_path(@prompt, @version), alert: "Version is already active."
+        return
+      end
+
+      @version.activate!
+      redirect_to prompt_prompt_version_path(@prompt, @version), notice: "Version activated successfully."
+    end
+
     private
 
     def set_prompt
       @prompt = Prompt.find(params[:prompt_id])
+    end
+
+    def set_version
+      @version = @prompt.prompt_versions.includes(:llm_responses).find(params[:id])
     end
 
     def calculate_version_metrics(version)

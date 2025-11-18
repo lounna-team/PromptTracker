@@ -121,4 +121,68 @@ RSpec.describe "PromptTracker::PromptVersionsController", type: :request do
       expect(response).to have_http_status(:success)
     end
   end
+
+  describe "POST /prompts/:prompt_id/versions/:id/activate" do
+    let(:draft_version) { create(:prompt_version, prompt: prompt, status: "draft") }
+    let(:deprecated_version) { create(:prompt_version, prompt: prompt, status: "deprecated") }
+
+    it "activates a draft version" do
+      draft_version # create it
+
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/#{draft_version.id}/activate"
+
+      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{draft_version.id}")
+      follow_redirect!
+      expect(response.body).to include("Version activated successfully")
+
+      draft_version.reload
+      expect(draft_version.status).to eq("active")
+    end
+
+    it "activates a deprecated version" do
+      deprecated_version # create it
+
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/#{deprecated_version.id}/activate"
+
+      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{deprecated_version.id}")
+      follow_redirect!
+      expect(response.body).to include("Version activated successfully")
+
+      deprecated_version.reload
+      expect(deprecated_version.status).to eq("active")
+    end
+
+    it "deprecates other versions when activating" do
+      # Ensure version is loaded and active
+      expect(version.status).to eq("active")
+
+      draft_version # create it (version 2)
+
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/#{draft_version.id}/activate"
+
+      expect(version.reload.status).to eq("deprecated")
+      expect(draft_version.reload.status).to eq("active")
+    end
+
+    it "does not activate already active version" do
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}/activate"
+
+      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}")
+      follow_redirect!
+      expect(response.body).to include("Version is already active")
+    end
+
+    it "returns 404 for non-existent version" do
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/999999/activate"
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 404 for version from different prompt" do
+      other_prompt = create(:prompt, :with_active_version)
+      other_version = other_prompt.active_version
+
+      post "/prompt_tracker/prompts/#{prompt.id}/versions/#{other_version.id}/activate"
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

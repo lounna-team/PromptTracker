@@ -29,7 +29,7 @@ module PromptTracker
       }.freeze
 
       def initialize(llm_response, config = {})
-        super(llm_response, DEFAULT_CONFIG.merge(config))
+        super(llm_response, DEFAULT_CONFIG.merge(config.deep_symbolize_keys))
       end
 
       def evaluate_score
@@ -138,4 +138,3 @@ module PromptTracker
     end
   end
 end
-

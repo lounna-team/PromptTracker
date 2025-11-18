@@ -146,39 +146,33 @@ module PromptTracker
 
       # Step 4: Execute LLM call with timing
       start_time = Time.current
-      begin
-        llm_result = yield(rendered_prompt)
-        response_time_ms = ((Time.current - start_time) * 1000).round
 
-        # Step 5: Extract response data
-        extracted = extract_response_data(llm_result)
+      llm_result = yield(rendered_prompt)
+      response_time_ms = ((Time.current - start_time) * 1000).round
 
-        # Step 6: Calculate cost
-        cost = calculate_cost(extracted[:tokens_prompt], extracted[:tokens_completion])
+      # Step 5: Extract response data
+      extracted = extract_response_data(llm_result)
 
-        # Step 7: Update LlmResponse with success
-        llm_response.mark_success!(
-          response_text: extracted[:text],
-          response_time_ms: response_time_ms,
-          tokens_prompt: extracted[:tokens_prompt],
-          tokens_completion: extracted[:tokens_completion],
-          tokens_total: extracted[:tokens_total],
-          cost_usd: cost,
-          response_metadata: extracted[:metadata]
-        )
+      # Step 6: Calculate cost
+      cost = calculate_cost(extracted[:tokens_prompt], extracted[:tokens_completion])
 
-        # Step 8: Return result
-        {
-          llm_response: llm_response,
-          response_text: extracted[:text],
-          tracking_id: llm_response.id
-        }
-      rescue StandardError => e
-        # Handle errors gracefully
-        response_time_ms = ((Time.current - start_time) * 1000).round
-        handle_error(llm_response, e, response_time_ms)
-        raise
-      end
+      # Step 7: Update LlmResponse with success
+      llm_response.mark_success!(
+        response_text: extracted[:text],
+        response_time_ms: response_time_ms,
+        tokens_prompt: extracted[:tokens_prompt],
+        tokens_completion: extracted[:tokens_completion],
+        tokens_total: extracted[:tokens_total],
+        cost_usd: cost,
+        response_metadata: extracted[:metadata]
+      )
+
+      # Step 8: Return result
+      {
+        llm_response: llm_response,
+        response_text: extracted[:text],
+        tracking_id: llm_response.id
+      }
     end
 
     private

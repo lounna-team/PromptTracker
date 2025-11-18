@@ -17,6 +17,11 @@
     <%= link_to prompt_playground_path(@prompt), class: "btn btn-primary me-2" do %>
       <i class="bi bi-play-circle"></i> Open in Playground
     <% end %>
+    <% if @prompt.active_version || @prompt.latest_version %>
+      <%= link_to prompt_prompt_version_prompt_tests_path(@prompt, @prompt.active_version || @prompt.latest_version), class: "btn btn-outline-primary me-2" do %>
+        <i class="bi bi-check2-square"></i> Tests
+      <% end %>
+    <% end %>
     <%= link_to new_prompt_ab_test_path(@prompt), class: "btn btn-success me-2" do %>
       <i class="bi bi-graph-up-arrow"></i> Create A/B Test
     <% end %>
@@ -217,7 +222,13 @@
                   <% end %>
                 </td>
                 <td>
-                  <%= link_to "View", prompt_prompt_version_path(@prompt, version), class: "btn btn-sm btn-outline-primary" %>
+                  <div class="btn-group" role="group">
+                    <%= link_to "View", prompt_prompt_version_path(@prompt, version), class: "btn btn-sm btn-outline-primary" %>
+                    <%= link_to "Tests", prompt_prompt_version_prompt_tests_path(@prompt, version), class: "btn btn-sm btn-outline-secondary", title: "View Tests" %>
+                    <% unless version.active? %>
+                      <%= button_to "Activate", activate_prompt_prompt_version_path(@prompt, version), method: :post, class: "btn btn-sm btn-outline-success", title: "Activate", data: { confirm: "Activate this version? This will deprecate all other versions." } %>
+                    <% end %>
+                  </div>
                 </td>
               </tr>
             <% end %>
