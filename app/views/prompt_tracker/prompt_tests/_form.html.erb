@@ -160,7 +160,57 @@
           </button>
         </div>
         <div class="card-body">
-          <p class="text-muted small">Regex patterns that the response should match</p>
+          <p class="text-muted small">
+            Regex patterns that the response should match
+            <a href="https://rubular.com/" target="_blank" class="ms-2" title="Test your regex patterns">
+              <i class="bi bi-box-arrow-up-right"></i> Regex Tester
+            </a>
+            <a href="https://ruby-doc.org/core/Regexp.html" target="_blank" class="ms-2" title="Ruby regex documentation">
+              <i class="bi bi-book"></i> Regex Docs
+            </a>
+          </p>
+
+          <!-- Helper Templates -->
+          <div class="mb-3">
+            <small class="text-muted d-block mb-2">Quick helpers:</small>
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      data-action="click->patterns#addPatternWithValue"
+                      data-patterns-pattern-value=".*"
+                      title="Match any text (contains)">
+                <i class="bi bi-search"></i> Contains (any text)
+              </button>
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      data-action="click->patterns#addPatternWithValue"
+                      data-patterns-pattern-value="^.*$"
+                      title="Match exact text (equals)">
+                <i class="bi bi-check2-square"></i> Equals (exact)
+              </button>
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      data-action="click->patterns#addPatternWithValue"
+                      data-patterns-pattern-value="\d+"
+                      title="Match one or more digits">
+                <i class="bi bi-hash"></i> Number
+              </button>
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      data-action="click->patterns#addPatternWithValue"
+                      data-patterns-pattern-value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                      title="Match email address">
+                <i class="bi bi-envelope"></i> Email
+              </button>
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      data-action="click->patterns#addPatternWithValue"
+                      data-patterns-pattern-value="https?://[^\s]+"
+                      title="Match URL">
+                <i class="bi bi-link-45deg"></i> URL
+              </button>
+            </div>
+          </div>
 
           <div data-patterns-target="list">
             <% current_patterns = @test.expected_patterns || [] %>

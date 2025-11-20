@@ -1,53 +1,7 @@
-<!-- Fix z-index for modals to appear above backdrop -->
-<script>
-  // Fix modal z-index issue - Bootstrap creates backdrop AFTER modal in DOM
-  // Solution: Move modals to end of body and ensure proper z-index
-  document.addEventListener('DOMContentLoaded', function() {
-    const addModal = document.getElementById('addEvaluatorModal');
-    const editModal = document.getElementById('editEvaluatorModal');
-
-    // Move modals to end of body (after any backdrops)
-    if (addModal && !addModal.hasAttribute('data-moved')) {
-      document.body.appendChild(addModal);
-      addModal.setAttribute('data-moved', 'true');
-    }
-    if (editModal && !editModal.hasAttribute('data-moved')) {
-      document.body.appendChild(editModal);
-      editModal.setAttribute('data-moved', 'true');
-    }
-
-    // Function to ensure modal appears above backdrop
-    function ensureModalOnTop(modalElement) {
-      if (!modalElement) return;
-
-      // When modal starts to show
-      modalElement.addEventListener('show.bs.modal', function(e) {
-        console.log('Modal showing:', this.id);
-        // Move modal to end of body again (in case backdrop was added)
-        document.body.appendChild(this);
-      });
-
-      // After modal is shown
-      modalElement.addEventListener('shown.bs.modal', function(e) {
-        console.log('Modal shown:', this.id);
-        // Ensure modal is after backdrop in DOM
-        const backdrops = document.querySelectorAll('.modal-backdrop');
-        if (backdrops.length > 0) {
-          // Move modal after the last backdrop
-          const lastBackdrop = backdrops[backdrops.length - 1];
-          lastBackdrop.parentNode.insertBefore(this, lastBackdrop.nextSibling);
-        }
-      });
-    }
-
-    // Apply to both modals
-    ensureModalOnTop(addModal);
-    ensureModalOnTop(editModal);
-  });
-</script>
-
-<!-- Add Evaluator Modal -->
-<div class="modal fade" id="addEvaluatorModal" tabindex="-1" aria-labelledby="addEvaluatorModalLabel" aria-hidden="true">
+<!-- Modals with Stimulus controller for z-index fix -->
+<div data-controller="modal-fix">
+  <!-- Add Evaluator Modal -->
+  <div class="modal fade" id="addEvaluatorModal" tabindex="-1" aria-labelledby="addEvaluatorModalLabel" aria-hidden="true" data-modal-fix-target="modal">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -130,11 +84,11 @@
         </div>
       <% end %>
     </div>
+    </div>
   </div>
-</div>
 
-<!-- Edit Evaluator Modal -->
-<div class="modal fade" id="editEvaluatorModal" tabindex="-1" aria-labelledby="editEvaluatorModalLabel" aria-hidden="true">
+  <!-- Edit Evaluator Modal -->
+  <div class="modal fade" id="editEvaluatorModal" tabindex="-1" aria-labelledby="editEvaluatorModalLabel" aria-hidden="true" data-modal-fix-target="modal">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -212,6 +166,7 @@
         </div>
       </form>
     </div>
+  </div>
   </div>
 </div>
 
