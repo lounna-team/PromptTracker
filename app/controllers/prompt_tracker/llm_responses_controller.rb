@@ -6,7 +6,7 @@ module PromptTracker
     # GET /responses
     # List all LLM responses with filtering
     def index
-      @responses = LlmResponse.includes(:prompt_version, :evaluations).order(created_at: :desc)
+      @responses = LlmResponse.includes(:evaluations, prompt_version: :prompt).order(created_at: :desc)
 
       # Filter by provider
       @responses = @responses.where(provider: params[:provider]) if params[:provider].present?

@@ -22,31 +22,34 @@ module PromptTracker
     # Evaluates a response using all configured evaluators
     #
     # @param llm_response [LlmResponse] the response to evaluate
+    # @param context [String] evaluation context: 'tracked_call', 'test_run', or 'manual'
     # @return [void]
-    def self.evaluate(llm_response)
-      new(llm_response).evaluate
+    def self.evaluate(llm_response, context: "tracked_call")
+      new(llm_response, context: context).evaluate
     end
 
     # Initialize the service
     #
     # @param llm_response [LlmResponse] the response to evaluate
-    def initialize(llm_response)
+    # @param context [String] evaluation context
+    def initialize(llm_response, context: "tracked_call")
       @llm_response = llm_response
-      @prompt = llm_response.prompt
+      @prompt_version = llm_response.prompt_version
+      @evaluation_context = context
     end
 
     # Runs all configured evaluators for this response
     #
     # @return [void]
     def evaluate
-      return unless @prompt
+      return unless @prompt_version
 
       # Phase 1: Run independent evaluators (no dependencies)
-      independent_configs = @prompt.evaluator_configs.enabled.independent.by_priority
+      independent_configs = @prompt_version.evaluator_configs.enabled.independent.by_priority
       independent_configs.each { |config| run_evaluation(config) }
 
       # Phase 2: Run dependent evaluators (only if dependencies are met)
-      dependent_configs = @prompt.evaluator_configs.enabled.dependent.by_priority
+      dependent_configs = @prompt_version.evaluator_configs.enabled.dependent.by_priority
       dependent_configs.each do |config|
         next unless config.dependency_met?(@llm_response)
 
@@ -87,6 +90,7 @@ module PromptTracker
       EvaluationJob.perform_later(
         @llm_response.id,
         config.id,
+        @evaluation_context,
         check_dependency: config.has_dependency?
       )
     end
@@ -98,8 +102,9 @@ module PromptTracker
     # @return [void]
     def create_evaluation(config, evaluation)
       # The evaluator already created the evaluation via EvaluationService
-      # Just update metadata with weight and priority
+      # Just update metadata with weight, priority, and context
       evaluation.update!(
+        evaluation_context: @evaluation_context,
         metadata: (evaluation.metadata || {}).merge(
           weight: config.weight,
           priority: config.priority,

@@ -100,15 +100,23 @@ module PromptTracker
         metadata: { triggered_by: "manual", user: "web_ui" }
       )
 
-
       # Enqueue background job to execute the test
       RunTestJob.perform_later(
         test_run.id,
         use_real_llm: use_real_llm?
       )
 
-      redirect_to prompt_prompt_version_prompt_test_path(@prompt, @version, @test),
-                  notice: "Test started in the background! The page will update automatically when complete."
+      respond_to do |format|
+        format.turbo_stream do
+          # The after_create_commit callback on PromptTestRun already broadcasts the updates
+          # Render empty turbo stream to acknowledge the request without redirecting
+          render turbo_stream: []
+        end
+        format.html do
+          redirect_to prompt_prompt_version_prompt_test_path(@prompt, @version, @test),
+                      notice: "Test started in the background! The page will update automatically when complete."
+        end
+      end
     end
 
     private
@@ -128,7 +136,6 @@ module PromptTracker
         :description,
         :expected_output,
         :enabled,
-        :prompt_test_suite_id,
         :template_variables,
         :expected_patterns,
         :model_config,

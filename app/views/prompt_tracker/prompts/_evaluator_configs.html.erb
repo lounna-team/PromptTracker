@@ -8,7 +8,7 @@
     </button>
   </div>
   <div class="card-body">
-    <% if @prompt.evaluator_configs.any? %>
+    <% if @prompt.active_evaluator_configs.any? %>
       <!-- Aggregation Strategy -->
       <div class="alert alert-info mb-3">
         <strong>Score Aggregation:</strong>
@@ -46,7 +46,7 @@
             </tr>
           </thead>
           <tbody>
-            <% @prompt.evaluator_configs.by_priority.each do |config| %>
+            <% @prompt.active_evaluator_configs.by_priority.each do |config| %>
               <tr class="<%= 'table-secondary' unless config.enabled? %>">
                 <td class="text-center">
                   <span class="badge bg-secondary"><%= config.priority %></span>
@@ -126,8 +126,8 @@
       <!-- Weight Distribution Summary -->
       <% if @prompt.score_aggregation_strategy == "weighted_average" %>
         <div class="alert alert-light mt-3">
-          <strong>Total Weight:</strong> <%= @prompt.evaluator_configs.enabled.sum(:weight).round(2) %>
-          <% total_weight = @prompt.evaluator_configs.enabled.sum(:weight) %>
+          <strong>Total Weight:</strong> <%= @prompt.active_evaluator_configs.enabled.sum(:weight).round(2) %>
+          <% total_weight = @prompt.active_evaluator_configs.enabled.sum(:weight) %>
           <% if total_weight > 0 %>
             <span class="text-success">
               <i class="bi bi-check-circle"></i> Weights will be normalized

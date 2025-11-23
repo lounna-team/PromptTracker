@@ -190,14 +190,15 @@ test_greeting_premium = support_greeting_v3.prompt_tests.create!(
   template_variables: { "customer_name" => "John Smith", "issue_category" => "billing" },
   expected_patterns: ["John Smith", "billing"],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 0,
-      "config" => { "min_length" => 10, "max_length" => 500 }
-    }
-  ],
   tags: ["premium", "billing"],
+  enabled: true
+)
+
+# Create evaluator config for this test
+test_greeting_premium.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 0,
+  config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
 
@@ -207,14 +208,14 @@ test_greeting_technical = support_greeting_v3.prompt_tests.create!(
   template_variables: { "customer_name" => "Sarah Johnson", "issue_category" => "technical" },
   expected_patterns: ["Sarah Johnson", "technical"],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 0,
-      "config" => { "min_length" => 10, "max_length" => 500 }
-    }
-  ],
   tags: ["technical"],
+  enabled: true
+)
+
+test_greeting_technical.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 0,
+  config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
 
@@ -224,14 +225,14 @@ test_greeting_account = support_greeting_v3.prompt_tests.create!(
   template_variables: { "customer_name" => "Mike Davis", "issue_category" => "account" },
   expected_patterns: ["Mike Davis", "account"],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 0,
-      "config" => { "min_length" => 10, "max_length" => 500 }
-    }
-  ],
   tags: ["account"],
+  enabled: true
+)
+
+test_greeting_account.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 0,
+  config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
 
@@ -241,14 +242,14 @@ test_greeting_general = support_greeting_v3.prompt_tests.create!(
   template_variables: { "customer_name" => "Emily Chen", "issue_category" => "general" },
   expected_patterns: ["Emily Chen", "general"],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 0,
-      "config" => { "min_length" => 10, "max_length" => 500 }
-    }
-  ],
   tags: ["general"],
+  enabled: true
+)
+
+test_greeting_general.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 0,
+  config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
 
@@ -259,10 +260,10 @@ test_greeting_edge = support_greeting_v3.prompt_tests.create!(
   template_variables: { "customer_name" => "Alexander Maximilian Christopher Wellington III", "issue_category" => "billing" },
   expected_patterns: ["Alexander", "billing"],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [],
   tags: ["edge-case"],
   enabled: false
 )
+# No evaluator configs for this edge case test
 
 # ============================================================================
 # Advanced Tests with Multiple Evaluators
@@ -282,42 +283,49 @@ test_comprehensive_quality = support_greeting_v3.prompt_tests.create!(
     "^Hi\\s+\\w+"  # Must start with "Hi" followed by a name
   ],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 80,
-      "weight" => 0.2,
-      "config" => {
-        "min_length" => 50,
-        "max_length" => 200,
-        "ideal_min" => 80,
-        "ideal_max" => 150
-      }
-    },
-    {
-      "evaluator_key" => "keyword_check",
-      "threshold" => 90,
-      "weight" => 0.3,
-      "config" => {
-        "required_keywords" => ["help", "refund"],
-        "forbidden_keywords" => ["unfortunately", "cannot", "unable"],
-        "case_sensitive" => false
-      }
-    },
-    {
-      "evaluator_key" => "gpt4_judge",
-      "threshold" => 85,
-      "weight" => 0.5,
-      "config" => {
-        "judge_model" => "gpt-4o",
-        "criteria" => ["helpfulness", "professionalism", "clarity", "tone"],
-        "custom_instructions" => "Evaluate if the greeting is warm, professional, and acknowledges the customer's refund request appropriately.",
-        "score_min" => 0,
-        "score_max" => 100
-      }
-    }
-  ],
   tags: ["comprehensive", "quality", "critical"],
+  enabled: true
+)
+
+test_comprehensive_quality.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 80,
+  weight: 0.2,
+  priority: 1,
+  config: {
+    "min_length" => 50,
+    "max_length" => 200,
+    "ideal_min" => 80,
+    "ideal_max" => 150
+  },
+  enabled: true
+)
+
+test_comprehensive_quality.evaluator_configs.create!(
+  evaluator_key: "keyword_check",
+  threshold: 90,
+  weight: 0.3,
+  priority: 2,
+  config: {
+    "required_keywords" => ["help", "refund"],
+    "forbidden_keywords" => ["unfortunately", "cannot", "unable"],
+    "case_sensitive" => false
+  },
+  enabled: true
+)
+
+test_comprehensive_quality.evaluator_configs.create!(
+  evaluator_key: "gpt4_judge",
+  threshold: 85,
+  weight: 0.5,
+  priority: 3,
+  config: {
+    "judge_model" => "gpt-4o",
+    "criteria" => ["helpfulness", "professionalism", "clarity", "tone"],
+    "custom_instructions" => "Evaluate if the greeting is warm, professional, and acknowledges the customer's refund request appropriately.",
+    "score_min" => 0,
+    "score_max" => 100
+  },
   enabled: true
 )
 
@@ -337,41 +345,48 @@ test_email_format = email_summary_v1.prompt_tests.create!(
   ],
   expected_output: nil,
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.3 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 75,
-      "weight" => 0.25,
-      "config" => {
-        "min_length" => 100,
-        "max_length" => 400,
-        "ideal_min" => 150,
-        "ideal_max" => 300
-      }
-    },
-    {
-      "evaluator_key" => "format_check",
-      "threshold" => 80,
-      "weight" => 0.25,
-      "config" => {
-        "expected_format" => "plain",
-        "strict" => false
-      }
-    },
-    {
-      "evaluator_key" => "gpt4_judge",
-      "threshold" => 80,
-      "weight" => 0.5,
-      "config" => {
-        "judge_model" => "gpt-4o",
-        "criteria" => ["accuracy", "conciseness", "completeness"],
-        "custom_instructions" => "Evaluate if the summary captures the key points of the email thread concisely and accurately.",
-        "score_min" => 0,
-        "score_max" => 100
-      }
-    }
-  ],
   tags: ["format", "validation", "email"],
+  enabled: true
+)
+
+test_email_format.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 75,
+  weight: 0.25,
+  priority: 1,
+  config: {
+    "min_length" => 100,
+    "max_length" => 400,
+    "ideal_min" => 150,
+    "ideal_max" => 300
+  },
+  enabled: true
+)
+
+test_email_format.evaluator_configs.create!(
+  evaluator_key: "format_check",
+  threshold: 80,
+  weight: 0.25,
+  priority: 2,
+  config: {
+    "expected_format" => "plain",
+    "strict" => false
+  },
+  enabled: true
+)
+
+test_email_format.evaluator_configs.create!(
+  evaluator_key: "gpt4_judge",
+  threshold: 80,
+  weight: 0.5,
+  priority: 3,
+  config: {
+    "judge_model" => "gpt-4o",
+    "criteria" => ["accuracy", "conciseness", "completeness"],
+    "custom_instructions" => "Evaluate if the summary captures the key points of the email thread concisely and accurately.",
+    "score_min" => 0,
+    "score_max" => 100
+  },
   enabled: true
 )
 
@@ -391,42 +406,49 @@ test_code_review_quality = code_review_v1.prompt_tests.create!(
     "\\bsum\\b"  # Must reference the sum method
   ],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 70,
-      "weight" => 0.15,
-      "config" => {
-        "min_length" => 200,
-        "max_length" => 1000,
-        "ideal_min" => 300,
-        "ideal_max" => 700
-      }
-    },
-    {
-      "evaluator_key" => "keyword_check",
-      "threshold" => 85,
-      "weight" => 0.25,
-      "config" => {
-        "required_keywords" => ["code", "quality", "readability"],
-        "forbidden_keywords" => ["terrible", "awful", "stupid"],
-        "case_sensitive" => false
-      }
-    },
-    {
-      "evaluator_key" => "gpt4_judge",
-      "threshold" => 90,
-      "weight" => 0.6,
-      "config" => {
-        "judge_model" => "gpt-4o",
-        "criteria" => ["helpfulness", "technical_accuracy", "professionalism", "completeness"],
-        "custom_instructions" => "Evaluate if the code review is constructive, technically accurate, and provides actionable feedback. The review should identify potential issues and suggest improvements.",
-        "score_min" => 0,
-        "score_max" => 100
-      }
-    }
-  ],
   tags: ["code-review", "quality", "technical"],
+  enabled: true
+)
+
+test_code_review_quality.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 70,
+  weight: 0.15,
+  priority: 1,
+  config: {
+    "min_length" => 200,
+    "max_length" => 1000,
+    "ideal_min" => 300,
+    "ideal_max" => 700
+  },
+  enabled: true
+)
+
+test_code_review_quality.evaluator_configs.create!(
+  evaluator_key: "keyword_check",
+  threshold: 85,
+  weight: 0.25,
+  priority: 2,
+  config: {
+    "required_keywords" => ["code", "quality", "readability"],
+    "forbidden_keywords" => ["terrible", "awful", "stupid"],
+    "case_sensitive" => false
+  },
+  enabled: true
+)
+
+test_code_review_quality.evaluator_configs.create!(
+  evaluator_key: "gpt4_judge",
+  threshold: 90,
+  weight: 0.6,
+  priority: 3,
+  config: {
+    "judge_model" => "gpt-4o",
+    "criteria" => ["helpfulness", "technical_accuracy", "professionalism", "completeness"],
+    "custom_instructions" => "Evaluate if the code review is constructive, technically accurate, and provides actionable feedback. The review should identify potential issues and suggest improvements.",
+    "score_min" => 0,
+    "score_max" => 100
+  },
   enabled: true
 )
 
@@ -442,32 +464,36 @@ test_exact_match = support_greeting_v3.prompt_tests.create!(
     "What's going on\\?$"
   ],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 90,
-      "weight" => 0.3,
-      "config" => {
-        "min_length" => 50,
-        "max_length" => 150,
-        "ideal_min" => 80,
-        "ideal_max" => 120
-      }
-    },
-    {
-      "evaluator_key" => "gpt4_judge",
-      "threshold" => 95,
-      "weight" => 0.7,
-      "config" => {
-        "judge_model" => "gpt-4o",
-        "criteria" => ["accuracy", "tone", "clarity"],
-        "custom_instructions" => "Evaluate if the greeting matches the expected format and tone for a password reset inquiry.",
-        "score_min" => 0,
-        "score_max" => 100
-      }
-    }
-  ],
   tags: ["exact-match", "critical", "smoke"],
+  enabled: true
+)
+
+test_exact_match.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 90,
+  weight: 0.3,
+  priority: 1,
+  config: {
+    "min_length" => 50,
+    "max_length" => 150,
+    "ideal_min" => 80,
+    "ideal_max" => 120
+  },
+  enabled: true
+)
+
+test_exact_match.evaluator_configs.create!(
+  evaluator_key: "gpt4_judge",
+  threshold: 95,
+  weight: 0.7,
+  priority: 2,
+  config: {
+    "judge_model" => "gpt-4o",
+    "criteria" => ["accuracy", "tone", "clarity"],
+    "custom_instructions" => "Evaluate if the greeting matches the expected format and tone for a password reset inquiry.",
+    "score_min" => 0,
+    "score_max" => 100
+  },
   enabled: true
 )
 
@@ -492,51 +518,61 @@ test_technical_patterns = code_review_v1.prompt_tests.create!(
     "\\b(could|should|might|consider|recommend)\\b"  # Must use suggestive language
   ],
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
-  evaluator_configs: [
-    {
-      "evaluator_key" => "length_check",
-      "threshold" => 75,
-      "weight" => 0.2,
-      "config" => {
-        "min_length" => 250,
-        "max_length" => 1200,
-        "ideal_min" => 400,
-        "ideal_max" => 800
-      }
-    },
-    {
-      "evaluator_key" => "keyword_check",
-      "threshold" => 80,
-      "weight" => 0.2,
-      "config" => {
-        "required_keywords" => ["comprehension", "performance", "edge case"],
-        "forbidden_keywords" => [],
-        "case_sensitive" => false
-      }
-    },
-    {
-      "evaluator_key" => "format_check",
-      "threshold" => 85,
-      "weight" => 0.1,
-      "config" => {
-        "expected_format" => "markdown",
-        "strict" => false
-      }
-    },
-    {
-      "evaluator_key" => "gpt4_judge",
-      "threshold" => 88,
-      "weight" => 0.5,
-      "config" => {
-        "judge_model" => "gpt-4o",
-        "criteria" => ["technical_accuracy", "completeness", "helpfulness", "professionalism"],
-        "custom_instructions" => "Evaluate the technical accuracy and completeness of the code review. It should identify the list comprehension, discuss performance implications, mention edge cases, and suggest testing.",
-        "score_min" => 0,
-        "score_max" => 100
-      }
-    }
-  ],
   tags: ["technical", "complex-patterns", "code-review"],
+  enabled: true
+)
+
+test_technical_patterns.evaluator_configs.create!(
+  evaluator_key: "length_check",
+  threshold: 75,
+  weight: 0.2,
+  priority: 1,
+  config: {
+    "min_length" => 250,
+    "max_length" => 1200,
+    "ideal_min" => 400,
+    "ideal_max" => 800
+  },
+  enabled: true
+)
+
+test_technical_patterns.evaluator_configs.create!(
+  evaluator_key: "keyword_check",
+  threshold: 80,
+  weight: 0.2,
+  priority: 2,
+  config: {
+    "required_keywords" => ["comprehension", "performance", "edge case"],
+    "forbidden_keywords" => [],
+    "case_sensitive" => false
+  },
+  enabled: true
+)
+
+test_technical_patterns.evaluator_configs.create!(
+  evaluator_key: "format_check",
+  threshold: 85,
+  weight: 0.1,
+  priority: 3,
+  config: {
+    "expected_format" => "markdown",
+    "strict" => false
+  },
+  enabled: true
+)
+
+test_technical_patterns.evaluator_configs.create!(
+  evaluator_key: "gpt4_judge",
+  threshold: 88,
+  weight: 0.5,
+  priority: 4,
+  config: {
+    "judge_model" => "gpt-4o",
+    "criteria" => ["technical_accuracy", "completeness", "helpfulness", "professionalism"],
+    "custom_instructions" => "Evaluate the technical accuracy and completeness of the code review. It should identify the list comprehension, discuss performance implications, mention edge cases, and suggest testing.",
+    "score_min" => 0,
+    "score_max" => 100
+  },
   enabled: true
 )
 

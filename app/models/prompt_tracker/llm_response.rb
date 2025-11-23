@@ -13,6 +13,7 @@
 #  error_message     :text
 #  error_type        :string
 #  id                :bigint           not null, primary key
+#  is_test_run       :boolean          default(FALSE), not null
 #  model             :string           not null
 #  prompt_version_id :bigint           not null
 #  provider          :string           not null
@@ -87,7 +88,7 @@ module PromptTracker
              inverse_of: :llm_response
 
     # Callbacks
-    after_create :trigger_auto_evaluation
+    after_create :trigger_auto_evaluation, unless: :is_test_run?
 
     # Validations
     validates :rendered_prompt, presence: true
@@ -157,6 +158,14 @@ module PromptTracker
     # @param hours [Integer] number of hours to look back
     # @return [ActiveRecord::Relation<LlmResponse>]
     scope :recent, ->(hours = 24) { where("created_at > ?", hours.hours.ago) }
+
+    # Returns only production/staging/dev calls (not test runs)
+    # @return [ActiveRecord::Relation<LlmResponse>]
+    scope :production_calls, -> { where(is_test_run: false) }
+
+    # Returns only test run calls
+    # @return [ActiveRecord::Relation<LlmResponse>]
+    scope :test_calls, -> { where(is_test_run: true) }
 
     # Instance Methods
 
@@ -261,15 +270,35 @@ module PromptTracker
     #
     # @return [Array<Hash>] array of evaluation details
     def evaluation_breakdown
+      # Calculate total weight for normalization
+      total_weight = evaluations.sum { |e| e.metadata&.dig("weight") || 1.0 }
+
       evaluations.map do |evaluation|
-        config = prompt&.evaluator_configs&.find_by(evaluator_key: evaluation.evaluator_id)
+        # Get weight from metadata (set by AutoEvaluationService/EvaluationJob)
+        weight = evaluation.metadata&.dig("weight") || 1.0
+
+        # Try to get evaluator name from registry if evaluator_config_id is in metadata
+        evaluator_name = if evaluation.metadata&.dig("evaluator_config_id")
+          config_id = evaluation.metadata["evaluator_config_id"]
+          config = EvaluatorConfig.find_by(id: config_id)
+          if config
+            registry_meta = EvaluatorRegistry.get(config.evaluator_key)
+            registry_meta&.dig(:name) || config.evaluator_key.to_s.titleize
+          else
+            evaluation.evaluator_id.to_s.titleize
+          end
+        else
+          evaluation.evaluator_id.to_s.titleize
+        end
+
         {
+          evaluation_id: evaluation.id,
           evaluator_id: evaluation.evaluator_id,
-          evaluator_name: config&.name || evaluation.evaluator_id.to_s.titleize,
+          evaluator_name: evaluator_name,
           evaluator_type: evaluation.evaluator_type,
           score: evaluation.score,
-          weight: config&.weight || 1.0,
-          normalized_weight: config&.normalized_weight || 0,
+          weight: weight,
+          normalized_weight: total_weight > 0 ? (weight / total_weight) : 0,
           feedback: evaluation.feedback,
           criteria_scores: evaluation.criteria_scores,
           created_at: evaluation.created_at
@@ -343,7 +372,7 @@ module PromptTracker
     # Triggers automatic evaluation after response is created
     # @return [void]
     def trigger_auto_evaluation
-      AutoEvaluationService.evaluate(self)
+      AutoEvaluationService.evaluate(self, context: "tracked_call")
     end
 
     # Calculates simple average of all evaluation scores
@@ -361,8 +390,9 @@ module PromptTracker
       weighted_sum = 0
 
       evaluations.each do |evaluation|
-        config = prompt.evaluator_configs.find_by(evaluator_key: evaluation.evaluator_id)
-        weight = config&.weight || 1.0
+        # Get weight from evaluation metadata (set by AutoEvaluationService/EvaluationJob)
+        # or default to 1.0 for manual evaluations
+        weight = evaluation.metadata&.dig("weight") || 1.0
 
         weighted_sum += evaluation.score * weight
         total_weight += weight

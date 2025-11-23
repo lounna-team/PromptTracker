@@ -37,7 +37,6 @@ module PromptTracker
 
     describe "associations" do
       it { should belong_to(:prompt_version) }
-      it { should belong_to(:prompt_test_suite).optional }
       it { should have_many(:prompt_test_runs).dependent(:destroy) }
     end
 

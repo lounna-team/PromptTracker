@@ -350,11 +350,11 @@
           <p class="text-muted small">Select evaluators to run for this test</p>
 
           <% available_evaluators = PromptTracker::EvaluatorRegistry.all %>
-          <% current_evaluators = @test.evaluator_configs || [] %>
+          <% current_evaluators = @test.evaluator_configs.to_a %>
 
           <div id="evaluators-list">
             <% available_evaluators.each do |key, meta| %>
-              <% existing_config = current_evaluators.find { |e| e["evaluator_key"] == key.to_s || e[:evaluator_key] == key } %>
+              <% existing_config = current_evaluators.find { |e| e.evaluator_key == key.to_s } %>
               <% is_selected = existing_config.present? %>
 
               <div class="card mb-2 evaluator-item" data-evaluator-key="<%= key %>">
@@ -387,7 +387,7 @@
                                data-evaluator-configs-target="threshold"
                                data-action="change->evaluator-configs#updateJson input->evaluator-configs#updateJson"
                                min="0" max="100"
-                               value="<%= existing_config&.dig('threshold') || existing_config&.dig(:threshold) || 80 %>">
+                               value="<%= existing_config&.threshold || 80 %>">
                       </div>
                       <div class="col-md-6">
                         <label class="form-label small">Weight</label>
@@ -397,7 +397,7 @@
                                data-evaluator-configs-target="weight"
                                data-action="change->evaluator-configs#updateJson input->evaluator-configs#updateJson"
                                step="0.1" min="0" max="1"
-                               value="<%= existing_config&.dig('weight') || existing_config&.dig(:weight) || 0.5 %>">
+                               value="<%= existing_config&.weight || 0.5 %>">
                       </div>
                     </div>
 
@@ -417,7 +417,7 @@
                         <input type="hidden"
                                data-evaluator-key="<%= key %>"
                                data-evaluator-configs-target="configJson"
-                               value='<%= JSON.generate(existing_config&.dig('config') || existing_config&.dig(:config) || meta[:default_config] || {}) %>'>
+                               value='<%= JSON.generate(existing_config&.config || meta[:default_config] || {}) %>'>
                       </div>
                     <% end %>
                   </div>

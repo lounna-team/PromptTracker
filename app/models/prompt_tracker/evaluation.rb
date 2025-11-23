@@ -4,18 +4,19 @@
 #
 # Table name: prompt_tracker_evaluations
 #
-#  created_at      :datetime         not null
-#  criteria_scores :jsonb
-#  evaluator_id    :string
-#  evaluator_type  :string           not null
-#  feedback        :text
-#  id              :bigint           not null, primary key
-#  llm_response_id :bigint           not null
-#  metadata        :jsonb
-#  score           :decimal(10, 2)   not null
-#  score_max       :decimal(10, 2)   default(5.0)
-#  score_min       :decimal(10, 2)   default(0.0)
-#  updated_at      :datetime         not null
+#  created_at         :datetime         not null
+#  criteria_scores    :jsonb
+#  evaluation_context :string           default("tracked_call")
+#  evaluator_id       :string
+#  evaluator_type     :string           not null
+#  feedback           :text
+#  id                 :bigint           not null, primary key
+#  llm_response_id    :bigint           not null
+#  metadata           :jsonb
+#  score              :decimal(10, 2)   not null
+#  score_max          :decimal(10, 2)   default(5.0)
+#  score_min          :decimal(10, 2)   default(0.0)
+#  updated_at         :datetime         not null
 #
 module PromptTracker
   # Represents a quality evaluation of an LLM response.
@@ -73,10 +74,18 @@ module PromptTracker
     validates :score_min, numericality: true
     validates :score_max, numericality: true
     validates :evaluator_type, presence: true, inclusion: { in: EVALUATOR_TYPES }
+    validates :evaluation_context, presence: true, inclusion: { in: %w[tracked_call test_run manual] }
 
     validate :score_within_range
     validate :criteria_scores_must_be_hash
     validate :metadata_must_be_hash
+
+    # Enums
+    enum evaluation_context: {
+      tracked_call: "tracked_call",  # From host app via track_llm_call
+      test_run: "test_run",          # From PromptTest execution
+      manual: "manual"               # Manual evaluation in UI
+    }
 
     # Scopes
 
@@ -96,6 +105,18 @@ module PromptTracker
     # @param evaluator_id [String] the evaluator identifier
     # @return [ActiveRecord::Relation<Evaluation>]
     scope :by_evaluator, ->(evaluator_id) { where(evaluator_id: evaluator_id) }
+
+    # Returns evaluations from tracked calls (host app)
+    # @return [ActiveRecord::Relation<Evaluation>]
+    scope :tracked, -> { where(evaluation_context: "tracked_call") }
+
+    # Returns evaluations from test runs
+    # @return [ActiveRecord::Relation<Evaluation>]
+    scope :from_tests, -> { where(evaluation_context: "test_run") }
+
+    # Returns manual evaluations
+    # @return [ActiveRecord::Relation<Evaluation>]
+    scope :manual_only, -> { where(evaluation_context: "manual") }
 
     # Returns evaluations with score above threshold
     # @param threshold [Numeric] the minimum score
@@ -179,6 +200,20 @@ module PromptTracker
     # @return [Boolean] true if criteria_scores is not empty
     def has_criteria_scores?
       criteria_scores.present? && criteria_scores.any?
+    end
+
+    # Returns the evaluator key if available from metadata, otherwise returns evaluator_id.
+    #
+    # @return [String, nil] evaluator key or evaluator_id
+    def evaluator_key
+      # Try to get evaluator_key from the associated EvaluatorConfig via metadata
+      if metadata&.dig("evaluator_config_id")
+        config = EvaluatorConfig.find_by(id: metadata["evaluator_config_id"])
+        return config.evaluator_key if config
+      end
+
+      # Fall back to evaluator_id
+      evaluator_id
     end
 
     # Returns a human-readable summary of this evaluation.

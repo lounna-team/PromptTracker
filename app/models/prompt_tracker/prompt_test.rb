@@ -7,7 +7,6 @@
 #  created_at           :datetime         not null
 #  description          :text
 #  enabled              :boolean          default(TRUE), not null
-#  evaluator_configs    :jsonb            not null
 #  expected_output      :text
 #  expected_patterns    :jsonb            not null
 #  id                   :bigint           not null, primary key
@@ -45,17 +44,73 @@ module PromptTracker
   class PromptTest < ApplicationRecord
     # Associations
     belongs_to :prompt_version
-    belongs_to :prompt_test_suite, optional: true
     has_many :prompt_test_runs, dependent: :destroy
+    has_many :evaluator_configs,
+             as: :configurable,
+             class_name: "PromptTracker::EvaluatorConfig",
+             dependent: :destroy
 
     # Delegate to get the prompt through prompt_version
     has_one :prompt, through: :prompt_version
+
+    # Accept nested attributes for evaluator configs
+    accepts_nested_attributes_for :evaluator_configs, allow_destroy: true
 
     # Validations
     validates :name, presence: true
     validates :name, uniqueness: { scope: :prompt_version_id }
     validates :template_variables, presence: true
     validates :model_config, presence: true
+
+    # Store configs JSON temporarily for after_save callback
+    attr_accessor :evaluator_configs_json
+
+    # Custom setter to handle evaluator_configs as JSON array (for backward compatibility with forms)
+    # This allows the form to submit evaluator_configs as a JSON string or array
+    # and automatically creates/updates the associated EvaluatorConfig records
+    #
+    # @param configs [String, Array, ActiveRecord::Relation] JSON string, array of hashes, or AR relation
+    # @return [void]
+    def evaluator_configs=(configs)
+      # If it's already an ActiveRecord relation, use the default behavior
+      return super(configs) if configs.is_a?(ActiveRecord::Relation) || configs.is_a?(ActiveRecord::Associations::CollectionProxy)
+
+      # Store for after_save callback
+      @evaluator_configs_json = configs
+    end
+
+    after_save :sync_evaluator_configs_from_json
+
+    private
+
+    def sync_evaluator_configs_from_json
+      return unless @evaluator_configs_json
+
+      # Parse JSON if it's a string
+      configs = @evaluator_configs_json.is_a?(String) ? JSON.parse(@evaluator_configs_json) : @evaluator_configs_json
+      return unless configs.is_a?(Array)
+
+      # Clear existing configs using association method
+      association(:evaluator_configs).reader.destroy_all
+
+      # Create new configs from the array
+      configs.each do |config_hash|
+        config_hash = config_hash.with_indifferent_access if config_hash.is_a?(Hash)
+        association(:evaluator_configs).reader.create!(
+          evaluator_key: config_hash[:evaluator_key],
+          weight: config_hash[:weight] || 0.5,
+          threshold: config_hash[:threshold] || 80,
+          config: config_hash[:config] || {},
+          enabled: true,
+          run_mode: config_hash[:run_mode] || "async",
+          priority: config_hash[:priority] || 0
+        )
+      end
+
+      @evaluator_configs_json = nil
+    end
+
+    public
 
     # Scopes
     scope :enabled, -> { where(enabled: true) }

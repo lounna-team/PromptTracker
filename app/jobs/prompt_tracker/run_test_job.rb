@@ -87,7 +87,7 @@ module PromptTracker
       tokens = extract_token_usage(llm_api_response)
       response_text = extract_response_text(llm_api_response)
 
-      # Create LlmResponse record
+      # Create LlmResponse record (marked as test run to skip auto-evaluation)
       llm_response = LlmResponse.create!(
         prompt_version: version,
         rendered_prompt: rendered_prompt,
@@ -99,6 +99,7 @@ module PromptTracker
         tokens_completion: tokens[:completion],
         tokens_total: tokens[:total],
         status: "success",
+        is_test_run: true,
         response_metadata: { test_run: true }
       )
 
@@ -168,14 +169,13 @@ module PromptTracker
     # @param use_real_llm [Boolean] whether to use real LLM for judge evaluators
     # @return [Array<Hash>] array of evaluator results
     def run_evaluators(test, llm_response, use_real_llm)
-      evaluator_configs = test.evaluator_configs || []
+      evaluator_configs = test.evaluator_configs.enabled.by_priority
       results = []
 
       evaluator_configs.each do |config|
-        config = config.with_indifferent_access
-        evaluator_key = config[:evaluator_key].to_sym
-        threshold = config[:threshold] || 0
-        evaluator_config = config[:config] || {}
+        evaluator_key = config.evaluator_key.to_sym
+        threshold = config.threshold || 0
+        evaluator_config = config.config || {}
 
         # Build and run evaluator
         evaluator = EvaluatorRegistry.build(evaluator_key, llm_response, evaluator_config)
@@ -196,6 +196,9 @@ module PromptTracker
           # Regular evaluators don't need a block
           evaluator.evaluate
         end
+
+        # Set evaluation context to test_run
+        evaluation.update!(evaluation_context: "test_run")
 
         # Check if score meets threshold
         passed = evaluation.score >= threshold

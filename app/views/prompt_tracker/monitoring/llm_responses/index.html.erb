@@ -1,0 +1,107 @@
+<div class="monitoring-responses-index">
+  <div class="page-header" style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 1.5rem; margin-bottom: 2rem;">
+    <h1 style="color: #065F46; margin: 0;">
+      📊 LLM Responses
+    </h1>
+    <p style="color: #065F46; margin: 0.5rem 0 0 0;">
+      From Tracked calls within your application (excludes test runs)
+    </p>
+  </div>
+
+  <!-- Filters -->
+  <div style="background: white; border: 2px solid #D1FAE5; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+    <%= form_with url: monitoring_responses_path, method: :get, local: true do |f| %>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div>
+          <%= f.label :environment, "Environment", style: "display: block; color: #64748B; margin-bottom: 0.5rem;" %>
+          <%= f.select :environment,
+                       options_for_select(['production', 'staging', 'development'], params[:environment]),
+                       { include_blank: 'All' },
+                       style: "width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px;" %>
+        </div>
+
+        <div>
+          <%= f.label :prompt_id, "Prompt", style: "display: block; color: #64748B; margin-bottom: 0.5rem;" %>
+          <%= f.select :prompt_id,
+                       options_from_collection_for_select(PromptTracker::Prompt.all, :id, :name, params[:prompt_id]),
+                       { include_blank: 'All' },
+                       style: "width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px;" %>
+        </div>
+
+        <div>
+          <%= f.label :start_date, "Start Date", style: "display: block; color: #64748B; margin-bottom: 0.5rem;" %>
+          <%= f.date_field :start_date, value: params[:start_date], style: "width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px;" %>
+        </div>
+
+        <div>
+          <%= f.label :end_date, "End Date", style: "display: block; color: #64748B; margin-bottom: 0.5rem;" %>
+          <%= f.date_field :end_date, value: params[:end_date], style: "width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px;" %>
+        </div>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <%= f.submit "Apply Filters", style: "background-color: #10B981; color: white; padding: 0.5rem 1.5rem; border: none; border-radius: 4px; cursor: pointer;" %>
+        <%= link_to "Clear", monitoring_responses_path, style: "margin-left: 1rem; color: #64748B; text-decoration: none;" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Responses Table -->
+  <div style="background: white; border: 2px solid #D1FAE5; border-radius: 8px; padding: 1.5rem;">
+    <% if @responses.any? %>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid #D1FAE5;">
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">ID</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Prompt</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Version</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Environment</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Status</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Evaluations</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @responses.each do |response| %>
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 0.75rem;">
+                <%= link_to "##{response.id}", monitoring_response_path(response), style: "color: #10B981; text-decoration: none; font-weight: 500;" %>
+              </td>
+              <td style="padding: 0.75rem; color: #374151;">
+                <%= response.prompt_version.prompt.name %>
+              </td>
+              <td style="padding: 0.75rem; color: #64748B;">
+                v<%= response.prompt_version.version_number %>
+              </td>
+              <td style="padding: 0.75rem;">
+                <span style="padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; background-color: #F3F4F6; color: #374151;">
+                  <%= response.environment %>
+                </span>
+              </td>
+              <td style="padding: 0.75rem;">
+                <span style="padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; background-color: <%= response.status == 'success' ? '#D1FAE5' : '#FEE2E2' %>; color: <%= response.status == 'success' ? '#065F46' : '#991B1B' %>;">
+                  <%= response.status %>
+                </span>
+              </td>
+              <td style="padding: 0.75rem; color: #64748B;">
+                <%= response.evaluations.tracked.count %>
+              </td>
+              <td style="padding: 0.75rem; color: #64748B;">
+                <%= time_ago_in_words(response.created_at) %> ago
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <%= paginate @responses %>
+      </div>
+    <% else %>
+      <p style="color: #64748B; text-align: center; padding: 2rem;">
+        No production responses found. Try adjusting your filters.
+      </p>
+    <% end %>
+  </div>
+</div>

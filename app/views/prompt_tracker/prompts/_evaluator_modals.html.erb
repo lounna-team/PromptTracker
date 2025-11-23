@@ -56,7 +56,7 @@
           <div class="mb-3">
             <%= f.label :depends_on, "Depends On (optional)", class: "form-label" %>
             <%= f.select :depends_on,
-                         options_for_select([["None", ""]] + @prompt.evaluator_configs.pluck(:evaluator_key, :evaluator_key)),
+                         options_for_select([["None", ""]] + @prompt.active_evaluator_configs.pluck(:evaluator_key, :evaluator_key)),
                          {},
                          { class: "form-select" } %>
             <div class="form-text">Only run this evaluator if the dependency passes.</div>
@@ -139,7 +139,7 @@
             <label for="edit_depends_on" class="form-label">Depends On (optional)</label>
             <select id="edit_depends_on" class="form-select">
               <option value="">None</option>
-              <% @prompt.evaluator_configs.each do |config| %>
+              <% @prompt.active_evaluator_configs.each do |config| %>
                 <option value="<%= config.evaluator_key %>"><%= config.evaluator_key %></option>
               <% end %>
             </select>

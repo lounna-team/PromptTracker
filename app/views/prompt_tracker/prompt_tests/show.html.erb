@@ -24,7 +24,10 @@
     <%= link_to edit_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), class: "btn btn-outline-secondary me-2" do %>
       <i class="bi bi-pencil"></i> Edit
     <% end %>
-    <%= button_to run_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), method: :post, class: "btn btn-success" do %>
+    <%= button_to run_prompt_prompt_version_prompt_test_path(@prompt, @version, @test),
+                  method: :post,
+                  class: "btn btn-success",
+                  data: { turbo_stream: true } do %>
       <i class="bi bi-play-circle"></i> Run Test
     <% end %>
   </div>

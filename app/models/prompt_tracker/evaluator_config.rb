@@ -5,6 +5,8 @@
 # Table name: prompt_tracker_evaluator_configs
 #
 #  config               :jsonb            not null
+#  configurable_id      :bigint           not null
+#  configurable_type    :string           not null
 #  created_at           :datetime         not null
 #  depends_on           :string
 #  enabled              :boolean          default(TRUE), not null
@@ -12,8 +14,8 @@
 #  id                   :bigint           not null, primary key
 #  min_dependency_score :integer
 #  priority             :integer          default(0), not null
-#  prompt_id            :bigint           not null
 #  run_mode             :string           default("async"), not null
+#  threshold            :integer
 #  updated_at           :datetime         not null
 #  weight               :decimal(5, 2)    default(1.0), not null
 #
@@ -49,18 +51,20 @@ module PromptTracker
   #
   class EvaluatorConfig < ApplicationRecord
     # Associations
-    belongs_to :prompt,
-               class_name: "PromptTracker::Prompt",
-               inverse_of: :evaluator_configs
+    belongs_to :configurable, polymorphic: true
 
     # Validations
     validates :evaluator_key,
               presence: true,
-              uniqueness: { scope: :prompt_id }
+              uniqueness: { scope: [ :configurable_type, :configurable_id ] }
 
     validates :run_mode,
               presence: true,
               inclusion: { in: %w[sync async] }
+
+    validates :threshold,
+              numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+              allow_nil: true
 
     validates :priority,
               presence: true,
@@ -137,7 +141,7 @@ module PromptTracker
       # Get the actual evaluator_id from the registry
       # The depends_on field stores the registry key (e.g., "length_check")
       # but evaluations are stored with the evaluator_id (e.g., "length_evaluator_v1")
-      dependency_config = prompt.evaluator_configs.find_by(evaluator_key: depends_on)
+      dependency_config = sibling_configs.find_by(evaluator_key: depends_on)
       return false unless dependency_config
 
       # Build the evaluator to get its evaluator_id
@@ -151,11 +155,17 @@ module PromptTracker
       dependency_eval.score >= min_score
     end
 
-    # Returns the normalized weight (relative to all enabled configs for this prompt)
+    # Returns the normalized weight (relative to all enabled configs for this configurable)
     # @return [Float] normalized weight between 0 and 1
     def normalized_weight
-      total_weight = prompt.evaluator_configs.enabled.sum(:weight)
+      total_weight = sibling_configs.enabled.sum(:weight)
       total_weight > 0 ? (weight / total_weight) : 0
+    end
+
+    # Returns all evaluator configs for the same configurable
+    # @return [ActiveRecord::Relation<EvaluatorConfig>]
+    def sibling_configs
+      self.class.where(configurable: configurable)
     end
 
     # Returns a human-readable name for this evaluator
@@ -172,12 +182,12 @@ module PromptTracker
 
     private
 
-    # Validates that the dependency evaluator exists for this prompt
+    # Validates that the dependency evaluator exists for this configurable
     def dependency_exists
       return unless depends_on.present?
 
-      unless prompt.evaluator_configs.exists?(evaluator_key: depends_on)
-        errors.add(:depends_on, "evaluator '#{depends_on}' must be configured for this prompt")
+      unless sibling_configs.exists?(evaluator_key: depends_on)
+        errors.add(:depends_on, "evaluator '#{depends_on}' must be configured for this #{configurable_type}")
       end
     end
 
@@ -185,7 +195,7 @@ module PromptTracker
     def no_circular_dependencies
       return unless depends_on.present?
 
-      visited = Set.new([evaluator_key.to_s])
+      visited = Set.new([ evaluator_key.to_s ])
       current = depends_on
 
       while current.present?
@@ -195,7 +205,7 @@ module PromptTracker
         end
 
         visited.add(current)
-        dependency_config = prompt.evaluator_configs.find_by(evaluator_key: current)
+        dependency_config = sibling_configs.find_by(evaluator_key: current)
         current = dependency_config&.depends_on
       end
     end

@@ -5,6 +5,8 @@
 # Table name: prompt_tracker_evaluator_configs
 #
 #  config               :jsonb            not null
+#  configurable_id      :bigint           not null
+#  configurable_type    :string           not null
 #  created_at           :datetime         not null
 #  depends_on           :string
 #  enabled              :boolean          default(TRUE), not null
@@ -12,8 +14,8 @@
 #  id                   :bigint           not null, primary key
 #  min_dependency_score :integer
 #  priority             :integer          default(0), not null
-#  prompt_id            :bigint           not null
 #  run_mode             :string           default("async"), not null
+#  threshold            :decimal(10, 2)
 #  updated_at           :datetime         not null
 #  weight               :decimal(5, 2)    default(1.0), not null
 #
@@ -21,11 +23,80 @@ require "rails_helper"
 
 RSpec.describe PromptTracker::EvaluatorConfig, type: :model do
   describe "associations" do
-    it { should belong_to(:prompt).class_name("PromptTracker::Prompt") }
+    it { should belong_to(:configurable) }
+  end
+
+  describe "polymorphic association" do
+    let(:prompt) { create(:prompt_tracker_prompt) }
+    let(:version) { create(:prompt_tracker_prompt_version, prompt: prompt) }
+    let(:test) { create(:prompt_tracker_prompt_test, prompt_version: version) }
+
+    it "can belong to a PromptVersion" do
+      config = described_class.create!(
+        configurable: version,
+        evaluator_key: "test_evaluator",
+        enabled: true
+      )
+
+      expect(config.configurable_type).to eq("PromptTracker::PromptVersion")
+      expect(config.configurable).to eq(version)
+    end
+
+    it "can belong to a PromptTest" do
+      config = described_class.create!(
+        configurable: test,
+        evaluator_key: "test_evaluator",
+        enabled: true
+      )
+
+      expect(config.configurable_type).to eq("PromptTracker::PromptTest")
+      expect(config.configurable).to eq(test)
+    end
+  end
+
+  describe "#sibling_configs" do
+    let(:prompt) { create(:prompt_tracker_prompt) }
+    let(:version) { create(:prompt_tracker_prompt_version, prompt: prompt) }
+
+    let!(:config1) do
+      create(:prompt_tracker_evaluator_config,
+             configurable: version,
+             evaluator_key: "evaluator_1")
+    end
+
+    let!(:config2) do
+      create(:prompt_tracker_evaluator_config,
+             configurable: version,
+             evaluator_key: "evaluator_2")
+    end
+
+    let!(:config3) do
+      create(:prompt_tracker_evaluator_config,
+             configurable: version,
+             evaluator_key: "evaluator_3")
+    end
+
+    it "returns all other configs for the same configurable" do
+      siblings = config1.sibling_configs
+
+      expect(siblings).to contain_exactly(config2, config3)
+      expect(siblings).not_to include(config1)
+    end
+
+    it "excludes configs from different configurables" do
+      other_version = create(:prompt_tracker_prompt_version, prompt: prompt)
+      other_config = create(:prompt_tracker_evaluator_config,
+                           configurable: other_version,
+                           evaluator_key: "other_evaluator")
+
+      siblings = config1.sibling_configs
+
+      expect(siblings).not_to include(other_config)
+    end
   end
 
   describe "validations" do
-    subject { build(:evaluator_config) }
+    subject { build(:prompt_tracker_evaluator_config) }
 
     it { should validate_presence_of(:evaluator_key) }
     it { should validate_presence_of(:run_mode) }
@@ -37,21 +108,23 @@ RSpec.describe PromptTracker::EvaluatorConfig, type: :model do
     it { should validate_numericality_of(:weight).is_greater_than_or_equal_to(0) }
 
     describe "uniqueness of evaluator_key" do
-      it "validates uniqueness scoped to prompt_id" do
-        prompt = create(:prompt)
-        create(:evaluator_config, prompt: prompt, evaluator_key: "test_evaluator")
+      it "validates uniqueness scoped to configurable" do
+        prompt = create(:prompt_tracker_prompt)
+        version = create(:prompt_tracker_prompt_version, prompt: prompt)
+        create(:prompt_tracker_evaluator_config, configurable: version, evaluator_key: "test_evaluator")
 
-        duplicate = build(:evaluator_config, prompt: prompt, evaluator_key: "test_evaluator")
+        duplicate = build(:prompt_tracker_evaluator_config, configurable: version, evaluator_key: "test_evaluator")
         expect(duplicate).not_to be_valid
         expect(duplicate.errors[:evaluator_key]).to include("has already been taken")
       end
 
-      it "allows same evaluator_key for different prompts" do
-        prompt1 = create(:prompt)
-        prompt2 = create(:prompt)
+      it "allows same evaluator_key for different configurables" do
+        prompt = create(:prompt_tracker_prompt)
+        version1 = create(:prompt_tracker_prompt_version, prompt: prompt)
+        version2 = create(:prompt_tracker_prompt_version, prompt: prompt)
 
-        create(:evaluator_config, prompt: prompt1, evaluator_key: "test_evaluator")
-        duplicate = build(:evaluator_config, prompt: prompt2, evaluator_key: "test_evaluator")
+        create(:prompt_tracker_evaluator_config, configurable: version1, evaluator_key: "test_evaluator")
+        duplicate = build(:prompt_tracker_evaluator_config, configurable: version2, evaluator_key: "test_evaluator")
 
         expect(duplicate).to be_valid
       end

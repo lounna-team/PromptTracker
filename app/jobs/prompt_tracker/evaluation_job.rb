@@ -26,9 +26,10 @@ module PromptTracker
     #
     # @param llm_response_id [Integer] ID of the response to evaluate
     # @param evaluator_config_id [Integer] ID of the evaluator config
+    # @param evaluation_context [String] evaluation context: 'tracked_call', 'test_run', or 'manual'
     # @param check_dependency [Boolean] whether to check dependencies
     # @return [void]
-    def perform(llm_response_id, evaluator_config_id, check_dependency: false)
+    def perform(llm_response_id, evaluator_config_id, evaluation_context = "tracked_call", check_dependency: false)
       llm_response = LlmResponse.find(llm_response_id)
       config = EvaluatorConfig.find(evaluator_config_id)
 
@@ -47,8 +48,9 @@ module PromptTracker
       # Run the evaluator (returns an Evaluation record)
       evaluation = evaluator.evaluate
 
-      # Update metadata with job info
+      # Update metadata with job info and context
       evaluation.update!(
+        evaluation_context: evaluation_context,
         metadata: (evaluation.metadata || {}).merge(
           job_id: job_id,
           weight: config.weight,

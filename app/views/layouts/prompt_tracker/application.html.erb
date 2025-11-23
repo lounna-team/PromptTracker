@@ -120,22 +120,19 @@
           <li class="nav-item">
             <%= link_to "Prompts", prompts_path, class: "nav-link #{'active' if controller_name == 'prompts'}" %>
           </li>
+
+          <!-- Monitoring Section (Green) -->
           <li class="nav-item">
-            <%= link_to playground_path, class: "nav-link #{'active' if controller_name == 'playground'}" do %>
-              <i class="bi bi-play-circle"></i> Playground
+            <%= link_to monitoring_root_path, class: "nav-link #{'active' if controller_path.start_with?('prompt_tracker/monitoring')} pt-nav-monitoring" do %>
+              <i class="bi bi-activity"></i> Monitoring
             <% end %>
           </li>
-          <li class="nav-item">
-            <%= link_to "Responses", llm_responses_path, class: "nav-link #{'active' if controller_name == 'llm_responses'}" %>
-          </li>
-          <li class="nav-item">
-            <%= link_to "Evaluations", evaluations_path, class: "nav-link #{'active' if controller_name == 'evaluations'}" %>
-          </li>
+
           <li class="nav-item">
             <%= link_to "A/B Tests", ab_tests_path, class: "nav-link #{'active' if controller_name == 'ab_tests'}" %>
           </li>
           <li class="nav-item">
-            <%= link_to "Analytics", analytics_root_path, class: "nav-link #{'active' if controller_path.start_with?('analytics')}" %>
+            <%= link_to "Analytics", analytics_root_path, class: "nav-link #{'active' if controller_path.start_with?('prompt_tracker/analytics')}" %>
           </li>
         </ul>
 

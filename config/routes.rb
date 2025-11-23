@@ -44,12 +44,43 @@ PromptTracker::Engine.routes.draw do
     # A/B tests nested under prompts for creation
     resources :ab_tests, only: [:new, :create], path: "ab-tests"
 
-    # Evaluator configs nested under prompts
+    # Evaluator configs nested under prompts (for monitoring)
     resources :evaluator_configs, only: [ :index, :show, :create, :update, :destroy ], path: "evaluators"
   end
 
-  resources :llm_responses, only: [:index, :show], path: "responses"
+  # ========================================
+  # TESTS SECTION (Blue) - Pre-deployment validation
+  # ========================================
+  namespace :tests do
+    get "/", to: "dashboard#index", as: :root
 
+    # Test runs (for viewing results)
+    resources :runs, controller: "prompt_test_runs", only: [:index, :show]
+  end
+
+  # ========================================
+  # MONITORING SECTION (Green) - Production tracking
+  # ========================================
+  namespace :monitoring do
+    get "/", to: "dashboard#index", as: :root
+
+    # Production LLM responses (tracked calls)
+    resources :responses, controller: "llm_responses", only: [:index, :show] do
+      collection do
+        get :search
+      end
+    end
+
+    # Production evaluations (auto-eval results)
+    resources :evaluations, only: [:index, :show, :create] do
+      collection do
+        get :form_template
+      end
+    end
+  end
+
+  # Legacy routes (kept for backward compatibility)
+  resources :llm_responses, only: [:index, :show], path: "responses"
   resources :evaluations, only: [:index, :show, :create] do
     collection do
       get :form_template
@@ -75,16 +106,8 @@ PromptTracker::Engine.routes.draw do
     end
   end
 
-  # Test suites at top level
-  resources :prompt_test_suites, only: [:index, :show, :new, :create, :edit, :update, :destroy], path: "test-suites" do
-    member do
-      post :run
-    end
-  end
-
-  # Test runs (for viewing results)
+  # Test runs (legacy, redirects to /tests/runs)
   resources :prompt_test_runs, only: [:index, :show], path: "test-runs"
-  resources :prompt_test_suite_runs, only: [:index, :show], path: "suite-runs"
 
   # Analytics & Reports
   namespace :analytics do

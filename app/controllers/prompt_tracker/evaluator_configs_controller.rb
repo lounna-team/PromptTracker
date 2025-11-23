@@ -3,7 +3,7 @@
 module PromptTracker
   # Controller for managing evaluator configurations
   class EvaluatorConfigsController < ApplicationController
-    before_action :set_prompt, except: [ :config_form ]
+    before_action :set_prompt_and_version, except: [ :config_form ]
     before_action :set_evaluator_config, only: [ :show, :update, :destroy ]
 
     # GET /evaluator_configs/config_form
@@ -21,13 +21,13 @@ module PromptTracker
     end
 
     # GET /prompts/:prompt_id/evaluators
-    # List all evaluator configs for a prompt (returns JSON for AJAX)
+    # List all evaluator configs for a prompt version (returns JSON for AJAX)
     def index
-      @evaluator_configs = @prompt.evaluator_configs.by_priority
+      @evaluator_configs = @version.evaluator_configs.by_priority
       @available_evaluators = EvaluatorRegistry.all
 
       respond_to do |format|
-        format.html { render partial: "evaluator_configs/list", locals: { prompt: @prompt, evaluator_configs: @evaluator_configs } }
+        format.html { render partial: "evaluator_configs/list", locals: { prompt: @prompt, version: @version, evaluator_configs: @evaluator_configs } }
         format.json { render json: { configs: @evaluator_configs, available: @available_evaluators } }
       end
     end
@@ -41,13 +41,13 @@ module PromptTracker
     end
 
     # POST /prompts/:prompt_id/evaluators
-    # Create a new evaluator config
+    # Create a new evaluator config for the active version
     def create
       # Process config params (convert arrays from form to proper format)
       processed_params = evaluator_config_params
       processed_params[:config] = process_config_params(processed_params[:config]) if processed_params[:config]
 
-      @evaluator_config = @prompt.evaluator_configs.build(processed_params)
+      @evaluator_config = @version.evaluator_configs.build(processed_params)
 
       if @evaluator_config.save
         respond_to do |format|
@@ -95,12 +95,20 @@ module PromptTracker
 
     private
 
-    def set_prompt
+    def set_prompt_and_version
       @prompt = Prompt.find(params[:prompt_id])
+      @version = @prompt.active_version
+
+      unless @version
+        respond_to do |format|
+          format.html { redirect_to @prompt, alert: "No active version found. Please create a version first." }
+          format.json { render json: { error: "No active version" }, status: :unprocessable_entity }
+        end
+      end
     end
 
     def set_evaluator_config
-      @evaluator_config = @prompt.evaluator_configs.find(params[:id])
+      @evaluator_config = @version.evaluator_configs.find(params[:id])
     end
 
     def evaluator_config_params

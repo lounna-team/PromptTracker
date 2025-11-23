@@ -66,6 +66,11 @@ module PromptTracker
              dependent: :destroy,
              inverse_of: :prompt_version
 
+    has_many :evaluator_configs,
+             as: :configurable,
+             class_name: "PromptTracker::EvaluatorConfig",
+             dependent: :destroy
+
     # Validations
     validates :template, presence: true
     validates :version_number, presence: true, numericality: { only_integer: true, greater_than: 0 }
@@ -239,6 +244,36 @@ module PromptTracker
         "model_config" => model_config,
         "notes" => notes
       }
+    end
+
+    # Copies evaluator configs from another version or prompt
+    #
+    # @param source [PromptVersion, Prompt] the source to copy from
+    # @return [Array<EvaluatorConfig>] the newly created configs
+    def copy_evaluator_configs_from(source)
+      source_configs = source.is_a?(Prompt) ? source.active_version&.evaluator_configs : source.evaluator_configs
+      return [] if source_configs.blank?
+
+      source_configs.map do |config|
+        evaluator_configs.create!(
+          evaluator_key: config.evaluator_key,
+          threshold: config.threshold,
+          config: config.config,
+          enabled: config.enabled,
+          run_mode: config.run_mode,
+          priority: config.priority,
+          weight: config.weight,
+          depends_on: config.depends_on,
+          min_dependency_score: config.min_dependency_score
+        )
+      end
+    end
+
+    # Checks if this version has monitoring enabled
+    #
+    # @return [Boolean] true if any evaluator configs exist
+    def has_monitoring_enabled?
+      evaluator_configs.enabled.exists?
     end
 
     private

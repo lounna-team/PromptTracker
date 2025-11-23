@@ -226,6 +226,7 @@ module PromptTracker
       params.require(:evaluation).permit(
         :evaluator_type,
         :evaluator_id,
+        :evaluation_context,
         :score,
         :score_min,
         :score_max,

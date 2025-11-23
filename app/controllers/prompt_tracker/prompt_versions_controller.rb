@@ -7,9 +7,9 @@ module PromptTracker
     before_action :set_version, only: [:show, :compare, :activate]
 
     # GET /prompts/:prompt_id/versions/:id
-    # Show version details with responses
+    # Show version details with tests
     def show
-      @responses = @version.llm_responses.order(created_at: :desc).page(params[:page]).per(20)
+      @tests = @version.prompt_tests.includes(:prompt_test_runs).order(created_at: :desc)
 
       # Calculate metrics
       @total_calls = @version.llm_responses.count

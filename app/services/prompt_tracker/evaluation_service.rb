@@ -48,6 +48,7 @@ module PromptTracker
     # @param criteria_scores [Hash] optional breakdown by criteria
     # @param feedback [String] optional text feedback
     # @param metadata [Hash] optional additional metadata
+    # @param evaluation_context [String] context: 'tracked_call', 'test_run', or 'manual' (default: 'manual')
     # @return [Evaluation] the created evaluation
     #
     # @example
@@ -64,7 +65,8 @@ module PromptTracker
     #   )
     def self.create_human(llm_response:, score:, evaluator_id:,
                           score_min: 0, score_max: 5,
-                          criteria_scores: nil, feedback: nil, metadata: nil)
+                          criteria_scores: nil, feedback: nil, metadata: nil,
+                          evaluation_context: "manual")
       validate_response!(llm_response)
       validate_score!(score, score_min, score_max)
 
@@ -77,7 +79,8 @@ module PromptTracker
         score_max: score_max,
         criteria_scores: criteria_scores || {},
         feedback: feedback,
-        metadata: metadata || {}
+        metadata: metadata || {},
+        evaluation_context: evaluation_context
       )
     end
 
@@ -91,6 +94,7 @@ module PromptTracker
     # @param criteria_scores [Hash] optional breakdown by criteria
     # @param feedback [String] optional text feedback
     # @param metadata [Hash] optional additional metadata
+    # @param evaluation_context [String] context: 'tracked_call', 'test_run', or 'manual' (default: 'tracked_call')
     # @return [Evaluation] the created evaluation
     #
     # @example
@@ -103,7 +107,8 @@ module PromptTracker
     #   )
     def self.create_automated(llm_response:, evaluator_id:, score:,
                               score_min: 0, score_max: 100,
-                              criteria_scores: nil, feedback: nil, metadata: nil)
+                              criteria_scores: nil, feedback: nil, metadata: nil,
+                              evaluation_context: "tracked_call")
       validate_response!(llm_response)
       validate_score!(score, score_min, score_max)
 
@@ -116,7 +121,8 @@ module PromptTracker
         score_max: score_max,
         criteria_scores: criteria_scores || {},
         feedback: feedback,
-        metadata: metadata || {}
+        metadata: metadata || {},
+        evaluation_context: evaluation_context
       )
     end
 
@@ -130,6 +136,7 @@ module PromptTracker
     # @param criteria_scores [Hash] optional breakdown by criteria
     # @param feedback [String] optional text feedback from the judge
     # @param metadata [Hash] optional additional metadata
+    # @param evaluation_context [String] context: 'tracked_call', 'test_run', or 'manual' (default: 'tracked_call')
     # @return [Evaluation] the created evaluation
     #
     # @example
@@ -146,7 +153,8 @@ module PromptTracker
     #   )
     def self.create_llm_judge(llm_response:, judge_model:, score:,
                               score_min: 0, score_max: 5,
-                              criteria_scores: nil, feedback: nil, metadata: nil)
+                              criteria_scores: nil, feedback: nil, metadata: nil,
+                              evaluation_context: "tracked_call")
       validate_response!(llm_response)
       validate_score!(score, score_min, score_max)
 
@@ -162,7 +170,8 @@ module PromptTracker
         score_max: score_max,
         criteria_scores: criteria_scores || {},
         feedback: feedback,
-        metadata: (metadata || {}).merge(judge_model: judge_model)
+        metadata: (metadata || {}).merge(judge_model: judge_model),
+        evaluation_context: evaluation_context
       )
     end
 

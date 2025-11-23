@@ -1,0 +1,236 @@
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item"><%= link_to "Evaluations", monitoring_evaluations_path %></li>
+  <li class="breadcrumb-item active">Evaluation #<%= @evaluation.id %></li>
+<% end %>
+
+<div class="row mb-4">
+  <div class="col">
+    <h1>
+      <i class="bi bi-clipboard-check"></i> Evaluation Details
+      <% if @evaluation.passing? %>
+        <span class="badge bg-success">Passed</span>
+      <% else %>
+        <span class="badge bg-danger">Failed</span>
+      <% end %>
+    </h1>
+    <p class="text-muted">
+      Evaluated <%= time_ago_in_words(@evaluation.created_at) %> ago
+    </p>
+  </div>
+  <div class="col-auto">
+    <%= link_to llm_response_path(@response), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left"></i> Back to Response
+    <% end %>
+  </div>
+</div>
+
+<!-- Evaluation Summary -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card metric-card">
+      <div class="metric-value" style="color: <%= @evaluation.score >= 0.7 ? '#10b981' : '#ef4444' %>;">
+        <%= number_with_precision(@evaluation.score, precision: 2) %>
+      </div>
+      <div class="metric-label">Score</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card metric-card">
+      <div class="metric-value">
+        <%= @evaluation.evaluator_type.titleize %>
+      </div>
+      <div class="metric-label">Evaluator Type</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card metric-card">
+      <div class="metric-value">
+        <%= @evaluation.evaluator_key %>
+      </div>
+      <div class="metric-label">Evaluator Key</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card metric-card">
+      <div class="metric-value">
+        <%= @evaluation.evaluation_context.titleize %>
+      </div>
+      <div class="metric-label">Context</div>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation Details -->
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Evaluation Info</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Evaluator Type:</dt>
+          <dd class="col-sm-8">
+            <% case @evaluation.evaluator_type %>
+            <% when "human" %>
+              <span class="badge bg-primary">Human</span>
+            <% when "llm_judge" %>
+              <span class="badge bg-info">LLM Judge</span>
+            <% when "automated" %>
+              <span class="badge bg-secondary">Automated</span>
+            <% else %>
+              <span class="badge bg-light text-dark"><%= @evaluation.evaluator_type %></span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Evaluator Key:</dt>
+          <dd class="col-sm-8"><%= @evaluation.evaluator_key %></dd>
+
+          <% if @evaluation.evaluator_id.present? %>
+            <dt class="col-sm-4">Evaluator ID:</dt>
+            <dd class="col-sm-8"><%= @evaluation.evaluator_id %></dd>
+          <% end %>
+
+          <dt class="col-sm-4">Score:</dt>
+          <dd class="col-sm-8">
+            <strong style="color: <%= @evaluation.score >= 0.7 ? '#10b981' : '#ef4444' %>;">
+              <%= number_with_precision(@evaluation.score, precision: 2) %>
+            </strong>
+            <% if @evaluation.score_max && @evaluation.score_max != 1 %>
+              / <%= @evaluation.score_max %>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Passed:</dt>
+          <dd class="col-sm-8">
+            <% if @evaluation.passing? %>
+              <span class="badge bg-success">✓ Yes</span>
+            <% else %>
+              <span class="badge bg-danger">✗ No</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Context:</dt>
+          <dd class="col-sm-8">
+            <% case @evaluation.evaluation_context %>
+            <% when "tracked_call" %>
+              <span class="badge bg-success">Tracked Call</span>
+            <% when "test_run" %>
+              <span class="badge bg-primary">Test Run</span>
+            <% when "manual" %>
+              <span class="badge bg-warning">Manual</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Evaluated At:</dt>
+          <dd class="col-sm-8"><%= @evaluation.created_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Response Info</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Response ID:</dt>
+          <dd class="col-sm-8">
+            <%= link_to "##{@response.id}", llm_response_path(@response) %>
+          </dd>
+
+          <dt class="col-sm-4">Prompt:</dt>
+          <dd class="col-sm-8">
+            <% if @response.prompt_version %>
+              <%= link_to @response.prompt_version.prompt.name,
+                          prompt_path(@response.prompt_version.prompt) %>
+            <% else %>
+              <span class="text-muted">Unknown</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Version:</dt>
+          <dd class="col-sm-8">
+            <% if @response.prompt_version %>
+              <%= link_to "v#{@response.prompt_version.version_number}",
+                          prompt_prompt_version_path(@response.prompt_version.prompt, @response.prompt_version) %>
+            <% else %>
+              <span class="text-muted">Unknown</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Status:</dt>
+          <dd class="col-sm-8">
+            <% if @response.success? %>
+              <span class="badge bg-success">Success</span>
+            <% else %>
+              <span class="badge bg-danger">Failed</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-4">Created At:</dt>
+          <dd class="col-sm-8"><%= @response.created_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Criteria Scores -->
+<% if @evaluation.criteria_scores.present? %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Criteria Scores</h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Criterion</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @evaluation.criteria_scores.each do |criterion, score| %>
+              <tr>
+                <td><%= criterion.titleize %></td>
+                <td>
+                  <strong style="color: <%= score >= 0.7 ? '#10b981' : '#ef4444' %>;">
+                    <%= number_with_precision(score, precision: 2) %>
+                  </strong>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Feedback -->
+<% if @evaluation.feedback.present? %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Feedback</h5>
+    </div>
+    <div class="card-body">
+      <p class="mb-0"><%= simple_format(@evaluation.feedback) %></p>
+    </div>
+  </div>
+<% end %>
+
+<!-- Metadata -->
+<% if @evaluation.metadata.present? && @evaluation.metadata.any? %>
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Metadata</h5>
+    </div>
+    <div class="card-body">
+      <pre class="mb-0"><%= JSON.pretty_generate(@evaluation.metadata) %></pre>
+    </div>
+  </div>
+<% end %>

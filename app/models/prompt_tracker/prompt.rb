@@ -57,11 +57,6 @@ module PromptTracker
              dependent: :destroy,
              inverse_of: :prompt
 
-    has_many :evaluator_configs,
-             class_name: "PromptTracker::EvaluatorConfig",
-             dependent: :destroy,
-             inverse_of: :prompt
-
     has_many :prompt_test_suites,
              class_name: "PromptTracker::PromptTestSuite",
              dependent: :destroy,
@@ -172,6 +167,12 @@ module PromptTracker
     # @return [Float, nil] average response time in milliseconds
     def average_response_time_ms
       llm_responses.average(:response_time_ms)&.to_f
+    end
+
+    # Returns evaluator configs for the active version
+    # @return [ActiveRecord::Relation<EvaluatorConfig>] evaluator configs or empty relation
+    def active_evaluator_configs
+      active_version&.evaluator_configs || EvaluatorConfig.none
     end
 
     private

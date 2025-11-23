@@ -45,7 +45,6 @@ module PromptTracker
     belongs_to :prompt_test, touch: true
     belongs_to :prompt_version
     belongs_to :llm_response, optional: true
-    belongs_to :prompt_test_suite_run, optional: true
 
     # Validations
     validates :status, presence: true
@@ -132,6 +131,20 @@ module PromptTracker
     # @return [Boolean]
     def all_evaluators_passed?
       failed_evaluators.zero? && total_evaluators.positive?
+    end
+
+    # Calculate overall score from evaluator results
+    #
+    # @return [Float, nil] average score from all evaluators, or nil if no evaluators
+    def overall_score
+      return nil if evaluator_results.blank? || evaluator_results.empty?
+
+      # Extract scores from evaluator results
+      scores = evaluator_results.map { |result| result["score"].to_i || result[:score].to_i }.compact
+      return nil if scores.empty?
+
+      # Calculate average
+      scores.sum.to_f / scores.length
     end
 
     private
