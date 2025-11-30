@@ -9,8 +9,6 @@ module PromptTracker
       {
         name: "test_prompt",
         description: "A test prompt",
-        category: "testing",
-        tags: ["test", "example"],
         created_by: "test@example.com"
       }
     end
@@ -49,42 +47,6 @@ module PromptTracker
           expect(prompt).not_to be_valid, "Name '#{name}' should be invalid"
           expect(prompt.errors[:name]).to include("must contain only lowercase letters, numbers, and underscores")
         end
-      end
-
-      it "allows blank category" do
-        prompt = Prompt.new(valid_attributes.merge(category: nil))
-        expect(prompt).to be_valid
-
-        prompt = Prompt.new(valid_attributes.merge(category: ""))
-        expect(prompt).to be_valid
-      end
-
-      it "enforces category format when present" do
-        valid_categories = ["support", "sales_team", "content123"]
-        valid_categories.each do |category|
-          prompt = Prompt.new(valid_attributes.merge(category: category))
-          expect(prompt).to be_valid, "Category '#{category}' should be valid"
-        end
-
-        invalid_categories = ["Support", "sales-team", "sales team"]
-        invalid_categories.each do |category|
-          prompt = Prompt.new(valid_attributes.merge(category: category))
-          expect(prompt).not_to be_valid, "Category '#{category}' should be invalid"
-        end
-      end
-
-      it "validates tags is an array" do
-        prompt = Prompt.new(valid_attributes.merge(tags: ["valid", "array"]))
-        expect(prompt).to be_valid
-
-        prompt = Prompt.new(valid_attributes.merge(tags: "not an array"))
-        expect(prompt).not_to be_valid
-        expect(prompt.errors[:tags]).to include("must be an array")
-      end
-
-      it "allows nil tags" do
-        prompt = Prompt.new(valid_attributes.merge(tags: nil))
-        expect(prompt).to be_valid
       end
     end
 
@@ -141,28 +103,6 @@ module PromptTracker
           archived_prompts = Prompt.archived
           expect(archived_prompts).to include(archived_prompt)
           expect(archived_prompts).not_to include(active_prompt)
-        end
-      end
-
-      describe ".in_category" do
-        let!(:support_prompt) { Prompt.create!(valid_attributes.merge(name: "support_prompt", category: "support")) }
-        let!(:sales_prompt) { Prompt.create!(valid_attributes.merge(name: "sales_prompt", category: "sales")) }
-
-        it "returns prompts in specified category" do
-          support_prompts = Prompt.in_category("support")
-          expect(support_prompts).to include(support_prompt)
-          expect(support_prompts).not_to include(sales_prompt)
-        end
-      end
-
-      describe ".with_tag" do
-        let!(:tagged_prompt) { Prompt.create!(valid_attributes.merge(name: "tagged_prompt", tags: ["important", "customer"])) }
-        let!(:other_prompt) { Prompt.create!(valid_attributes.merge(name: "other_prompt", tags: ["internal"])) }
-
-        it "returns prompts with specified tag" do
-          important_prompts = Prompt.with_tag("important")
-          expect(important_prompts).to include(tagged_prompt)
-          expect(important_prompts).not_to include(other_prompt)
         end
       end
     end

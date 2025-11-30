@@ -24,17 +24,12 @@ module PromptTracker
   #   prompt = Prompt.create!(
   #     name: "customer_support_greeting",
   #     description: "Initial greeting for customer support chats",
-  #     category: "support",
-  #     tags: ["customer-facing", "high-priority"],
   #     created_by: "john@example.com"
   #   )
   #
   # @example Finding a prompt by name
   #   prompt = Prompt.find_by!(name: "customer_support_greeting")
   #   active_version = prompt.active_version
-  #
-  # @example Getting all prompts in a category
-  #   support_prompts = Prompt.in_category("support")
   #
   class Prompt < ApplicationRecord
     # Associations
@@ -65,15 +60,6 @@ module PromptTracker
                 message: "must contain only lowercase letters, numbers, and underscores"
               }
 
-    validates :category,
-              format: {
-                with: /\A[a-z0-9_]+\z/,
-                message: "must contain only lowercase letters, numbers, and underscores"
-              },
-              allow_blank: true
-
-    validate :tags_must_be_array
-
     # Scopes
 
     # Returns only active (non-archived) prompts
@@ -83,18 +69,6 @@ module PromptTracker
     # Returns only archived prompts
     # @return [ActiveRecord::Relation<Prompt>]
     scope :archived, -> { where.not(archived_at: nil) }
-
-    # Returns prompts in a specific category
-    # @param category [String] the category name
-    # @return [ActiveRecord::Relation<Prompt>]
-    scope :in_category, ->(category) { where(category: category) }
-
-    # Returns prompts with a specific tag
-    # @param tag [String] the tag to search for
-    # @return [ActiveRecord::Relation<Prompt>]
-    scope :with_tag, lambda { |tag|
-      where("tags @> ?", [tag].to_json)
-    }
 
     # Instance Methods
 
@@ -155,15 +129,6 @@ module PromptTracker
     # @return [ActiveRecord::Relation<EvaluatorConfig>] evaluator configs or empty relation
     def active_evaluator_configs
       active_version&.evaluator_configs || EvaluatorConfig.none
-    end
-
-    private
-
-    # Validates that tags is an array
-    def tags_must_be_array
-      return if tags.nil? || tags.is_a?(Array)
-
-      errors.add(:tags, "must be an array")
     end
   end
 end

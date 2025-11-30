@@ -74,28 +74,6 @@
               <td><code><%= @prompt.name %></code></td>
             </tr>
             <tr>
-              <th>Category</th>
-              <td>
-                <% if @prompt.category.present? %>
-                  <span class="badge bg-info"><%= @prompt.category %></span>
-                <% else %>
-                  <span class="text-muted">None</span>
-                <% end %>
-              </td>
-            </tr>
-            <tr>
-              <th>Tags</th>
-              <td>
-                <% if @prompt.tags.present? %>
-                  <% @prompt.tags.each do |tag| %>
-                    <span class="badge bg-secondary"><%= tag %></span>
-                  <% end %>
-                <% else %>
-                  <span class="text-muted">None</span>
-                <% end %>
-              </td>
-            </tr>
-            <tr>
               <th>Created</th>
               <td><%= format_timestamp(@prompt.created_at) %></td>
             </tr>

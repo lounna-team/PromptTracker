@@ -76,8 +76,8 @@ export default class extends Controller {
         config[key] = Array.from(input.selectedOptions).map(opt => opt.value)
       } else if (input.type === 'number') {
         config[key] = parseFloat(input.value) || 0
-      } else if (key === 'patterns') {
-        // Convert textarea input (one pattern per line) to array
+      } else if (key === 'patterns' || key === 'required_keywords' || key === 'forbidden_keywords') {
+        // Convert textarea input (one item per line) to array
         config[key] = input.value.split('\n').map(line => line.trim()).filter(line => line.length > 0)
       } else {
         config[key] = input.value

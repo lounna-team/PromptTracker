@@ -18,10 +18,6 @@ module PromptTracker
   #   # app/prompts/support/greeting.yml
   #   name: support_greeting
   #   description: Greeting for customer support
-  #   category: support
-  #   tags:
-  #     - customer-facing
-  #     - greeting
   #   template: |
   #     Hello {{customer_name}}!
   #     How can I help you today?
@@ -84,20 +80,6 @@ module PromptTracker
       data["description"]
     end
 
-    # Get the category from the YAML file.
-    #
-    # @return [String, nil] the category
-    def category
-      data["category"]
-    end
-
-    # Get the tags from the YAML file.
-    #
-    # @return [Array<String>] the tags (empty array if not specified)
-    def tags
-      data["tags"] || []
-    end
-
     # Get the variables schema from the YAML file.
     #
     # @return [Array<Hash>] the variables schema (empty array if not specified)
@@ -147,9 +129,7 @@ module PromptTracker
       {
         prompt: {
           name: name,
-          description: description,
-          category: category,
-          tags: tags
+          description: description
         },
         version: {
           template: template,
@@ -229,11 +209,6 @@ module PromptTracker
       # template must be a string
       if @data["template"] && !@data["template"].is_a?(String)
         @errors << "Field 'template' must be a string"
-      end
-
-      # tags must be an array
-      if @data["tags"] && !@data["tags"].is_a?(Array)
-        @errors << "Field 'tags' must be an array"
       end
 
       # variables must be an array

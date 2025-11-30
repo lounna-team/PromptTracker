@@ -19,9 +19,6 @@ puts "=" * 80
 puts "\n📝 Step 1: Creating prompt..."
 prompt = PromptTracker::Prompt.find_or_create_by!(name: "customer_support_greeting") do |p|
   p.description = "Greeting message for customer support"
-  p.category = "support"
-  p.tags = ["customer-facing", "high-priority"]
-  p.score_aggregation_strategy = "weighted_average"
 end
 puts "✅ Prompt created: #{prompt.name}"
 

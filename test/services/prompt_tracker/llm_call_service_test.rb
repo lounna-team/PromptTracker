@@ -8,8 +8,7 @@ module PromptTracker
       # Create a test prompt with a version
       @prompt = Prompt.create!(
         name: "test_greeting",
-        description: "Test greeting prompt",
-        category: "test"
+        description: "Test greeting prompt"
       )
 
       @version = @prompt.prompt_versions.create!(

@@ -95,12 +95,24 @@
       </div>
       <div class="card-body">
         <% if @test.evaluator_configs.present? && @test.evaluator_configs.any? %>
-          <% @test.evaluator_configs.each do |config| %>
+          <% @test.evaluator_configs.each do |evaluator_config| %>
             <div class="mb-3 p-3 border rounded">
-              <h6><%= config["evaluator_key"] %></h6>
-              <% if config["config"].present? %>
-                <p class="mb-0"><strong>Config:</strong></p>
-                <pre class="bg-light p-2 rounded mb-0"><code><%= JSON.pretty_generate(config["config"]) %></code></pre>
+              <%
+                # Get evaluator key from the evaluator_type class name
+                evaluator_class_name = evaluator_config.evaluator_type
+                evaluator_key = evaluator_class_name.demodulize.underscore.gsub('_evaluator', '')
+                template_path = "prompt_tracker/evaluator_configs/templates/#{evaluator_key}"
+              %>
+
+              <% begin %>
+                <%= render partial: template_path, locals: { config: evaluator_config.config } %>
+              <% rescue ActionView::MissingTemplate %>
+                <%# Fallback to JSON display if no template exists %>
+                <h6><%= evaluator_config.evaluator_type.demodulize.titleize %></h6>
+                <% if evaluator_config.config.present? %>
+                  <p class="mb-0"><strong>Config:</strong></p>
+                  <pre class="bg-light p-2 rounded mb-0"><code><%= JSON.pretty_generate(evaluator_config.config) %></code></pre>
+                <% end %>
               <% end %>
             </div>
           <% end %>

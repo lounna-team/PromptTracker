@@ -1,0 +1,38 @@
+<%# Display template for LLM Judge Evaluator configuration %>
+<% config ||= {} %>
+
+<div class="evaluator-display">
+  <h6 class="mb-2">
+    <i class="bi bi-robot"></i>
+    LLM Judge
+  </h6>
+  
+  <% criteria = config['criteria'] || config[:criteria] %>
+  <% model = config['model'] || config[:model] %>
+  <% provider = config['provider'] || config[:provider] %>
+  
+  <% if criteria.present? %>
+    <div class="mb-2">
+      <strong>Evaluation Criteria:</strong>
+      <div class="mt-1 p-2 bg-light rounded">
+        <%= criteria %>
+      </div>
+    </div>
+  <% end %>
+  
+  <% if model.present? || provider.present? %>
+    <div class="mb-2">
+      <strong>Judge Model:</strong>
+      <div class="mt-1">
+        <span class="badge bg-info-subtle text-info">
+          <%= provider || 'openai' %> / <%= model || 'gpt-4' %>
+        </span>
+      </div>
+    </div>
+  <% end %>
+  
+  <% if criteria.blank? %>
+    <p class="text-muted mb-0">No evaluation criteria configured</p>
+  <% end %>
+</div>
+

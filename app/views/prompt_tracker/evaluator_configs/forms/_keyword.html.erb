@@ -18,10 +18,14 @@
 <!-- Required Keywords -->
 <div class="mb-3">
   <label class="form-label">Required Keywords</label>
+  <%
+    required_keywords = config['required_keywords'] || config[:required_keywords] || []
+    required_keywords_text = required_keywords.is_a?(Array) ? required_keywords.join("\n") : required_keywords.to_s
+  %>
   <textarea name="<%= namespace %>[required_keywords]"
             class="form-control"
             rows="3"
-            placeholder="Enter keywords, one per line"><%= (config['required_keywords'] || config[:required_keywords] || []).join("\n") %></textarea>
+            placeholder="Enter keywords, one per line"><%= required_keywords_text %></textarea>
   <small class="form-text text-muted">
     Keywords that must be present in the response. Enter one per line.
   </small>
@@ -30,10 +34,14 @@
 <!-- Forbidden Keywords -->
 <div class="mb-3">
   <label class="form-label">Forbidden Keywords</label>
+  <%
+    forbidden_keywords = config['forbidden_keywords'] || config[:forbidden_keywords] || []
+    forbidden_keywords_text = forbidden_keywords.is_a?(Array) ? forbidden_keywords.join("\n") : forbidden_keywords.to_s
+  %>
   <textarea name="<%= namespace %>[forbidden_keywords]"
             class="form-control"
             rows="3"
-            placeholder="Enter keywords, one per line"><%= (config['forbidden_keywords'] || config[:forbidden_keywords] || []).join("\n") %></textarea>
+            placeholder="Enter keywords, one per line"><%= forbidden_keywords_text %></textarea>
   <small class="form-text text-muted">
     Keywords that must NOT be present in the response. Enter one per line.
   </small>

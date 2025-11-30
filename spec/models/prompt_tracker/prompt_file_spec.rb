@@ -9,10 +9,6 @@ module PromptTracker
       <<~YAML
         name: test_prompt
         description: A test prompt
-        category: testing
-        tags:
-          - test
-          - example
         template: |
           Hello {{name}}!
           How are you doing with {{topic}}?
@@ -122,17 +118,6 @@ module PromptTracker
         temp.unlink
       end
 
-      it "validates tags is an array" do
-        yaml = valid_yaml.gsub("tags:\n  - test\n  - example", "tags: not_an_array")
-        temp = create_temp_file(yaml)
-
-        file = PromptFile.new(temp.path)
-        expect(file).not_to be_valid
-        expect(file.errors).to include(a_string_including("tags' must be an array"))
-
-        temp.unlink
-      end
-
       it "validates variables is an array" do
         yaml = valid_yaml.gsub(/variables:.*?model_config:/m, "variables: not_an_array\nmodel_config:")
         temp = create_temp_file(yaml)
@@ -190,24 +175,6 @@ module PromptTracker
         expect(file.description).to eq("A test prompt")
       end
 
-      it "returns category" do
-        expect(file.category).to eq("testing")
-      end
-
-      it "returns tags" do
-        expect(file.tags).to eq(["test", "example"])
-      end
-
-      it "returns empty array for tags if not specified" do
-        yaml = valid_yaml.gsub("tags:\n  - test\n  - example\n", "")
-        temp = create_temp_file(yaml)
-
-        file = PromptFile.new(temp.path)
-        expect(file.tags).to eq([])
-
-        temp.unlink
-      end
-
       it "returns variables" do
         expect(file.variables.length).to eq(2)
         expect(file.variables.first["name"]).to eq("name")
@@ -256,8 +223,6 @@ module PromptTracker
 
         expect(hash[:prompt][:name]).to eq("test_prompt")
         expect(hash[:prompt][:description]).to eq("A test prompt")
-        expect(hash[:prompt][:category]).to eq("testing")
-        expect(hash[:prompt][:tags]).to eq(["test", "example"])
 
         expect(hash[:version][:template]).to include("Hello {{name}}")
         expect(hash[:version][:variables_schema].length).to eq(2)

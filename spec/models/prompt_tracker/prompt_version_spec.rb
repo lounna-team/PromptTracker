@@ -8,8 +8,7 @@ module PromptTracker
     let(:prompt) do
       Prompt.create!(
         name: "test_prompt",
-        description: "A test prompt",
-        category: "testing"
+        description: "A test prompt"
       )
     end
 

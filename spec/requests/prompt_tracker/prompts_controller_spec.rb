@@ -25,20 +25,6 @@ RSpec.describe "PromptTracker::PromptsController", type: :request do
       expect(response.body).to include(prompt.description)
     end
 
-    it "filters prompts by category" do
-      prompt # create the prompt
-      get "/prompt_tracker/prompts", params: { category: prompt.category }
-      expect(response).to have_http_status(:success)
-      expect(response.body).to include(prompt.name)
-    end
-
-    it "filters prompts by tag" do
-      tagged_prompt = create(:prompt, tags: ["test-tag"])
-      get "/prompt_tracker/prompts", params: { tag: "test-tag" }
-      expect(response).to have_http_status(:success)
-      expect(response.body).to include(tagged_prompt.name)
-    end
-
     it "filters active prompts" do
       active_prompt = create(:prompt)
       archived_prompt = create(:prompt, :archived)

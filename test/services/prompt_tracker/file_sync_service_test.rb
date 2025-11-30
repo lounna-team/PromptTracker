@@ -111,8 +111,6 @@ module PromptTracker
       prompt = result[:prompt]
       assert_equal "test_prompt", prompt.name
       assert_equal "A test prompt", prompt.description
-      assert_equal "testing", prompt.category
-      assert_equal ["test"], prompt.tags
 
       version = result[:version]
       assert_equal "Hello {{name}}", version.template

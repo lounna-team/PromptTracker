@@ -18,20 +18,8 @@ FactoryBot.define do
   factory :prompt, class: "PromptTracker::Prompt" do
     sequence(:name) { |n| "test_prompt_#{n}" }
     description { "A test prompt for #{name}" }
-    category { "test" }
-    tags { %w[test automated] }
     created_by { "test@example.com" }
     archived_at { nil }
-
-    trait :support do
-      category { "support" }
-      tags { %w[customer-facing support] }
-    end
-
-    trait :email do
-      category { "email" }
-      tags { %w[email automated] }
-    end
 
     trait :archived do
       archived_at { 1.day.ago }

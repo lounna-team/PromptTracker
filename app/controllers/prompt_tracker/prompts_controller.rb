@@ -14,12 +14,6 @@ module PromptTracker
         @prompts = @prompts.where("name LIKE ? OR description LIKE ?", query, query)
       end
 
-      # Filter by category
-      @prompts = @prompts.in_category(params[:category]) if params[:category].present?
-
-      # Filter by tag
-      @prompts = @prompts.with_tag(params[:tag]) if params[:tag].present?
-
       # Filter by status
       case params[:status]
       when "active"
