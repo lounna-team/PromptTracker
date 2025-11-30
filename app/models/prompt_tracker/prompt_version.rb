@@ -86,6 +86,7 @@ module PromptTracker
 
     # Callbacks
     before_validation :set_next_version_number, on: :create, if: -> { version_number.nil? }
+    before_validation :extract_variables_schema, if: :should_extract_variables?
 
     # Scopes
 
@@ -288,6 +289,56 @@ module PromptTracker
       return if model_config.nil? || model_config.is_a?(Hash)
 
       errors.add(:model_config, "must be a hash")
+    end
+
+    # Determines if variables should be extracted from template
+    def should_extract_variables?
+      # Only extract if:
+      # 1. Template has changed (or is new)
+      # 2. Variables schema is blank (not explicitly set)
+      template.present? && (template_changed? || new_record?) && variables_schema.blank?
+    end
+
+    # Extracts variables from template and populates variables_schema
+    def extract_variables_schema
+      return if template.blank?
+
+      variable_names = extract_variable_names_from_template(template)
+      return if variable_names.empty?
+
+      # Build schema with default type and required settings
+      self.variables_schema = variable_names.map do |var_name|
+        {
+          "name" => var_name,
+          "type" => "string",
+          "required" => false
+        }
+      end
+    end
+
+    # Extract variable names from template
+    # Supports both {{variable}} and {{ variable }} syntax
+    def extract_variable_names_from_template(template_string)
+      return [] if template_string.blank?
+
+      variables = []
+
+      # Extract Mustache-style variables: {{variable}}
+      variables += template_string.scan(/\{\{\s*(\w+)\s*\}\}/).flatten
+
+      # Extract Liquid variables with filters: {{ variable | filter }}
+      variables += template_string.scan(/\{\{\s*(\w+)\s*\|/).flatten
+
+      # Extract Liquid object notation: {{ object.property }}
+      variables += template_string.scan(/\{\{\s*(\w+)\./).flatten
+
+      # Extract from conditionals: {% if variable %}
+      variables += template_string.scan(/\{%\s*if\s+(\w+)/).flatten
+
+      # Extract from loops: {% for item in items %}
+      variables += template_string.scan(/\{%\s*for\s+\w+\s+in\s+(\w+)/).flatten
+
+      variables.uniq.sort
     end
   end
 end

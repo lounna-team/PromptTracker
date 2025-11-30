@@ -148,6 +148,154 @@ module PromptTracker
         version3 = PromptVersion.create!(valid_attributes.except(:version_number))
         expect(version3.version_number).to eq(3)
       end
+
+      describe "auto-extracting variables_schema" do
+        it "extracts variables from template when variables_schema is not provided" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "Hello {{name}}, how can I help with {{issue}}?"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(2)
+
+          name_var = version.variables_schema.find { |v| v["name"] == "name" }
+          expect(name_var).to be_present
+          expect(name_var["type"]).to eq("string")
+          expect(name_var["required"]).to eq(false)
+
+          issue_var = version.variables_schema.find { |v| v["name"] == "issue" }
+          expect(issue_var).to be_present
+          expect(issue_var["type"]).to eq("string")
+          expect(issue_var["required"]).to eq(false)
+        end
+
+        it "extracts single variable from template" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "tell me everything you know about {{historical_event}}"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(1)
+          expect(version.variables_schema.first["name"]).to eq("historical_event")
+          expect(version.variables_schema.first["type"]).to eq("string")
+          expect(version.variables_schema.first["required"]).to eq(false)
+        end
+
+        it "extracts variables with Liquid filters" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "Hello {{ name | upcase }}, welcome!"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(1)
+          expect(version.variables_schema.first["name"]).to eq("name")
+        end
+
+        it "extracts variables from Liquid conditionals" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "{% if premium %}Premium content{% endif %}"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(1)
+          expect(version.variables_schema.first["name"]).to eq("premium")
+        end
+
+        it "extracts variables from Liquid loops" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "{% for product in products %}Product: {{ product.name }}{% endfor %}"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          # Extracts both 'products' (the collection) and 'product' (the loop variable reference)
+          expect(version.variables_schema.length).to eq(2)
+          expect(version.variables_schema.map { |v| v["name"] }).to include("products", "product")
+        end
+
+        it "extracts multiple variables and removes duplicates" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "{{name}} and {{name}} and {{age}}"
+            )
+          )
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(2)
+          expect(version.variables_schema.map { |v| v["name"] }).to match_array(%w[name age])
+        end
+
+        it "does not extract variables when variables_schema is explicitly provided" do
+          custom_schema = [
+            { "name" => "custom_var", "type" => "integer", "required" => true }
+          ]
+
+          version = PromptVersion.create!(
+            valid_attributes.merge(
+              template: "Hello {{name}}",
+              variables_schema: custom_schema
+            )
+          )
+
+          # Should keep the explicitly provided schema
+          expect(version.variables_schema).to eq(custom_schema)
+          expect(version.variables_schema.first["name"]).to eq("custom_var")
+        end
+
+        it "does not extract variables when template has no variables" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "This is a static template with no variables"
+            )
+          )
+
+          expect(version.variables_schema).to be_blank
+        end
+
+        it "extracts variables on update when template changes and schema is blank" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "Original template"
+            )
+          )
+
+          expect(version.variables_schema).to be_blank
+
+          version.update!(template: "Updated {{template}} with {{variables}}")
+
+          expect(version.variables_schema).to be_present
+          expect(version.variables_schema.length).to eq(2)
+          expect(version.variables_schema.map { |v| v["name"] }).to match_array(%w[template variables])
+        end
+
+        it "does not override existing variables_schema on update" do
+          version = PromptVersion.create!(valid_attributes)
+          original_schema = version.variables_schema.dup
+
+          version.update!(notes: "Updated notes")
+
+          expect(version.variables_schema).to eq(original_schema)
+        end
+
+        it "sorts variables alphabetically" do
+          version = PromptVersion.create!(
+            valid_attributes.except(:variables_schema).merge(
+              template: "{{zebra}} {{apple}} {{banana}}"
+            )
+          )
+
+          expect(version.variables_schema.map { |v| v["name"] }).to eq(%w[apple banana zebra])
+        end
+      end
     end
 
     # Scope Tests

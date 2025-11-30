@@ -56,12 +56,6 @@
             <th>Evaluator:</th>
             <td><span class="badge bg-secondary"><%= @evaluation.evaluator_name %></span></td>
           </tr>
-          <tr>
-            <th>Evaluator Class:</th>
-            <td>
-              <code class="text-muted small"><%= @evaluation.evaluator_type %></code>
-            </td>
-          </tr>
         </table>
       </div>
     </div>
@@ -75,7 +69,7 @@
   template_name = @evaluation.evaluator_key.to_s
 
   # Build the template path
-  template_path = "prompt_tracker/evaluators/templates/#{template_name}"
+  template_path = "prompt_tracker/evaluations/evaluators/#{template_name}"
 %>
 
 <% if lookup_context.exists?(template_path, [], true) %>
