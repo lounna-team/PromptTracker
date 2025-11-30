@@ -115,30 +115,26 @@ module PromptTracker
 
     # Instance Methods
 
-    # Renders the template with the provided variables.
-    #
-    # Uses TemplateRenderer service which supports both Liquid and Mustache syntax.
-    # Auto-detects template type based on syntax, or can be forced with engine parameter.
+    # Renders the template with the provided variables using Liquid template engine.
     #
     # @param variables [Hash] the variables to substitute
-    # @param engine [Symbol] the template engine to use (:liquid, :mustache, or :auto)
     # @return [String] the rendered template
     # @raise [ArgumentError] if required variables are missing
     # @raise [Liquid::SyntaxError] if Liquid template has syntax errors
     #
-    # @example Render with auto-detection
+    # @example Render template
     #   version.render(name: "John", issue: "billing")
     #   # => "Hello John, how can I help with billing?"
     #
-    # @example Render with Liquid
-    #   version.render({ name: "john" }, engine: :liquid)
+    # @example Render with Liquid filters
+    #   version.render({ name: "john" })
     #   # => "Hello JOHN!" (if template uses {{ name | upcase }})
-    def render(variables = {}, engine: :auto)
+    def render(variables = {})
       variables = variables.with_indifferent_access
       validate_required_variables!(variables)
 
       renderer = TemplateRenderer.new(template)
-      renderer.render(variables, engine: engine)
+      renderer.render(variables)
     end
 
     # Activates this version and deprecates all other versions of the same prompt.
@@ -244,25 +240,6 @@ module PromptTracker
         "model_config" => model_config,
         "notes" => notes
       }
-    end
-
-    # Copies evaluator configs from another version or prompt
-    #
-    # @param source [PromptVersion, Prompt] the source to copy from
-    # @return [Array<EvaluatorConfig>] the newly created configs
-    def copy_evaluator_configs_from(source)
-      source_configs = source.is_a?(Prompt) ? source.active_version&.evaluator_configs : source.evaluator_configs
-      return [] if source_configs.blank?
-
-      source_configs.map do |config|
-        evaluator_configs.create!(
-          evaluator_key: config.evaluator_key,
-          evaluation_mode: config.evaluation_mode,
-          threshold: config.threshold,
-          config: config.config,
-          enabled: config.enabled
-        )
-      end
     end
 
     # Checks if this version has monitoring enabled

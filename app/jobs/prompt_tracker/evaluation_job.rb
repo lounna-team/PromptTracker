@@ -19,9 +19,6 @@ module PromptTracker
   class EvaluationJob < ApplicationJob
     queue_as :default
 
-    # Retry on standard errors with exponential backoff
-    retry_on StandardError, wait: :exponentially_longer, attempts: 3
-
     # Performs the evaluation
     #
     # @param llm_response_id [Integer] ID of the response to evaluate

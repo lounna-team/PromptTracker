@@ -71,8 +71,8 @@ puts "  Evaluations count: #{response.evaluations.count}"
 
 if response.evaluations.any?
   puts "  ✅ Auto-evaluation worked!"
-  puts "  Overall score: #{response.overall_score}/100"
-  
+  puts "  Passed: #{response.evaluations.where(passed: true).count}/#{response.evaluations.count}"
+
   response.evaluations.each do |eval|
     puts "\n  Evaluation:"
     puts "    Evaluator: #{eval.evaluator_id}"
@@ -86,4 +86,3 @@ else
 end
 
 puts "\n✅ Test complete!\n\n"
-

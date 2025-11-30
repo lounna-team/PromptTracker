@@ -38,13 +38,14 @@
   <!-- Alerts: Failing Evaluations -->
   <% if @failing_evaluations.any? %>
     <div style="background: #FEF2F2; border: 2px solid #FEE2E2; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-      <h2 style="color: #991B1B; margin-top: 0;">⚠️ Alerts: Low-Scoring Evaluations</h2>
+      <h2 style="color: #991B1B; margin-top: 0;">⚠️ Alerts: Failing Evaluations</h2>
 
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="border-bottom: 2px solid #FEE2E2;">
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Response</th>
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Evaluator</th>
+            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Status</th>
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Score</th>
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Time</th>
           </tr>
@@ -53,11 +54,16 @@
           <% @failing_evaluations.each do |evaluation| %>
             <tr style="border-bottom: 1px solid #FEE2E2;">
               <td style="padding: 0.75rem;">
-                <%= link_to "Response ##{evaluation.llm_response.id}", monitoring_response_path(evaluation.llm_response), style: "color: #DC2626; text-decoration: none;" %>
+                <%= link_to "Response ##{evaluation.llm_response.id}", llm_response_path(evaluation.llm_response), style: "color: #DC2626; text-decoration: none;" %>
               </td>
               <td style="padding: 0.75rem; color: #64748B;"><%= evaluation.evaluator_id %></td>
               <td style="padding: 0.75rem;">
-                <span style="color: #DC2626; font-weight: bold;"><%= evaluation.score.round(2) %></span>
+                <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; background-color: #FEE2E2; color: #991B1B; font-weight: 500;">
+                  FAILED
+                </span>
+              </td>
+              <td style="padding: 0.75rem; color: #64748B;">
+                <%= evaluation.score.round(2) %> / <%= evaluation.score_max %>
               </td>
               <td style="padding: 0.75rem; color: #64748B;"><%= time_ago_in_words(evaluation.created_at) %> ago</td>
             </tr>
@@ -114,7 +120,7 @@
               Evaluator Type
             </label>
             <%= f.select :evaluator_type,
-                options_for_select([["All Types", ""]] + @evaluator_types.map { |t| [t.titleize, t] }, params[:evaluator_type]),
+                options_for_select([["All Types", ""]] + @evaluator_types.map { |t| [t.demodulize.gsub("Evaluator", "").titleize, t] }, params[:evaluator_type]),
                 {},
                 style: "width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px; font-size: 0.875rem;" %>
           </div>
@@ -147,7 +153,7 @@
               <tr style="border-bottom: 1px solid #F1F5F9;">
                 <!-- Prompt Name -->
                 <td style="padding: 0.75rem; vertical-align: top;">
-                  <%= link_to response.prompt_version.prompt.name, monitoring_response_path(response), style: "color: #10B981; text-decoration: none; font-weight: 500;" %>
+                  <%= link_to response.prompt_version.prompt.name, llm_response_path(response), style: "color: #10B981; text-decoration: none; font-weight: 500;" %>
                   <br>
                   <small style="color: #94A3B8;">v<%= response.prompt_version.version_number %></small>
                 </td>
@@ -183,15 +189,23 @@
                         <strong style="color: #374151;"><%= tracked_evals.count %> evaluation<%= tracked_evals.count == 1 ? '' : 's' %></strong>
                       </div>
                       <% tracked_evals.group_by(&:evaluator_type).each do |type, evals| %>
+                        <%
+                          # Determine color based on evaluator class
+                          is_human = type.include?("HumanEvaluator")
+                          is_llm_judge = type.include?("LlmJudgeEvaluator")
+                          bg_color = is_human ? '#FEF3C7' : (is_llm_judge ? '#E0E7FF' : '#DBEAFE')
+                          text_color = is_human ? '#92400E' : (is_llm_judge ? '#4338CA' : '#1E40AF')
+                          display_name = type.demodulize.gsub("Evaluator", "").titleize
+                        %>
                         <div style="margin-bottom: 0.25rem;">
-                          <span style="padding: 0.125rem 0.5rem; border-radius: 3px; font-size: 0.75rem; background-color: <%= type == 'automated' ? '#DBEAFE' : (type == 'llm_judge' ? '#E0E7FF' : '#FEF3C7') %>; color: <%= type == 'automated' ? '#1E40AF' : (type == 'llm_judge' ? '#4338CA' : '#92400E') %>;">
-                            <%= type %>
+                          <span style="padding: 0.125rem 0.5rem; border-radius: 3px; font-size: 0.75rem; background-color: <%= bg_color %>; color: <%= text_color %>;">
+                            <%= display_name %>
                           </span>
                           <span style="color: #64748B; font-size: 0.75rem;">× <%= evals.count %></span>
                         </div>
                         <% evals.each do |eval| %>
                           <div style="margin-left: 0.5rem; font-size: 0.75rem; color: #64748B;">
-                            • <%= eval.evaluator_id.split('_').first(2).join(' ').titleize %>:
+                            • <%= eval.evaluator_name %>:
                             <span style="font-weight: 600; color: <%= eval.score >= 0.7 ? '#10B981' : '#EF4444' %>;">
                               <%= eval.score.round(2) %>
                             </span>

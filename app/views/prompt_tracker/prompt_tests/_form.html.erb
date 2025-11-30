@@ -301,7 +301,7 @@
 
       <div id="evaluators-list" class="row">
         <% available_evaluators.each do |key, meta| %>
-          <% existing_config = current_evaluators.find { |e| e.evaluator_key == key.to_s } %>
+          <% existing_config = current_evaluators.find { |e| e.evaluator_type == meta[:evaluator_class].name } %>
           <% is_selected = existing_config.present? %>
 
           <div class="col-lg-6 col-xl-4 mb-3">
@@ -331,23 +331,21 @@
                      id="config_<%= key %>"
                      data-evaluator-configs-target="config">
                   <hr class="my-2">
+                  <div class="mt-2">
+                    <label class="form-label small mb-1">Configuration</label>
+                    <div data-evaluator-key="<%= key %>"
+                          data-evaluator-configs-target="configFormContainer">
+                      <!-- Render evaluator-specific config form partial -->
+                        <%= render partial: "prompt_tracker/evaluator_configs/forms/#{key}", locals: { existing_config: existing_config, evaluator_key: key } %>
 
-                  <% if meta[:config_schema].present? %>
-                    <div class="mt-2">
-                      <label class="form-label small mb-1">Configuration</label>
-                      <div data-evaluator-key="<%= key %>"
-                           data-evaluator-configs-target="configFormContainer">
-                        <!-- Render evaluator-specific config form partial -->
-                          <%= render partial: "prompt_tracker/evaluators/forms/#{key}", locals: { existing_config: existing_config, evaluator_key: key } %>
-
-                      </div>
-                      <!-- Hidden field to store config JSON -->
-                      <input type="hidden"
-                             data-evaluator-key="<%= key %>"
-                             data-evaluator-configs-target="configJson"
-                             value='<%= JSON.generate(existing_config&.config || meta[:default_config] || {}) %>'>
                     </div>
-                  <% end %>
+                    <!-- Hidden field to store config JSON -->
+                    <input type="hidden"
+                            data-evaluator-key="<%= key %>"
+                            data-evaluator-configs-target="configJson"
+                            value='<%= JSON.generate(existing_config&.config || meta[:default_config] || {}) %>'>
+                  </div>
+
                 </div>
               </div>
             </div>

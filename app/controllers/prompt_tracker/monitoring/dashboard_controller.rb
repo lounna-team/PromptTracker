@@ -12,8 +12,8 @@ module PromptTracker
     #
     class DashboardController < ApplicationController
       def index
-        # Only show production calls (not test runs)
-        @recent_responses = LlmResponse.production_calls
+        # Only show tracked calls (not test runs)
+        @recent_responses = LlmResponse.tracked_calls
                                        .includes(:prompt_version, :prompt, evaluations: [])
                                        .order(created_at: :desc)
 
@@ -42,13 +42,13 @@ module PromptTracker
 
         # Get filter options
         @prompts = Prompt.active.order(:name)
-        @environments = LlmResponse.production_calls.distinct.pluck(:environment).compact.sort
+        @environments = LlmResponse.tracked_calls.distinct.pluck(:environment).compact.sort
         @statuses = LlmResponse::STATUSES
-        @evaluator_types = Evaluation::EVALUATOR_TYPES
+        @evaluator_types = EvaluatorRegistry.all.values.map { |meta| meta[:evaluator_class].name }.uniq.sort
 
         # Statistics (last 24 hours)
         since_yesterday = Time.current - 24.hours
-        @calls_today = LlmResponse.production_calls
+        @calls_today = LlmResponse.tracked_calls
                                   .where("created_at >= ?", since_yesterday)
                                   .count
 
@@ -66,11 +66,11 @@ module PromptTracker
           0
         end
 
-        # Alerts: evaluations below threshold
+        # Alerts: evaluations that did not pass
         @failing_evaluations = Evaluation.tracked
                                          .joins(:llm_response)
                                          .where("prompt_tracker_evaluations.created_at >= ?", since_yesterday)
-                                         .where("prompt_tracker_evaluations.score < 0.7") # TODO: make threshold configurable
+                                         .where(passed: false)
                                          .order(created_at: :desc)
                                          .limit(10)
       end

@@ -97,23 +97,12 @@ RSpec.describe PromptTracker::LlmJudgeEvaluationJob, type: :job do
         a_string_matching(/LLM Judge evaluation completed/)
       )
     end
-
-    it "logs error message on failure" do
-      allow(Rails.logger).to receive(:error)
-      allow(PromptTracker::EvaluatorRegistry).to receive(:build).and_raise(StandardError.new("Test error"))
-
-      expect {
-        described_class.new.perform(llm_response.id, config)
-      }.to raise_error(StandardError)
-
-      expect(Rails.logger).to have_received(:error).with(
-        a_string_matching(/LLM Judge evaluation failed/)
-      )
-    end
   end
 
   describe "job queuing" do
     it "enqueues the job" do
+      ActiveJob::Base.queue_adapter = :test
+
       expect {
         described_class.perform_later(llm_response.id, config)
       }.to have_enqueued_job(described_class).with(llm_response.id, config)
@@ -121,14 +110,6 @@ RSpec.describe PromptTracker::LlmJudgeEvaluationJob, type: :job do
 
     it "uses the default queue" do
       expect(described_class.new.queue_name).to eq("default")
-    end
-  end
-
-  describe "retry behavior" do
-    it "is configured to retry on StandardError with exponential backoff" do
-      # Verify the job class has retry_on configured
-      # This is a meta-test to ensure retry configuration exists
-      expect(described_class).to respond_to(:retry_on)
     end
   end
 end

@@ -1,4 +1,4 @@
-<div class="card">
+<div class="card" id="auto-evaluators">
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>
       <h5 class="mb-0">
@@ -29,11 +29,9 @@
         <table class="table table-hover">
           <thead>
             <tr>
-              <th style="width: 30%;">Evaluator</th>
-              <th style="width: 15%;">Mode</th>
-              <th style="width: 15%;">Threshold</th>
-              <th style="width: 15%;">Status</th>
-              <th style="width: 25%;">Actions</th>
+              <th style="width: 50%;">Evaluator</th>
+              <th style="width: 20%;">Status</th>
+              <th style="width: 30%;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -43,24 +41,6 @@
                   <strong><%= config.name %></strong>
                   <br>
                   <small class="text-muted"><%= config.description %></small>
-                </td>
-                <td>
-                  <% if config.scored? %>
-                    <span class="badge bg-primary">
-                      <i class="bi bi-graph-up"></i> Scored
-                    </span>
-                  <% else %>
-                    <span class="badge bg-success">
-                      <i class="bi bi-check-circle"></i> Binary
-                    </span>
-                  <% end %>
-                </td>
-                <td>
-                  <% if config.scored? && config.threshold.present? %>
-                    <span class="badge bg-info">≥ <%= config.threshold %></span>
-                  <% else %>
-                    <span class="text-muted">N/A</span>
-                  <% end %>
                 </td>
                 <td>
                   <% if config.enabled? %>
@@ -74,7 +54,12 @@
                   <% end %>
                 </td>
                 <td>
-                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="editEvaluatorConfig(<%= config.id %>)">
+                  <button type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          data-controller="evaluator-edit"
+                          data-evaluator-edit-config-id-value="<%= config.id %>"
+                          data-evaluator-edit-prompt-id-value="<%= @prompt.id %>"
+                          data-action="click->evaluator-edit#open">
                     <i class="bi bi-pencil"></i> Edit
                   </button>
                   <%= button_to prompt_evaluator_config_path(@prompt, config),

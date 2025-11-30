@@ -135,9 +135,10 @@ puts "-" * 80
 response.reload
 
 if response.evaluations.any?
-  puts "\n🎯 Overall Score: #{response.overall_score}/100"
-  puts "   Strategy: #{prompt.score_aggregation_strategy}"
-  puts "   Based on #{response.evaluations.count} evaluation(s)"
+  puts "\n📊 Evaluation Results:"
+  puts "   Total evaluations: #{response.evaluations.count}"
+  puts "   Passed: #{response.evaluations.where(passed: true).count}"
+  puts "   Failed: #{response.evaluations.where(passed: false).count}"
 
   puts "\n📋 Individual Evaluations:"
   response.evaluation_breakdown.each do |eval|

@@ -4,16 +4,15 @@
 #
 # Table name: prompt_tracker_prompts
 #
-#  archived_at                :datetime
-#  category                   :string
-#  created_at                 :datetime         not null
-#  created_by                 :string
-#  description                :text
-#  id                         :bigint           not null, primary key
-#  name                       :string           not null
-#  score_aggregation_strategy :string           default("weighted_average")
-#  tags                       :jsonb
-#  updated_at                 :datetime         not null
+#  archived_at :datetime
+#  category    :string
+#  created_at  :datetime         not null
+#  created_by  :string
+#  description :text
+#  id          :bigint           not null, primary key
+#  name        :string           not null
+#  tags        :jsonb
+#  updated_at  :datetime         not null
 #
 FactoryBot.define do
   factory :prompt, class: "PromptTracker::Prompt" do
@@ -51,4 +50,3 @@ FactoryBot.define do
     end
   end
 end
-

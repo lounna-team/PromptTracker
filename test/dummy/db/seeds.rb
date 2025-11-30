@@ -193,19 +193,16 @@ test_greeting_premium = support_greeting_v3.prompt_tests.create!(
   enabled: true
 )
 
-# Add pattern match evaluator (binary mode)
+# Add pattern match evaluator
 test_greeting_premium.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: { patterns: [ "John Smith", "billing" ], match_all: true }
 )
 
 # Create evaluator config for this test
 test_greeting_premium.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 0,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
   config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
@@ -220,16 +217,13 @@ test_greeting_technical = support_greeting_v3.prompt_tests.create!(
 )
 
 test_greeting_technical.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: { patterns: [ "Sarah Johnson", "technical" ], match_all: true }
 )
 
 test_greeting_technical.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 0,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
   config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
@@ -244,16 +238,13 @@ test_greeting_account = support_greeting_v3.prompt_tests.create!(
 )
 
 test_greeting_account.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: { patterns: [ "Mike Davis", "account" ], match_all: true }
 )
 
 test_greeting_account.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 0,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
   config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
@@ -268,16 +259,13 @@ test_greeting_general = support_greeting_v3.prompt_tests.create!(
 )
 
 test_greeting_general.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: { patterns: [ "Emily Chen", "general" ], match_all: true }
 )
 
 test_greeting_general.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 0,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
   config: { "min_length" => 10, "max_length" => 500 },
   enabled: true
 )
@@ -293,8 +281,7 @@ test_greeting_edge = support_greeting_v3.prompt_tests.create!(
 )
 
 test_greeting_edge.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: { patterns: [ "Alexander", "billing" ], match_all: true }
 )
@@ -317,8 +304,7 @@ test_comprehensive_quality = support_greeting_v3.prompt_tests.create!(
 
 # Add pattern match evaluator (binary mode)
 test_comprehensive_quality.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: {
     patterns: [
@@ -332,9 +318,8 @@ test_comprehensive_quality.evaluator_configs.create!(
 )
 
 test_comprehensive_quality.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 80,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+
   config: {
     "min_length" => 50,
     "max_length" => 200,
@@ -345,8 +330,8 @@ test_comprehensive_quality.evaluator_configs.create!(
 )
 
 test_comprehensive_quality.evaluator_configs.create!(
-  evaluator_key: "keyword",
-  threshold: 90,
+  evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
+
   config: {
     "required_keywords" => ["help", "refund"],
     "forbidden_keywords" => ["unfortunately", "cannot", "unable"],
@@ -356,8 +341,8 @@ test_comprehensive_quality.evaluator_configs.create!(
 )
 
 test_comprehensive_quality.evaluator_configs.create!(
-  evaluator_key: "llm_judge",
-  threshold: 85,
+  evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+
   config: {
     "judge_model" => "gpt-4o",
     "criteria" => ["helpfulness", "professionalism", "clarity", "tone"],
@@ -382,8 +367,7 @@ test_email_format = email_summary_v1.prompt_tests.create!(
 
 # Add pattern match evaluator (binary mode)
 test_email_format.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: {
     patterns: [
@@ -398,9 +382,8 @@ test_email_format.evaluator_configs.create!(
 )
 
 test_email_format.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 75,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+
   config: {
     "min_length" => 100,
     "max_length" => 400,
@@ -411,8 +394,8 @@ test_email_format.evaluator_configs.create!(
 )
 
 test_email_format.evaluator_configs.create!(
-  evaluator_key: "format",
-  threshold: 80,
+  evaluator_type: "PromptTracker::Evaluators::FormatEvaluator",
+
   config: {
     "expected_format" => "plain",
     "strict" => false
@@ -421,8 +404,8 @@ test_email_format.evaluator_configs.create!(
 )
 
 test_email_format.evaluator_configs.create!(
-  evaluator_key: "llm_judge",
-  threshold: 80,
+  evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+
   config: {
     "judge_model" => "gpt-4o",
     "criteria" => ["accuracy", "conciseness", "completeness"],
@@ -448,8 +431,7 @@ test_code_review_quality = code_review_v1.prompt_tests.create!(
 
 # Add pattern match evaluator (binary mode)
 test_code_review_quality.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: {
     patterns: [
@@ -464,9 +446,8 @@ test_code_review_quality.evaluator_configs.create!(
 )
 
 test_code_review_quality.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 70,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+
   config: {
     "min_length" => 200,
     "max_length" => 1000,
@@ -477,8 +458,8 @@ test_code_review_quality.evaluator_configs.create!(
 )
 
 test_code_review_quality.evaluator_configs.create!(
-  evaluator_key: "keyword",
-  threshold: 85,
+  evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
+
   config: {
     "required_keywords" => ["code", "quality", "readability"],
     "forbidden_keywords" => ["terrible", "awful", "stupid"],
@@ -488,8 +469,8 @@ test_code_review_quality.evaluator_configs.create!(
 )
 
 test_code_review_quality.evaluator_configs.create!(
-  evaluator_key: "llm_judge",
-  threshold: 90,
+  evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+
   config: {
     "judge_model" => "gpt-4o",
     "criteria" => ["helpfulness", "technical_accuracy", "professionalism", "completeness"],
@@ -512,8 +493,7 @@ test_exact_match = support_greeting_v3.prompt_tests.create!(
 
 # Add exact match evaluator (binary mode)
 test_exact_match.evaluator_configs.create!(
-  evaluator_key: "exact_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::ExactMatchEvaluator",
   enabled: true,
   config: {
     expected_text: "Hi Alice! Thanks for contacting us. I'm here to help with your password reset question. What's going on?",
@@ -524,8 +504,7 @@ test_exact_match.evaluator_configs.create!(
 
 # Add pattern match evaluator (binary mode)
 test_exact_match.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: {
     patterns: [
@@ -538,9 +517,8 @@ test_exact_match.evaluator_configs.create!(
 )
 
 test_exact_match.evaluator_configs.create!(
-  evaluator_key: "length",
-  evaluation_mode: "scored",
-  threshold: 90,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+
   config: {
     "min_length" => 50,
     "max_length" => 150,
@@ -551,8 +529,8 @@ test_exact_match.evaluator_configs.create!(
 )
 
 test_exact_match.evaluator_configs.create!(
-  evaluator_key: "llm_judge",
-  threshold: 95,
+  evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+
   config: {
     "judge_model" => "gpt-4o",
     "criteria" => ["accuracy", "tone", "clarity"],
@@ -578,8 +556,7 @@ test_technical_patterns = code_review_v1.prompt_tests.create!(
 
 # Add pattern match evaluator (binary mode)
 test_technical_patterns.evaluator_configs.create!(
-  evaluator_key: "pattern_match",
-  evaluation_mode: "binary",
+  evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   enabled: true,
   config: {
     patterns: [
@@ -599,8 +576,8 @@ test_technical_patterns.evaluator_configs.create!(
 )
 
 test_technical_patterns.evaluator_configs.create!(
-  evaluator_key: "length",
-  threshold: 75,
+  evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+
   config: {
     "min_length" => 250,
     "max_length" => 1200,
@@ -611,8 +588,8 @@ test_technical_patterns.evaluator_configs.create!(
 )
 
 test_technical_patterns.evaluator_configs.create!(
-  evaluator_key: "keyword",
-  threshold: 80,
+  evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
+
   config: {
     "required_keywords" => ["comprehension", "performance", "edge case"],
     "forbidden_keywords" => [],
@@ -622,8 +599,8 @@ test_technical_patterns.evaluator_configs.create!(
 )
 
 test_technical_patterns.evaluator_configs.create!(
-  evaluator_key: "format",
-  threshold: 85,
+  evaluator_type: "PromptTracker::Evaluators::FormatEvaluator",
+
   config: {
     "expected_format" => "markdown",
     "strict" => false
@@ -632,8 +609,8 @@ test_technical_patterns.evaluator_configs.create!(
 )
 
 test_technical_patterns.evaluator_configs.create!(
-  evaluator_key: "llm_judge",
-  threshold: 88,
+  evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+
   config: {
     "judge_model" => "gpt-4o",
     "criteria" => ["technical_accuracy", "completeness", "helpfulness", "professionalism"],
@@ -754,46 +731,50 @@ puts "  Creating sample evaluations..."
 successful_responses = PromptTracker::LlmResponse.successful.limit(5)
 
 successful_responses.each_with_index do |response, i|
-  # Human evaluation
+  # Keyword evaluation
+  score = rand(70..100)
   response.evaluations.create!(
-    score: rand(3.5..5.0).round(1),
-    score_max: 5,
-    criteria_scores: {
-      "helpfulness" => rand(4..5),
-      "tone" => rand(3..5),
-      "accuracy" => rand(4..5),
-      "conciseness" => rand(3..5)
-    },
-    evaluator_type: "human",
-    evaluator_id: "manager@example.com",
-    feedback: ["Great response!", "Very helpful", "Could be more concise", "Perfect tone"][i % 4]
+    score: score,
+    score_max: 100,
+    passed: score >= 80,
+    evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
+    feedback: ["Great response!", "Very helpful", "Could be more concise", "Perfect tone"][i % 4],
+    metadata: {
+      "required_found" => rand(2..3),
+      "forbidden_found" => 0,
+      "total_keywords" => 3
+    }
   )
 
-  # Automated evaluation
+  # Length evaluation
+  score = rand(70..95)
   response.evaluations.create!(
-    score: rand(70..95),
+    score: score,
     score_max: 100,
-    evaluator_type: "automated",
-    evaluator_id: "sentiment_analyzer_v1",
+    passed: score >= 80,
+    evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
     metadata: {
-      "confidence" => rand(0.8..0.99).round(2),
-      "processing_time_ms" => rand(50..200)
+      "actual_length" => rand(80..150),
+      "min_length" => 50,
+      "max_length" => 200
     }
   )
 
   # LLM judge evaluation (for some responses)
   if i.even?
+    score = rand(70..95)
     response.evaluations.create!(
-      score: rand(3.5..4.8).round(1),
-      score_max: 5,
-      criteria_scores: {
-        "helpfulness" => rand(4..5),
-        "professionalism" => rand(4..5)
-      },
-      evaluator_type: "llm_judge",
-      evaluator_id: "gpt-4o",
+      score: score,
+      score_max: 100,
+      passed: score >= 80,
+      evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
       feedback: "The response is helpful and maintains a professional yet friendly tone.",
       metadata: {
+        "judge_model" => "gpt-4o",
+        "criteria_scores" => {
+          "helpfulness" => rand(70..95),
+          "professionalism" => rand(70..95)
+        },
         "reasoning" => "Good balance of professionalism and warmth",
         "evaluation_cost_usd" => 0.0002
       }
@@ -874,18 +855,19 @@ puts "  Creating A/B test responses..."
 
   # Add evaluation
   response.evaluations.create!(
-    score: rand(4.0..4.8).round(1),
-    score_max: 5,
-    evaluator_type: "human",
-    evaluator_id: "evaluator@example.com"
+    score: rand(80..95),
+    score_max: 100,
+    passed: rand > 0.2,  # 80% pass rate
+    evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+    metadata: { "judge_model" => "gpt-4o" }
   )
 end
 
 # Variant B responses (casual version)
 8.times do |i|
   response = support_greeting_v4.llm_responses.create!(
-    rendered_prompt: "Hey #{['Dave', 'Eve', 'Frank'][i % 3]}! What's up with billing?",
-    variables_used: { "customer_name" => ['Dave', 'Eve', 'Frank'][i % 3], "issue_category" => "billing" },
+    rendered_prompt: "Hey #{[ 'Dave', 'Eve', 'Frank' ][i % 3]}! What's up with billing?",
+    variables_used: { "customer_name" => [ 'Dave', 'Eve', 'Frank' ][i % 3], "issue_category" => "billing" },
     provider: "openai",
     model: "gpt-4o",
     user_id: "ab_test_user_b_#{i + 1}",
@@ -907,10 +889,11 @@ end
 
   # Add evaluation
   response.evaluations.create!(
-    score: rand(3.8..4.5).round(1),
-    score_max: 5,
-    evaluator_type: "human",
-    evaluator_id: "evaluator@example.com"
+    score: rand(75..90),
+    score_max: 100,
+    passed: rand > 0.3,  # 70% pass rate
+    evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator",
+    metadata: { "judge_model" => "gpt-4o" }
   )
 end
 

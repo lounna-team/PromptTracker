@@ -43,7 +43,6 @@
           <tr style="border-bottom: 2px solid #DBEAFE;">
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Test</th>
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Status</th>
-            <th style="text-align: left; padding: 0.75rem; color: #64748B;">Score</th>
             <th style="text-align: left; padding: 0.75rem; color: #64748B;">Run At</th>
           </tr>
         </thead>
@@ -58,7 +57,6 @@
                   <%= run.status %>
                 </span>
               </td>
-              <td style="padding: 0.75rem;"><%= run.overall_score&.round(2) || 'N/A' %></td>
               <td style="padding: 0.75rem; color: #64748B;"><%= time_ago_in_words(run.created_at) %> ago</td>
             </tr>
           <% end %>

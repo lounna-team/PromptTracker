@@ -160,8 +160,8 @@
   </div>
 </div>
 
-<!-- Enhanced Evaluation Breakdown -->
-<%= render "evaluation_breakdown" %>
+<!-- Evaluations -->
+<%= render "prompt_tracker/shared/evaluations_table", evaluations: @evaluations, title: "Evaluations" %>
 
 <!-- Additional Context Card -->
 <% if @response.context.present? %>

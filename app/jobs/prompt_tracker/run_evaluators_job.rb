@@ -39,24 +39,23 @@ module PromptTracker
       prompt_test = test_run.prompt_test
       llm_response = test_run.llm_response
 
-      # Run evaluators
-      evaluator_results = run_evaluators(prompt_test, llm_response)
-      Rails.logger.info "📊 Evaluators completed: #{evaluator_results.length} results"
+      # Run evaluators and create Evaluation records
+      evaluations = run_evaluators(prompt_test, llm_response, test_run)
+      Rails.logger.info "📊 Evaluators completed: #{evaluations.length} evaluations created"
 
       # Determine if test passed (all evaluators must pass)
-      passed = evaluator_results.all? { |r| r[:passed] }
+      passed = evaluations.all?(&:passed)
 
       # Update test run with results
-      passed_evaluators = evaluator_results.count { |r| r[:passed] }
-      failed_evaluators = evaluator_results.count { |r| !r[:passed] }
+      passed_evaluators = evaluations.count(&:passed)
+      failed_evaluators = evaluations.count { |e| !e.passed }
 
       test_run.update!(
         status: passed ? "passed" : "failed",
         passed: passed,
-        evaluator_results: evaluator_results,
         passed_evaluators: passed_evaluators,
         failed_evaluators: failed_evaluators,
-        total_evaluators: evaluator_results.length
+        total_evaluators: evaluations.length
       )
 
       Rails.logger.info "✨ Test run #{test_run_id} completed: #{passed ? 'PASSED' : 'FAILED'}"
@@ -79,49 +78,39 @@ module PromptTracker
 
     private
 
-    # Run all configured evaluators
+    # Run all configured evaluators and create Evaluation records
     #
     # @param prompt_test [PromptTest] the test configuration
     # @param llm_response [LlmResponse] the LLM response to evaluate
-    # @return [Array<Hash>] array of evaluator results
-    def run_evaluators(prompt_test, llm_response)
-      results = []
+    # @param test_run [PromptTestRun] the test run to associate evaluations with
+    # @return [Array<Evaluation>] array of created evaluations
+    def run_evaluators(prompt_test, llm_response, test_run)
+      evaluations = []
       # Get evaluator configs, ordered by creation time
       evaluator_configs = prompt_test.evaluator_configs.enabled.order(:created_at)
 
       evaluator_configs.each do |config|
         evaluator_key = config.evaluator_key.to_sym
-        evaluation_mode = config.evaluation_mode
-        threshold = config.threshold
         evaluator_config = config.config || {}
+
+        # Add test_run context to evaluator config
+        evaluator_config = evaluator_config.merge(
+          evaluation_context: "test_run",
+          prompt_test_run_id: test_run.id
+        )
 
         # Build and run evaluator
         evaluator = EvaluatorRegistry.build(evaluator_key, llm_response, evaluator_config)
         next unless evaluator
 
         # All evaluators now use RubyLLM directly - no block needed!
+        # Evaluation is created with correct context and test_run association
         evaluation = evaluator.evaluate
 
-        # Determine if evaluator passed based on mode
-        passed = if evaluation_mode == "binary"
-          # Binary mode: check if evaluator has passed? method, otherwise use score > 0
-          evaluator.respond_to?(:passed?) ? evaluator.passed? : evaluation.score > 0
-        else
-          # Scored mode: check if score meets threshold
-          evaluation.score >= (threshold || 0)
-        end
-
-        results << {
-          evaluator_key: evaluator_key.to_s,
-          evaluation_mode: evaluation_mode,
-          score: evaluation.score,
-          threshold: threshold,
-          passed: passed,
-          feedback: evaluation.feedback
-        }
+        evaluations << evaluation
       end
 
-      results
+      evaluations
     end
 
     # Broadcast test run update via Turbo Streams

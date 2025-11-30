@@ -31,6 +31,16 @@ module PromptTracker
         trim_whitespace: true   # Whether to trim whitespace before comparing
       }.freeze
 
+      # Metadata for registry auto-discovery
+      def self.metadata
+        {
+          name: "Exact Match",
+          description: "Checks if response exactly matches expected text (typically used in binary mode)",
+          icon: "check-circle",
+          default_config: DEFAULT_CONFIG
+        }
+      end
+
       def initialize(llm_response, config = {})
         super(llm_response, DEFAULT_CONFIG.merge(config))
       end
@@ -49,10 +59,6 @@ module PromptTracker
 
           "✗ Response does not match expected output.\n\nExpected: \"#{expected_preview}\"\n\nActual: \"#{actual_preview}\""
         end
-      end
-
-      def evaluator_id
-        "exact_match_v1"
       end
 
       # For binary mode evaluation

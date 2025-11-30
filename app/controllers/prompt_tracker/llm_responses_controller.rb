@@ -40,6 +40,13 @@ module PromptTracker
       @statuses = LlmResponse.distinct.pluck(:status).compact.sort
     end
 
+    # GET /responses/search
+    # Search for responses (renders index view)
+    def search
+      index
+      render :index
+    end
+
     # GET /responses/:id
     # Show response details with evaluations
     def show

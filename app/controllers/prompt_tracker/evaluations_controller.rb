@@ -75,19 +75,26 @@ module PromptTracker
       # Get the response for form context
       @response = LlmResponse.find(params[:llm_response_id]) if params[:llm_response_id].present?
 
-      # Get evaluator metadata from registry
-      metadata = EvaluatorRegistry.get(evaluator_key&.to_sym)
+      # Get evaluator metadata from registry (only if evaluator_key is present)
+      metadata = evaluator_key.present? ? EvaluatorRegistry.get(evaluator_key.to_sym) : nil
 
       # Determine template path
       # 1. Try custom form template from registry metadata
       # 2. Fall back to evaluator_key-based template (e.g., _length.html.erb)
       # 3. Fall back to evaluator_type-based template (e.g., _human.html.erb)
       template_path = metadata&.dig(:form_template) ||
-                      "prompt_tracker/evaluators/forms/#{evaluator_key}" ||
-                      "prompt_tracker/evaluators/forms/#{params[:evaluator_type]}"
+                      (evaluator_key.present? ? "prompt_tracker/evaluator_configs/forms/#{evaluator_key}" : nil) ||
+                      "prompt_tracker/evaluator_configs/forms/#{params[:evaluator_type]}"
 
       # Render the partial wrapped in a turbo-frame tag
-      partial_content = render_to_string(partial: template_path, locals: { f: nil, response: @response })
+      partial_content = render_to_string(
+        partial: template_path,
+        locals: {
+          f: nil,
+          response: @response,
+          namespace: "config"
+        }
+      )
 
       render html: <<~HTML.html_safe, layout: false
         <turbo-frame id="evaluator_form_container">
@@ -119,34 +126,15 @@ module PromptTracker
     # Create a new evaluation
     def create
       @response = LlmResponse.find(params[:evaluation][:llm_response_id])
+      evaluator_id = params[:evaluation][:evaluator_id]
 
-      # Determine evaluation type and route accordingly
-      if params[:llm_judge].present?
-        create_llm_judge_evaluation
-      else
-        # This is a manual human evaluation
-        create_manual_evaluation
+      # Check if evaluator_id is present
+      unless evaluator_id.present?
+        redirect_to llm_response_path(@response), alert: "Evaluator ID is required"
+        return
       end
-    rescue ActiveRecord::RecordNotFound
-      redirect_to llm_responses_path, alert: "Response not found"
-    end
 
-    private
-
-    # Creates a manual evaluation (human with manual scores)
-    def create_manual_evaluation
-      @evaluation = @response.evaluations.build(evaluation_params)
-
-      if @evaluation.save
-        redirect_to llm_response_path(@response), notice: "Evaluation created successfully!"
-      else
-        redirect_to llm_response_path(@response), alert: "Error creating evaluation: #{@evaluation.errors.full_messages.join(', ')}"
-      end
-    end
-
-    # Runs a registry evaluator and creates evaluation automatically
-    def create_registry_evaluation
-      evaluator_key = params[:evaluation][:evaluator_id]&.to_sym
+      evaluator_key = evaluator_id.to_sym
 
       # Get evaluator from registry
       metadata = EvaluatorRegistry.get(evaluator_key)
@@ -156,12 +144,8 @@ module PromptTracker
         return
       end
 
-      # Get configuration from form params or use defaults
-      config = if params[evaluator_key].present?
-        process_evaluator_config_params(params[evaluator_key])
-      else
-        metadata[:default_config] || {}
-      end
+      # Get configuration from form params
+      config = process_evaluator_config_params(params[:config] || {})
 
       # Build and run the evaluator
       evaluator = EvaluatorRegistry.build(evaluator_key, @response, config)
@@ -169,32 +153,13 @@ module PromptTracker
 
       redirect_to llm_response_path(@response),
                   notice: "#{metadata[:name]} evaluation completed! Score: #{evaluation.score}"
+    rescue ActiveRecord::RecordNotFound
+      redirect_to llm_responses_path, alert: "Response not found"
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to llm_response_path(@response), alert: "Error creating evaluation: #{e.message}"
     end
 
-    # Creates an LLM judge evaluation (runs evaluator directly)
-    def create_llm_judge_evaluation
-      judge_params = params[:llm_judge]
-
-      # Build configuration for the LLM judge
-      config = {
-        judge_model: judge_params[:judge_model],
-        criteria: judge_params[:criteria] || [],
-        custom_instructions: judge_params[:custom_instructions],
-        score_min: judge_params[:score_min]&.to_i || 0,
-        score_max: judge_params[:score_max]&.to_i || 100
-      }
-
-      evaluator_key = :gpt4_judge
-
-      # Build and run the evaluator directly (without saving a config)
-      evaluator = EvaluatorRegistry.build(evaluator_key, @response, config)
-
-      # Run evaluation in background job
-      LlmJudgeEvaluationJob.perform_later(@response.id, config)
-
-      redirect_to llm_response_path(@response),
-                  notice: "LLM Judge evaluation started! The results will appear shortly."
-    end
+    private
 
     # Process configuration parameters from form
     # Converts form data to proper format for evaluators
@@ -214,6 +179,9 @@ module PromptTracker
         when "min_length", "max_length", "ideal_min", "ideal_max"
           # Convert to integer
           processed[key.to_sym] = value.to_i
+        when "score", "score_min", "score_max"
+          # Convert to float for human evaluator
+          processed[key.to_sym] = value.to_f
         when "schema"
           # Parse JSON schema if provided
           if value.present? && value.is_a?(String)
@@ -226,6 +194,9 @@ module PromptTracker
           else
             processed[key.to_sym] = value
           end
+        when "patterns"
+          # Convert textarea input (one per line) to array for patterns
+          processed[key.to_sym] = value.is_a?(String) ? value.split("\n").map(&:strip).reject(&:blank?) : value
         else
           # Keep as-is
           processed[key.to_sym] = value

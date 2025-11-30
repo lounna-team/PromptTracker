@@ -4,16 +4,15 @@
 #
 # Table name: prompt_tracker_prompts
 #
-#  archived_at                :datetime
-#  category                   :string
-#  created_at                 :datetime         not null
-#  created_by                 :string
-#  description                :text
-#  id                         :bigint           not null, primary key
-#  name                       :string           not null
-#  score_aggregation_strategy :string           default("weighted_average")
-#  tags                       :jsonb
-#  updated_at                 :datetime         not null
+#  archived_at :datetime
+#  category    :string
+#  created_at  :datetime         not null
+#  created_by  :string
+#  description :text
+#  id          :bigint           not null, primary key
+#  name        :string           not null
+#  tags        :jsonb
+#  updated_at  :datetime         not null
 #
 module PromptTracker
   # Represents a prompt template container.
@@ -38,14 +37,6 @@ module PromptTracker
   #   support_prompts = Prompt.in_category("support")
   #
   class Prompt < ApplicationRecord
-    # Constants
-    AGGREGATION_STRATEGIES = %w[
-      simple_average
-      weighted_average
-      minimum
-      custom
-    ].freeze
-
     # Associations
     has_many :prompt_versions,
              class_name: "PromptTracker::PromptVersion",
@@ -54,11 +45,6 @@ module PromptTracker
 
     has_many :ab_tests,
              class_name: "PromptTracker::AbTest",
-             dependent: :destroy,
-             inverse_of: :prompt
-
-    has_many :prompt_test_suites,
-             class_name: "PromptTracker::PromptTestSuite",
              dependent: :destroy,
              inverse_of: :prompt
 
@@ -85,10 +71,6 @@ module PromptTracker
                 message: "must contain only lowercase letters, numbers, and underscores"
               },
               allow_blank: true
-
-    validates :score_aggregation_strategy,
-              inclusion: { in: AGGREGATION_STRATEGIES },
-              allow_nil: true
 
     validate :tags_must_be_array
 

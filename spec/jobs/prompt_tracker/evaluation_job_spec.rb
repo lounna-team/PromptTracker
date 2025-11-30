@@ -76,23 +76,13 @@ RSpec.describe PromptTracker::EvaluationJob, type: :job do
           a_string_matching(/record not found/)
         )
       end
-
-      it "raises and logs StandardError for retry" do
-        allow(Rails.logger).to receive(:error)
-        allow(evaluator_config).to receive(:build_evaluator).and_raise(StandardError.new("Test error"))
-        allow(PromptTracker::EvaluatorConfig).to receive(:find).and_return(evaluator_config)
-
-        expect {
-          described_class.new.perform(llm_response.id, evaluator_config.id)
-        }.to raise_error(StandardError)
-
-        expect(Rails.logger).to have_received(:error).at_least(:once)
-      end
     end
   end
 
   describe "job queuing" do
     it "enqueues the job" do
+      ActiveJob::Base.queue_adapter = :test
+
       expect {
         described_class.perform_later(llm_response.id, evaluator_config.id, "tracked_call")
       }.to have_enqueued_job(described_class).with(llm_response.id, evaluator_config.id, "tracked_call")

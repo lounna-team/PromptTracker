@@ -29,6 +29,16 @@ module PromptTracker
         ideal_max: 500       # Ideal maximum length
       }.freeze
 
+      # Metadata for registry auto-discovery
+      def self.metadata
+        {
+          name: "Length Validator",
+          description: "Validates response length against min/max ranges",
+          icon: "rulers",
+          default_config: DEFAULT_CONFIG
+        }
+      end
+
       def initialize(llm_response, config = {})
         super(llm_response, DEFAULT_CONFIG.merge(config))
       end
@@ -78,10 +88,6 @@ module PromptTracker
         end
       end
 
-      def evaluator_id
-        "length_evaluator_v1"
-      end
-
       def metadata
         super.merge(
           response_length: response_text.length,
@@ -90,6 +96,12 @@ module PromptTracker
           ideal_min: config[:ideal_min],
           ideal_max: config[:ideal_max]
         )
+      end
+
+      # Pass if length is within acceptable range (min to max)
+      def passed?
+        length = response_text.length
+        length >= config[:min_length] && length <= config[:max_length]
       end
     end
   end

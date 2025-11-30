@@ -159,9 +159,10 @@ module PromptTracker
     # @return [ActiveRecord::Relation<LlmResponse>]
     scope :recent, ->(hours = 24) { where("created_at > ?", hours.hours.ago) }
 
-    # Returns only production/staging/dev calls (not test runs)
+    # Returns only tracked calls from production/staging/dev (not test runs)
+    # These are calls made via track_llm_call in the host application
     # @return [ActiveRecord::Relation<LlmResponse>]
-    scope :production_calls, -> { where(is_test_run: false) }
+    scope :tracked_calls, -> { where(is_test_run: false) }
 
     # Returns only test run calls
     # @return [ActiveRecord::Relation<LlmResponse>]
@@ -243,29 +244,6 @@ module PromptTracker
       status == "pending"
     end
 
-    # Returns the overall score based on the prompt's aggregation strategy.
-    # This is the primary method for getting a response's quality score.
-    #
-    # @return [Float] overall score (0 if no evaluations)
-    def overall_score
-      return 0 if evaluations.empty?
-
-      strategy = prompt&.score_aggregation_strategy || "simple_average"
-
-      case strategy
-      when "simple_average"
-        calculate_simple_average
-      when "weighted_average"
-        calculate_weighted_average
-      when "minimum"
-        calculate_minimum_score
-      when "custom"
-        calculate_custom_score
-      else
-        calculate_simple_average
-      end
-    end
-
     # Returns detailed breakdown of all evaluation scores.
     #
     # @return [Array<Hash>] array of evaluation details
@@ -291,22 +269,24 @@ module PromptTracker
           evaluator_name: evaluator_name,
           evaluator_type: evaluation.evaluator_type,
           score: evaluation.score,
+          passed: evaluation.passed,
           feedback: evaluation.feedback,
-          criteria_scores: evaluation.criteria_scores,
           created_at: evaluation.created_at
         }
       end
     end
 
-    # Checks if response passes all evaluations above a threshold.
+    # Checks if response passes all evaluations.
     #
-    # @param threshold [Integer] minimum score required (default: 80)
-    # @return [Boolean] true if all evaluations >= threshold
-    def passes_threshold?(threshold = 80)
+    # @return [Boolean] true if all evaluations passed
+    def passes_all_evaluations?
       return false if evaluations.empty?
 
-      evaluations.all? { |evaluation| evaluation.score >= threshold }
+      evaluations.all?(&:passed)
     end
+
+    # Alias for backward compatibility
+    alias_method :passes_threshold?, :passes_all_evaluations?
 
     # Returns the evaluation with the lowest score.
     #
@@ -323,7 +303,6 @@ module PromptTracker
     end
 
     # Returns the average evaluation score for this response.
-    # @deprecated Use {#overall_score} instead for strategy-aware scoring
     #
     # @return [Float, nil] average score or nil if no evaluations
     def average_evaluation_score
@@ -365,32 +344,6 @@ module PromptTracker
     # @return [void]
     def trigger_auto_evaluation
       AutoEvaluationService.evaluate(self, context: "tracked_call")
-    end
-
-    # Calculates simple average of all evaluation scores
-    # @return [Float] average score
-    def calculate_simple_average
-      evaluations.average(:score)&.round(2) || 0
-    end
-
-    # Calculates weighted average (now same as simple average since weights are removed)
-    # @return [Float] average score
-    def calculate_weighted_average
-      calculate_simple_average
-    end
-
-    # Returns the minimum score from all evaluations
-    # @return [Float] minimum score
-    def calculate_minimum_score
-      evaluations.minimum(:score) || 0
-    end
-
-    # Calculates custom score (override in your application if needed)
-    # @return [Float] custom score
-    def calculate_custom_score
-      # Default to weighted average
-      # Override this method in your application for custom logic
-      calculate_weighted_average
     end
 
     # Validates that variables_used is a hash

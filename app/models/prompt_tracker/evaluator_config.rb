@@ -9,10 +9,8 @@
 #  configurable_type :string           not null
 #  created_at        :datetime         not null
 #  enabled           :boolean          default(TRUE), not null
-#  evaluation_mode   :string           default("scored"), not null
-#  evaluator_key     :string           not null
+#  evaluator_type    :string           not null
 #  id                :bigint           not null, primary key
-#  threshold         :integer
 #  updated_at        :datetime         not null
 #
 module PromptTracker
@@ -23,40 +21,30 @@ module PromptTracker
   #
   # @example Creating a basic evaluator config
   #   prompt.evaluator_configs.create!(
-  #     evaluator_key: :length,
+  #     evaluator_type: 'PromptTracker::Evaluators::LengthEvaluator',
   #     enabled: true,
   #     config: { min_length: 50, max_length: 500 }
   #   )
   #
-  # @example Creating a binary evaluator config
+  # @example Creating an exact match evaluator config
   #   prompt.evaluator_configs.create!(
-  #     evaluator_key: :exact_match,
+  #     evaluator_type: 'PromptTracker::Evaluators::ExactMatchEvaluator',
   #     enabled: true,
-  #     evaluation_mode: "binary",
   #     config: { expected_output: "Hello, world!" }
   #   )
   #
   # @example Finding enabled configs for a prompt
   #   configs = prompt.evaluator_configs.enabled
-  #   configs.each { |config| puts "#{config.evaluator_key}: #{config.evaluation_mode}" }
+  #   configs.each { |config| puts "#{config.evaluator_type}: #{config.name}" }
   #
   class EvaluatorConfig < ApplicationRecord
     # Associations
     belongs_to :configurable, polymorphic: true
 
     # Validations
-    validates :evaluator_key,
+    validates :evaluator_type,
               presence: true,
               uniqueness: { scope: [ :configurable_type, :configurable_id ] }
-
-    validates :evaluation_mode,
-              presence: true,
-              inclusion: { in: %w[scored binary] }
-
-    validates :threshold,
-              numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
-              allow_nil: true,
-              if: :scored?
 
     # Scopes
 
@@ -64,15 +52,48 @@ module PromptTracker
     # @return [ActiveRecord::Relation<EvaluatorConfig>]
     scope :enabled, -> { where(enabled: true) }
 
-    # Returns configs using scored evaluation mode
-    # @return [ActiveRecord::Relation<EvaluatorConfig>]
-    scope :scored, -> { where(evaluation_mode: "scored") }
-
-    # Returns configs using binary evaluation mode
-    # @return [ActiveRecord::Relation<EvaluatorConfig>]
-    scope :binary, -> { where(evaluation_mode: "binary") }
-
     # Instance Methods
+
+    # Returns the evaluator class
+    # @return [Class] the evaluator class
+    def evaluator_class
+      evaluator_type.constantize
+    end
+
+    # Returns the registry key for this evaluator
+    # Derives key from class name (e.g., "PromptTracker::Evaluators::KeywordEvaluator" -> :keyword)
+    # @return [Symbol, nil] the registry key, or nil if evaluator_type is not set
+    def evaluator_key
+      return nil if evaluator_type.blank?
+
+      evaluator_type.demodulize.underscore.gsub('_evaluator', '').to_sym
+    end
+
+    # Sets the evaluator_type from a registry key
+    #
+    # This setter is essential for form submissions and API usage. It allows:
+    # 1. Forms to submit user-friendly keys (e.g., "llm_judge") instead of internal class names
+    # 2. Factories and tests to use readable keys: `create(:evaluator_config, evaluator_key: :keyword)`
+    # 3. Consistent API where keys are the public interface, class names are internal
+    #
+    # When a form submits `evaluator_config[evaluator_key] = "llm_judge"`, Rails calls this setter,
+    # which converts the key to the full class name that gets stored in the database.
+    #
+    # @param key [String, Symbol] the registry key (e.g., "keyword", :keyword)
+    # @example
+    #   config.evaluator_key = :llm_judge
+    #   config.evaluator_type # => "PromptTracker::Evaluators::LlmJudgeEvaluator"
+    def evaluator_key=(key)
+      return if key.blank?
+
+      metadata = EvaluatorRegistry.get(key)
+      if metadata
+        self.evaluator_type = metadata[:evaluator_class].name
+      else
+        # Set to invalid value to trigger validation error
+        self.evaluator_type = "Invalid::#{key}"
+      end
+    end
 
     # Returns metadata about this evaluator from the registry
     # @return [Hash, nil] evaluator metadata or nil if not found
@@ -84,31 +105,34 @@ module PromptTracker
     # @param llm_response [LlmResponse] the response to evaluate
     # @return [BaseEvaluator] an instance of the evaluator
     def build_evaluator(llm_response)
-      EvaluatorRegistry.build(evaluator_key, llm_response, config)
-    end
-
-    # Checks if this config uses scored evaluation mode
-    # @return [Boolean] true if evaluation_mode is "scored"
-    def scored?
-      evaluation_mode == "scored"
-    end
-
-    # Checks if this config uses binary evaluation mode
-    # @return [Boolean] true if evaluation_mode is "binary"
-    def binary?
-      evaluation_mode == "binary"
+      # Add evaluator_config_id to config so evaluations can reference it
+      merged_config = config.merge(evaluator_config_id: id)
+      evaluator_class.new(llm_response, merged_config)
     end
 
     # Returns a human-readable name for this evaluator
-    # @return [String] evaluator name from metadata or key
+    # @return [String, nil] evaluator name from metadata or derived from class, or nil if not set
     def name
-      evaluator_metadata&.dig(:name) || evaluator_key.to_s.titleize
+      return nil if evaluator_type.blank?
+
+      evaluator_metadata&.dig(:name) || evaluator_type.demodulize.gsub('Evaluator', '').titleize
     end
 
     # Returns a description of this evaluator
     # @return [String, nil] evaluator description from metadata
     def description
       evaluator_metadata&.dig(:description)
+    end
+
+    # Override as_json to include computed evaluator_key and name
+    # This ensures the registry key and human-readable name are available in JSON responses
+    # @param options [Hash] serialization options
+    # @return [Hash] JSON representation with evaluator_key and evaluator_name included
+    def as_json(options = {})
+      super(options).merge(
+        'evaluator_key' => evaluator_key.to_s,
+        'evaluator_name' => name
+      )
     end
   end
 end

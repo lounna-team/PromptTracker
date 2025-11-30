@@ -152,84 +152,8 @@
   </div>
 <% end %>
 
-<!-- Evaluator Results -->
-<% if @test_run.evaluator_results.present? && @test_run.evaluator_results.any? %>
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">Evaluator Results</h5>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Evaluator</th>
-              <th>Score</th>
-              <th>Threshold</th>
-              <th>Status</th>
-              <th>Feedback</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @test_run.evaluator_results.each do |result| %>
-              <%
-                evaluator_key = (result["evaluator_key"] || result[:evaluator_key]).to_sym
-                evaluator_meta = PromptTracker::EvaluatorRegistry.get(evaluator_key)
-                evaluator_name = evaluator_meta ? evaluator_meta[:name] : evaluator_key.to_s.humanize
-                evaluator_icon = evaluator_meta ? evaluator_meta[:icon] : "gear"
-                evaluator_description = evaluator_meta ? evaluator_meta[:description] : ""
-              %>
-              <tr>
-                <td>
-                  <strong>
-                    <i class="bi bi-<%= evaluator_icon %>"></i>
-                    <%= evaluator_name %>
-                  </strong>
-                  <% if evaluator_description.present? %>
-                    <br>
-                    <small class="text-muted"><%= evaluator_description %></small>
-                  <% end %>
-                </td>
-                <td>
-                  <% score = result["score"] || result[:score] %>
-                  <% if score %>
-                    <strong><%= number_with_precision(score, precision: 2) %></strong>
-                  <% else %>
-                    <span class="text-muted">-</span>
-                  <% end %>
-                </td>
-                <td>
-                  <span class="text-muted"><%= result["threshold"] || result[:threshold] || 0 %></span>
-                </td>
-                <td>
-                  <% if result["passed"] || result[:passed] %>
-                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Passed</span>
-                  <% else %>
-                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Failed</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% feedback = result["feedback"] || result[:feedback] %>
-                  <% error = result["error"] || result[:error] %>
-                  <% if error %>
-                    <div class="text-danger">
-                      <i class="bi bi-exclamation-triangle"></i>
-                      <strong>Error:</strong> <%= error %>
-                    </div>
-                  <% elsif feedback %>
-                    <%= truncate(feedback, length: 150) %>
-                  <% else %>
-                    <span class="text-muted">No feedback</span>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-<% end %>
+<!-- Evaluations -->
+<%= render "prompt_tracker/shared/evaluations_table", evaluations: @test_run.evaluations, title: "Evaluations" %>
 
 <!-- Test Configuration -->
 <div class="card mb-4">

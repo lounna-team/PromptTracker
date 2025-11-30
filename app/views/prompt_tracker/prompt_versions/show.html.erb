@@ -119,6 +119,18 @@
           <p class="text-muted">No responses yet</p>
         <% end %>
 
+        <h6 class="mt-3">By Model</h6>
+        <% if @responses_by_model.any? %>
+          <% @responses_by_model.each do |model, count| %>
+            <div class="d-flex justify-content-between mb-2">
+              <span><%= model %></span>
+              <span class="badge bg-secondary"><%= count %></span>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted">No responses yet</p>
+        <% end %>
+
         <h6 class="mt-3">By Status</h6>
         <% if @responses_by_status.any? %>
           <% @responses_by_status.each do |status, count| %>

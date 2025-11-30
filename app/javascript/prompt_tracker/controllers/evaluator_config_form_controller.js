@@ -75,4 +75,3 @@ export default class extends Controller {
     return `/prompt_tracker/evaluator_configs/config_form?${params.toString()}`
   }
 }
-

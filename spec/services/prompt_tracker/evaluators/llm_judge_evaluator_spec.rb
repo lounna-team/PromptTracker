@@ -55,6 +55,10 @@ module PromptTracker
       end
 
       describe "#evaluate" do
+        let(:prompt) { create(:prompt, :with_active_version) }
+        let(:version) { prompt.active_version }
+        let(:llm_response) { create(:llm_response, prompt_version: version) }
+
         let(:chat_double) { double("RubyLLM::Chat") }
         let(:schema_chat_double) { double("RubyLLM::Chat with schema") }
         let(:response_double) do
@@ -77,9 +81,6 @@ module PromptTracker
           allow(RubyLLM).to receive(:chat).and_return(chat_double)
           allow(chat_double).to receive(:with_schema).and_return(schema_chat_double)
           allow(schema_chat_double).to receive(:ask).and_return(response_double)
-          allow(EvaluationService).to receive(:create_llm_judge).and_return(
-            instance_double(Evaluation, score: 8.5)
-          )
         end
 
         it "calls RubyLLM.chat with the judge model" do
@@ -99,50 +100,47 @@ module PromptTracker
         it "calls ask with the judge prompt" do
           evaluator.evaluate
 
-          expect(schema_chat_double).to have_received(:ask) do |prompt|
-            expect(prompt).to include("What is the capital of France?")
-            expect(prompt).to include("The capital of France is Paris.")
-            expect(prompt).to include("accuracy")
-            expect(prompt).to include("helpfulness")
+          expect(schema_chat_double).to have_received(:ask) do |prompt_text|
+            # Check that the prompt includes the response text and criteria
+            expect(prompt_text).to include(llm_response.response_text)
+            expect(prompt_text).to include("accuracy")
+            expect(prompt_text).to include("helpfulness")
           end
         end
 
         it "creates an LLM judge evaluation with structured response data" do
-          evaluator.evaluate
+          expect {
+            evaluator.evaluate
+          }.to change(Evaluation, :count).by(1)
 
-          expect(EvaluationService).to have_received(:create_llm_judge).with(
-            hash_including(
-              llm_response: llm_response,
-              judge_model: "gpt-4o-2024-08-06",
-              score: 8.5,
-              score_min: 0,
-              score_max: 10,
-              criteria_scores: { accuracy: 9.0, helpfulness: 8.0 },
-              feedback: "Good response"
-            )
-          )
+          evaluation = Evaluation.last
+          expect(evaluation.llm_response).to eq(llm_response)
+          expect(evaluation.evaluator_type).to eq("llm_judge")
+          expect(evaluation.evaluator_id).to eq("llm_judge:gpt-4o-2024-08-06")
+          expect(evaluation.score).to eq(8.5)
+          expect(evaluation.score_min).to eq(0)
+          expect(evaluation.score_max).to eq(10)
+          expect(evaluation.passed).to eq(true)  # 8.5/10 = 0.85 >= 0.8
+          expect(evaluation.feedback).to eq("Good response")
         end
 
-        it "includes metadata about structured output usage" do
+        it "includes metadata about structured output usage and criteria_scores" do
           evaluator.evaluate
 
-          expect(EvaluationService).to have_received(:create_llm_judge).with(
-            hash_including(
-              metadata: hash_including(
-                used_structured_output: true,
-                judge_model: "gpt-4o-2024-08-06",
-                criteria: [ "accuracy", "helpfulness" ],
-                mock_mode: false
-              )
-            )
-          )
+          evaluation = Evaluation.last
+          expect(evaluation.metadata["used_structured_output"]).to eq(true)
+          expect(evaluation.metadata["judge_model"]).to eq("gpt-4o-2024-08-06")
+          expect(evaluation.metadata["criteria"]).to eq([ "accuracy", "helpfulness" ])
+          expect(evaluation.metadata["criteria_scores"]).to eq({ "accuracy" => 9.0, "helpfulness" => 8.0 })
+          expect(evaluation.metadata["mock_mode"]).to eq(false)
         end
 
         it "returns the evaluation" do
           result = evaluator.evaluate
 
-          expect(result).to respond_to(:score)
+          expect(result).to be_a(Evaluation)
           expect(result.score).to eq(8.5)
+          expect(result.passed).to eq(true)
         end
 
         context "when RubyLLM raises an error" do
@@ -168,39 +166,31 @@ module PromptTracker
           end
 
           it "generates mock evaluation data" do
-            evaluator.evaluate
+            expect {
+              evaluator.evaluate
+            }.to change(Evaluation, :count).by(1)
 
-            expect(EvaluationService).to have_received(:create_llm_judge).with(
-              hash_including(
-                llm_response: llm_response,
-                judge_model: "gpt-4o-2024-08-06",
-                score_min: 0,
-                score_max: 10,
-                feedback: /MOCK EVALUATION/
-              )
-            )
+            evaluation = Evaluation.last
+            expect(evaluation.llm_response).to eq(llm_response)
+            expect(evaluation.evaluator_type).to eq("llm_judge")
+            expect(evaluation.evaluator_id).to eq("llm_judge:gpt-4o-2024-08-06")
+            expect(evaluation.score_min).to eq(0)
+            expect(evaluation.score_max).to eq(10)
+            expect(evaluation.feedback).to match(/MOCK EVALUATION/)
           end
 
           it "includes mock_mode flag in metadata" do
             evaluator.evaluate
 
-            expect(EvaluationService).to have_received(:create_llm_judge).with(
-              hash_including(
-                metadata: hash_including(
-                  mock_mode: true
-                )
-              )
-            )
+            evaluation = Evaluation.last
+            expect(evaluation.metadata["mock_mode"]).to eq(true)
           end
 
           it "generates scores within configured range" do
             evaluation = evaluator.evaluate
 
             # The mock should generate scores within the configured range
-            expect(EvaluationService).to have_received(:create_llm_judge) do |args|
-              score = args[:score]
-              expect(score).to be_between(0, 10).inclusive
-            end
+            expect(evaluation.score).to be_between(0, 10).inclusive
           end
         end
       end

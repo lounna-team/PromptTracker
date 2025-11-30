@@ -36,6 +36,16 @@ module PromptTracker
         custom_instructions: nil
       }.freeze
 
+      # Metadata for registry auto-discovery
+      def self.metadata
+        {
+          name: "LLM Judge",
+          description: "Uses an LLM to evaluate response quality",
+          icon: "robot",
+          default_config: DEFAULT_CONFIG
+        }
+      end
+
       # Default evaluation criteria descriptions
       CRITERIA_DESCRIPTIONS = {
         "accuracy" => "Is the response factually correct and accurate?",
@@ -84,18 +94,27 @@ module PromptTracker
           parsed = response.content.with_indifferent_access
         end
 
+        # Calculate if passed (normalized score >= 0.8)
+        score = parsed[:overall_score]
+        normalized_score = (score - config[:score_min]) / (config[:score_max] - config[:score_min]).to_f
+        passed = normalized_score >= 0.8
+
         # Create the evaluation
-        EvaluationService.create_llm_judge(
+        Evaluation.create!(
           llm_response: llm_response,
-          judge_model: config[:judge_model],
-          score: parsed[:overall_score],
+          evaluator_type: self.class.name,
+          evaluator_config_id: config[:evaluator_config_id],
+          score: score,
           score_min: config[:score_min],
           score_max: config[:score_max],
-          criteria_scores: parsed[:criteria_scores],
+          passed: passed,
           feedback: parsed[:feedback],
+          evaluation_context: config[:evaluation_context] || "tracked_call",
+          prompt_test_run_id: config[:prompt_test_run_id],
           metadata: {
             judge_model: config[:judge_model],
             criteria: config[:criteria],
+            criteria_scores: parsed[:criteria_scores] || {},  # Store in metadata instead
             judge_prompt: judge_prompt,
             raw_judge_response: use_mock_mode? ? "MOCK_RESPONSE" : response.raw.to_s,
             used_structured_output: true,

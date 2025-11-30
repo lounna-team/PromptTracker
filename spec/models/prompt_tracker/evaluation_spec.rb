@@ -9,7 +9,21 @@ RSpec.describe PromptTracker::Evaluation, type: :model do
 
   describe "validations" do
     it { should validate_presence_of(:evaluation_context) }
-    it { should validate_inclusion_of(:evaluation_context).in_array(%w[tracked_call test_run manual]) }
+
+    it "validates evaluation_context is one of the allowed values" do
+      evaluation = build(:evaluation, llm_response: create(:llm_response))
+
+      # Valid values should work
+      %w[tracked_call test_run manual].each do |context|
+        evaluation.evaluation_context = context
+        expect(evaluation).to be_valid
+      end
+
+      # Invalid values should raise an error
+      expect {
+        evaluation.evaluation_context = "invalid_context"
+      }.to raise_error(ArgumentError, /'invalid_context' is not a valid evaluation_context/)
+    end
   end
 
   describe "enums" do

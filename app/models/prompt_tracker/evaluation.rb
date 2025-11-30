@@ -4,19 +4,20 @@
 #
 # Table name: prompt_tracker_evaluations
 #
-#  created_at         :datetime         not null
-#  criteria_scores    :jsonb
-#  evaluation_context :string           default("tracked_call")
-#  evaluator_id       :string
-#  evaluator_type     :string           not null
-#  feedback           :text
-#  id                 :bigint           not null, primary key
-#  llm_response_id    :bigint           not null
-#  metadata           :jsonb
-#  score              :decimal(10, 2)   not null
-#  score_max          :decimal(10, 2)   default(5.0)
-#  score_min          :decimal(10, 2)   default(0.0)
-#  updated_at         :datetime         not null
+#  created_at             :datetime         not null
+#  evaluation_context     :string           default("tracked_call")
+#  evaluator_config_id    :bigint
+#  evaluator_type         :string           not null
+#  feedback               :text
+#  id                     :bigint           not null, primary key
+#  llm_response_id        :bigint           not null
+#  metadata               :jsonb
+#  passed                 :boolean
+#  prompt_test_run_id     :bigint
+#  score                  :decimal(10, 2)   not null
+#  score_max              :decimal(10, 2)   default(5.0)
+#  score_min              :decimal(10, 2)   default(0.0)
+#  updated_at             :datetime         not null
 #
 module PromptTracker
   # Represents a quality evaluation of an LLM response.
@@ -53,13 +54,18 @@ module PromptTracker
   #   )
   #
   class Evaluation < ApplicationRecord
-    # Constants
-    EVALUATOR_TYPES = %w[human automated llm_judge].freeze
-
     # Associations
     belongs_to :llm_response,
                class_name: "PromptTracker::LlmResponse",
                inverse_of: :evaluations
+
+    belongs_to :prompt_test_run,
+               class_name: "PromptTracker::PromptTestRun",
+               optional: true
+
+    belongs_to :evaluator_config,
+               class_name: "PromptTracker::EvaluatorConfig",
+               optional: true
 
     has_one :prompt_version,
             through: :llm_response,
@@ -73,11 +79,10 @@ module PromptTracker
     validates :score, presence: true, numericality: true
     validates :score_min, numericality: true
     validates :score_max, numericality: true
-    validates :evaluator_type, presence: true, inclusion: { in: EVALUATOR_TYPES }
+    validates :evaluator_type, presence: true
     validates :evaluation_context, presence: true, inclusion: { in: %w[tracked_call test_run manual] }
 
     validate :score_within_range
-    validate :criteria_scores_must_be_hash
     validate :metadata_must_be_hash
 
     # Enums
@@ -91,20 +96,25 @@ module PromptTracker
 
     # Returns only human evaluations
     # @return [ActiveRecord::Relation<Evaluation>]
-    scope :by_humans, -> { where(evaluator_type: "human") }
+    scope :by_humans, -> { where(evaluator_type: "PromptTracker::Evaluators::HumanEvaluator") }
 
-    # Returns only automated evaluations
+    # Returns only automated evaluations (all non-human, non-llm-judge evaluators)
     # @return [ActiveRecord::Relation<Evaluation>]
-    scope :automated, -> { where(evaluator_type: "automated") }
+    scope :automated, -> {
+      where.not(evaluator_type: [
+        "PromptTracker::Evaluators::HumanEvaluator",
+        "PromptTracker::Evaluators::LlmJudgeEvaluator"
+      ])
+    }
 
     # Returns only LLM judge evaluations
     # @return [ActiveRecord::Relation<Evaluation>]
-    scope :by_llm_judge, -> { where(evaluator_type: "llm_judge") }
+    scope :by_llm_judge, -> { where(evaluator_type: "PromptTracker::Evaluators::LlmJudgeEvaluator") }
 
-    # Returns evaluations by a specific evaluator
-    # @param evaluator_id [String] the evaluator identifier
+    # Returns evaluations by a specific evaluator class
+    # @param evaluator_type [String] the evaluator class name
     # @return [ActiveRecord::Relation<Evaluation>]
-    scope :by_evaluator, ->(evaluator_id) { where(evaluator_id: evaluator_id) }
+    scope :by_evaluator, ->(evaluator_type) { where(evaluator_type: evaluator_type) }
 
     # Returns evaluations from tracked calls (host app)
     # @return [ActiveRecord::Relation<Evaluation>]
@@ -137,23 +147,23 @@ module PromptTracker
 
     # Checks if this is a human evaluation.
     #
-    # @return [Boolean] true if evaluator_type is "human"
+    # @return [Boolean] true if evaluator is HumanEvaluator
     def human?
-      evaluator_type == "human"
+      evaluator_type == "PromptTracker::Evaluators::HumanEvaluator"
     end
 
     # Checks if this is an automated evaluation.
     #
-    # @return [Boolean] true if evaluator_type is "automated"
+    # @return [Boolean] true if evaluator is not human or llm_judge
     def automated?
-      evaluator_type == "automated"
+      !human? && !llm_judge?
     end
 
     # Checks if this is an LLM judge evaluation.
     #
-    # @return [Boolean] true if evaluator_type is "llm_judge"
+    # @return [Boolean] true if evaluator is LlmJudgeEvaluator
     def llm_judge?
-      evaluator_type == "llm_judge"
+      evaluator_type == "PromptTracker::Evaluators::LlmJudgeEvaluator"
     end
 
     # Normalizes the score to a 0-1 scale.
@@ -180,40 +190,26 @@ module PromptTracker
       score_percentage >= threshold
     end
 
-    # Returns the score for a specific criterion.
+    # Returns the evaluator key derived from the class name
+    # e.g., "PromptTracker::Evaluators::KeywordEvaluator" -> :keyword
     #
-    # @param criterion [String] the criterion name
-    # @return [Numeric, nil] the score or nil if not found
-    def criterion_score(criterion)
-      criteria_scores[criterion.to_s]
-    end
-
-    # Returns all criteria names.
-    #
-    # @return [Array<String>] list of criterion names
-    def criteria_names
-      criteria_scores.keys
-    end
-
-    # Checks if this evaluation has detailed criteria scores.
-    #
-    # @return [Boolean] true if criteria_scores is not empty
-    def has_criteria_scores?
-      criteria_scores.present? && criteria_scores.any?
-    end
-
-    # Returns the evaluator key if available from metadata, otherwise returns evaluator_id.
-    #
-    # @return [String, nil] evaluator key or evaluator_id
+    # @return [Symbol] evaluator key
     def evaluator_key
-      # Try to get evaluator_key from the associated EvaluatorConfig via metadata
-      if metadata&.dig("evaluator_config_id")
-        config = EvaluatorConfig.find_by(id: metadata["evaluator_config_id"])
-        return config.evaluator_key if config
-      end
+      evaluator_type.demodulize.underscore.gsub("_evaluator", "").to_sym
+    end
 
-      # Fall back to evaluator_id
-      evaluator_id
+    # Returns the evaluator class
+    #
+    # @return [Class] the evaluator class
+    def evaluator_class
+      evaluator_type.constantize
+    end
+
+    # Returns a human-readable evaluator name
+    #
+    # @return [String] evaluator name
+    def evaluator_name
+      evaluator_type.demodulize.gsub("Evaluator", "").titleize
     end
 
     # Returns a human-readable summary of this evaluation.
@@ -245,13 +241,6 @@ module PromptTracker
       elsif score > score_max
         errors.add(:score, "must be less than or equal to #{max_formatted}")
       end
-    end
-
-    # Validates that criteria_scores is a hash
-    def criteria_scores_must_be_hash
-      return if criteria_scores.nil? || criteria_scores.is_a?(Hash)
-
-      errors.add(:criteria_scores, "must be a hash")
     end
 
     # Validates that metadata is a hash

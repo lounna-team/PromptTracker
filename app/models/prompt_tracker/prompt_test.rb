@@ -33,19 +33,15 @@ module PromptTracker
   #     model_config: { provider: "openai", model: "gpt-4" }
   #   )
   #
-  #   # Add binary evaluator (must pass)
+  #   # Add evaluator
   #   test.evaluator_configs.create!(
-  #     evaluator_key: :pattern_match,
-  #     evaluation_mode: "binary",
+  #     evaluator_type: "PromptTracker::Evaluators::PatternMatchEvaluator",
   #     config: { patterns: ["/Hello/", "/Alice/"], match_all: true }
   #   )
   #
-  #   # Add scored evaluator (quality metric)
+  #   # Add another evaluator
   #   test.evaluator_configs.create!(
-  #     evaluator_key: :length_check,
-  #     evaluation_mode: "scored",
-  #     threshold: 80,
-  #     weight: 1.0,
+  #     evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
   #     config: { min_length: 50 }
   #   )
   #
@@ -104,10 +100,21 @@ module PromptTracker
       # Create new configs from the array
       configs.each do |config_hash|
         config_hash = config_hash.with_indifferent_access if config_hash.is_a?(Hash)
+
+        # Convert evaluator_key (symbol like :keyword) to evaluator_type (full class name)
+        evaluator_key = config_hash[:evaluator_key]
+        evaluator_type = if evaluator_key
+          # Look up the evaluator class from the registry using the key
+          registry_entry = EvaluatorRegistry.all[evaluator_key.to_sym]
+          registry_entry ? registry_entry[:evaluator_class].name : nil
+        else
+          config_hash[:evaluator_type]
+        end
+
+        next unless evaluator_type
+
         association(:evaluator_configs).reader.create!(
-          evaluator_key: config_hash[:evaluator_key],
-          evaluation_mode: config_hash[:evaluation_mode] || "scored",
-          threshold: config_hash[:threshold],
+          evaluator_type: evaluator_type,
           config: config_hash[:config] || {},
           enabled: true
         )

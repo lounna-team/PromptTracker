@@ -77,56 +77,255 @@ RSpec.describe "PromptTracker::EvaluationsController", type: :request do
   end
 
   describe "POST /evaluations" do
-    it "creates manual evaluation" do
-      expect {
+    context "with human evaluator" do
+      it "creates human evaluation using config params" do
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: llm_response.id,
+              evaluator_id: "human"
+            },
+            config: {
+              evaluator_id: "john@example.com",
+              score: 4.5,
+              score_min: 0,
+              score_max: 5,
+              feedback: "Great response!"
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("human")
+        expect(evaluation.evaluator_id).to eq("john@example.com")
+        expect(evaluation.score).to eq(4.5)
+        expect(evaluation.feedback).to eq("Great response!")
+
+        expect(response).to redirect_to("/prompt_tracker/responses/#{llm_response.id}")
+        follow_redirect!
+        expect(response.body).to include("evaluation completed")
+      end
+    end
+
+    context "with length evaluator" do
+      let(:llm_response) { create(:llm_response, prompt_version: version, response_text: "This is a test response") }
+
+      it "creates automated evaluation using length evaluator" do
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: llm_response.id,
+              evaluator_id: "length"
+            },
+            config: {
+              min_length: 10,
+              max_length: 100
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("automated")
+        expect(evaluation.evaluator_id).to match(/length/)
+        expect(evaluation.passed).to eq(true) # Response is within range
+      end
+
+      it "fails when response is too short" do
+        short_response = create(:llm_response, prompt_version: version, response_text: "Hi")
+
+        post "/prompt_tracker/evaluations", params: {
+          evaluation: {
+            llm_response_id: short_response.id,
+            evaluator_id: "length"
+          },
+          config: {
+            min_length: 10,
+            max_length: 100
+          }
+        }
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.passed).to eq(false)
+      end
+    end
+
+    context "with keyword evaluator" do
+      let(:llm_response) { create(:llm_response, prompt_version: version, response_text: "Hello world, welcome to our service!") }
+
+      it "creates automated evaluation using keyword evaluator" do
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: llm_response.id,
+              evaluator_id: "keyword"
+            },
+            config: {
+              required_keywords: "hello\nwelcome",
+              case_sensitive: "false"
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("automated")
+        expect(evaluation.evaluator_id).to match(/keyword/)
+        expect(evaluation.passed).to eq(true)
+      end
+
+      it "fails when required keywords are missing" do
         post "/prompt_tracker/evaluations", params: {
           evaluation: {
             llm_response_id: llm_response.id,
-            evaluator_type: "human",
-            evaluator_id: "manual",
-            score: 4.5,
-            score_min: 0,
-            score_max: 5,
-            feedback: "Great response!"
+            evaluator_id: "keyword"
+          },
+          config: {
+            required_keywords: "missing\nkeyword",
+            case_sensitive: "false"
           }
         }
-      }.to change(PromptTracker::Evaluation, :count).by(1)
 
-      expect(response).to redirect_to("/prompt_tracker/responses/#{llm_response.id}")
-      follow_redirect!
-      expect(response.body).to include("Evaluation created successfully")
-    end
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.passed).to eq(false)
+      end
 
-    it "handles invalid evaluation" do
-      expect {
+      it "fails when forbidden keywords are present" do
         post "/prompt_tracker/evaluations", params: {
           evaluation: {
             llm_response_id: llm_response.id,
-            evaluator_type: "human",
-            score: 10, # Invalid - exceeds max
-            score_min: 0,
-            score_max: 5
+            evaluator_id: "keyword"
+          },
+          config: {
+            forbidden_keywords: "hello",
+            case_sensitive: "false"
           }
         }
-      }.not_to change(PromptTracker::Evaluation, :count)
 
-      expect(response).to redirect_to("/prompt_tracker/responses/#{llm_response.id}")
-      follow_redirect!
-      expect(response.body).to include("Error creating evaluation")
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.passed).to eq(false)
+      end
     end
 
-    it "handles non-existent response" do
-      post "/prompt_tracker/evaluations", params: {
-        evaluation: {
-          llm_response_id: 999999,
-          evaluator_type: "human",
-          score: 4.5
-        }
-      }
+    context "with format evaluator" do
+      it "creates automated evaluation using format evaluator for JSON" do
+        json_response = create(:llm_response, prompt_version: version, response_text: '{"key": "value"}')
 
-      expect(response).to redirect_to("/prompt_tracker/responses")
-      follow_redirect!
-      expect(response.body).to include("Response not found")
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: json_response.id,
+              evaluator_id: "format"
+            },
+            config: {
+              expected_format: "json"
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("automated")
+        expect(evaluation.passed).to eq(true)
+      end
+    end
+
+    context "with pattern match evaluator" do
+      it "creates automated evaluation using pattern match evaluator" do
+        response_with_pattern = create(:llm_response, prompt_version: version, response_text: "Error: Something went wrong")
+
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: response_with_pattern.id,
+              evaluator_id: "pattern_match"
+            },
+            config: {
+              patterns: "/Error:.*/"
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("automated")
+        expect(evaluation.passed).to eq(true)
+      end
+    end
+
+    context "with exact match evaluator" do
+      it "creates automated evaluation using exact match evaluator" do
+        exact_response = create(:llm_response, prompt_version: version, response_text: "Expected output")
+
+        expect {
+          post "/prompt_tracker/evaluations", params: {
+            evaluation: {
+              llm_response_id: exact_response.id,
+              evaluator_id: "exact_match"
+            },
+            config: {
+              expected_text: "Expected output"
+            }
+          }
+        }.to change(PromptTracker::Evaluation, :count).by(1)
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.evaluator_type).to eq("automated")
+        expect(evaluation.passed).to eq(true)
+      end
+
+      it "fails when output doesn't match exactly" do
+        different_response = create(:llm_response, prompt_version: version, response_text: "Different output")
+
+        post "/prompt_tracker/evaluations", params: {
+          evaluation: {
+            llm_response_id: different_response.id,
+            evaluator_id: "exact_match"
+          },
+          config: {
+            expected_text: "Expected output"
+          }
+        }
+
+        evaluation = PromptTracker::Evaluation.last
+        expect(evaluation.passed).to eq(false)
+      end
+    end
+
+    context "error handling" do
+      it "handles invalid evaluator" do
+        post "/prompt_tracker/evaluations", params: {
+          evaluation: {
+            llm_response_id: llm_response.id,
+            evaluator_id: "nonexistent_evaluator"
+          }
+        }
+
+        expect(response).to redirect_to("/prompt_tracker/responses/#{llm_response.id}")
+        follow_redirect!
+        expect(response.body).to include("Evaluator not found")
+      end
+
+      it "handles non-existent response" do
+        post "/prompt_tracker/evaluations", params: {
+          evaluation: {
+            llm_response_id: 999999,
+            evaluator_id: "human"
+          }
+        }
+
+        expect(response).to redirect_to("/prompt_tracker/responses")
+        follow_redirect!
+        expect(response.body).to include("Response not found")
+      end
+
+      it "handles missing evaluator_id" do
+        post "/prompt_tracker/evaluations", params: {
+          evaluation: {
+            llm_response_id: llm_response.id
+          }
+        }
+
+        expect(response).to redirect_to("/prompt_tracker/responses/#{llm_response.id}")
+        follow_redirect!
+        expect(response.body).to include("Evaluator ID is required")
+      end
     end
   end
 

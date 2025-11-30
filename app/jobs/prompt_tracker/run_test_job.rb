@@ -34,7 +34,7 @@ module PromptTracker
       llm_response = execute_llm_call(test, version, use_real_llm)
 
       # Run evaluators
-      evaluator_results = run_evaluators(test, llm_response, use_real_llm)
+      evaluator_results = run_evaluators(test, llm_response, test_run)
 
       # Determine if test passed (all evaluators must pass)
       passed = evaluator_results.all? { |r| r[:passed] }
@@ -162,48 +162,33 @@ module PromptTracker
     #
     # @param test [PromptTest] the test
     # @param llm_response [LlmResponse] the LLM response to evaluate
-    # @param use_real_llm [Boolean] whether to use real LLM for judge evaluators
+    # @param test_run [PromptTestRun] the test run to associate evaluations with
     # @return [Array<Hash>] array of evaluator results
-    def run_evaluators(test, llm_response, use_real_llm)
+    def run_evaluators(test, llm_response, test_run)
       evaluator_configs = test.evaluator_configs.enabled.order(:created_at)
       results = []
 
       evaluator_configs.each do |config|
         evaluator_key = config.evaluator_key.to_sym
-        threshold = config.threshold || 0
         evaluator_config = config.config || {}
+
+        # Add test_run context to evaluator config
+        evaluator_config = evaluator_config.merge(
+          evaluation_context: "test_run",
+          prompt_test_run_id: test_run.id
+        )
 
         # Build and run evaluator
         evaluator = EvaluatorRegistry.build(evaluator_key, llm_response, evaluator_config)
 
-        # Check if this is an LLM judge evaluator that needs a block
-        evaluation = if evaluator.is_a?(PromptTracker::Evaluators::LlmJudgeEvaluator)
-          # Call with block to generate LLM judge response (real or mock)
-          evaluator.evaluate do |judge_prompt|
-            if use_real_llm
-              Rails.logger.info "🚀 Using REAL LLM Judge API"
-              call_real_llm_judge(judge_prompt, evaluator_config)
-            else
-              Rails.logger.info "🎭 Using MOCK LLM Judge response"
-              generate_mock_judge_response(judge_prompt, evaluator_config)
-            end
-          end
-        else
-          # Regular evaluators don't need a block
-          evaluator.evaluate
-        end
-
-        # Set evaluation context to test_run
-        evaluation.update!(evaluation_context: "test_run")
-
-        # Check if score meets threshold
-        passed = evaluation.score >= threshold
+        # All evaluators now use RubyLLM directly - no block needed!
+        # Evaluation is created with correct context and test_run association
+        evaluation = evaluator.evaluate
 
         results << {
           evaluator_key: evaluator_key.to_s,
           score: evaluation.score,
-          threshold: threshold,
-          passed: passed,
+          passed: evaluation.passed,
           feedback: evaluation.feedback
         }
       end
@@ -326,68 +311,6 @@ module PromptTracker
       completion_cost = (completion_tokens / 1_000_000.0) * pricing[:completion]
 
       prompt_cost + completion_cost
-    end
-
-    # Call real LLM API for judge evaluation
-    #
-    # @param judge_prompt [String] the prompt sent to the judge LLM
-    # @param evaluator_config [Hash] the evaluator configuration
-    # @return [String] judge response text
-    def call_real_llm_judge(judge_prompt, evaluator_config)
-      config = evaluator_config.with_indifferent_access
-      judge_model = config[:judge_model] || "gpt-4"
-
-      # Determine provider from model name
-      provider = if judge_model.start_with?("gpt-", "o1-")
-        "openai"
-      elsif judge_model.start_with?("claude-")
-        "anthropic"
-      elsif judge_model.start_with?("gemini-")
-        "google"
-      else
-        "openai"
-      end
-
-      response = LlmClientService.call(
-        provider: provider,
-        model: judge_model,
-        prompt: judge_prompt,
-        temperature: 0.3
-      )
-
-      response[:text]
-    end
-
-    # Generate a mock judge response for testing
-    #
-    # @param judge_prompt [String] the prompt sent to the judge LLM
-    # @param evaluator_config [Hash] the evaluator configuration
-    # @return [String] mock judge response with scores
-    def generate_mock_judge_response(judge_prompt, evaluator_config)
-      criteria = evaluator_config["criteria"] || evaluator_config[:criteria] || ["overall"]
-      score_max = evaluator_config["score_max"] || evaluator_config[:score_max] || 100
-
-      # Generate mock scores for each criterion (80-95% of max)
-      criterion_scores = criteria.map do |criterion|
-        score = rand(80..95) * score_max / 100.0
-        "#{criterion}: #{score.round(1)}/#{score_max}"
-      end.join("\n")
-
-      # Calculate overall score (average of criteria)
-      overall_score = (rand(80..95) * score_max / 100.0).round(1)
-
-      # Return a structured response that the judge evaluator can parse
-      <<~RESPONSE
-        EVALUATION RESULTS:
-
-        #{criterion_scores}
-
-        Overall Score: #{overall_score}/#{score_max}
-
-        Feedback: This is a mock evaluation for testing purposes. In production, this would be replaced with an actual LLM judge evaluation. The response meets the expected criteria and demonstrates good quality.
-
-        Reasoning: The mock evaluator assigns high scores to simulate a passing test. In a real scenario, the LLM judge would analyze the response based on the specified criteria and provide detailed feedback.
-      RESPONSE
     end
   end
 end

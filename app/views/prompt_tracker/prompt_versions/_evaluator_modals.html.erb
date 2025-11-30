@@ -20,7 +20,7 @@
           <div class="mb-3">
             <%= f.label :evaluator_key, "Evaluator", class: "form-label" %>
             <%= f.select :evaluator_key,
-                         options_for_select(PromptTracker::EvaluatorRegistry.all.map { |k, v| [v[:name], k] }),
+                         options_for_select(PromptTracker::EvaluatorRegistry.all.map { |k, v| [v[:name], k.to_s] }),
                          { include_blank: "Select an evaluator..." },
                          {
                            class: "form-select",
@@ -28,7 +28,9 @@
                            data: {
                              evaluator_config_form_target: "select",
                              action: "change->evaluator-config-form#loadForm",
-                             evaluators: PromptTracker::EvaluatorRegistry.all.to_json
+                             evaluators: PromptTracker::EvaluatorRegistry.all.transform_values { |v|
+                               { name: v[:name], description: v[:description], category: v[:category] }
+                             }.to_json
                            }
                          } %>
             <div data-evaluator-config-form-target="description" class="form-text mt-2"></div>
@@ -58,34 +60,39 @@
   </div>
 
   <!-- Edit Evaluator Modal -->
-  <div class="modal fade" id="editEvaluatorModal" tabindex="-1" aria-labelledby="editEvaluatorModalLabel" aria-hidden="true" data-modal-fix-target="modal">
+  <div class="modal fade" id="editEvaluatorModal" tabindex="-1" aria-labelledby="editEvaluatorModalLabel" aria-hidden="true" data-modal-fix-target="modal" data-controller="evaluator-edit-form">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="editEvaluatorModalLabel">Edit Auto-Evaluator</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="editEvaluatorForm">
+      <form id="editEvaluatorForm" data-action="submit->evaluator-edit-form#submit">
         <input type="hidden" id="edit_evaluator_id" name="id">
+        <input type="hidden" id="edit_prompt_id" value="<%= @prompt.id %>">
+        <input type="hidden" id="edit_evaluator_key_hidden" name="evaluator_key">
         <div class="modal-body">
-          <!-- Evaluator Key (Read-only) -->
+          <!-- Evaluator Type (Read-only display) -->
           <div class="mb-3">
-            <label for="edit_evaluator_key" class="form-label">Evaluator</label>
-            <input type="text" id="edit_evaluator_key" class="form-control" readonly>
+            <label for="edit_evaluator_key_display" class="form-label">Evaluator</label>
+            <input type="text" id="edit_evaluator_key_display" class="form-control" readonly>
           </div>
 
           <!-- Enabled -->
           <div class="mb-3 form-check">
-            <input type="checkbox" id="edit_enabled" class="form-check-input">
+            <input type="checkbox" id="edit_enabled" name="evaluator_config[enabled]" class="form-check-input">
             <label for="edit_enabled" class="form-check-label">Enabled (run this evaluator automatically on tracked calls)</label>
           </div>
 
-          <!-- Config (JSON) -->
-          <div class="mb-3">
-            <label for="edit_config" class="form-label">Configuration (JSON)</label>
-            <textarea id="edit_config" rows="8" class="form-control font-monospace"></textarea>
-            <div class="form-text">Evaluator-specific configuration as JSON.</div>
-          </div>
+          <!-- Dynamic Configuration Form (Turbo Frame) -->
+          <turbo-frame id="edit_evaluator_config_container">
+            <div class="text-center py-4 text-muted">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading configuration form...</p>
+            </div>
+          </turbo-frame>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -96,62 +103,3 @@
   </div>
   </div>
 </div>
-
-<script>
-// Edit evaluator form submission
-document.addEventListener('DOMContentLoaded', function() {
-  const editForm = document.getElementById('editEvaluatorForm');
-  if (editForm) {
-    editForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const configId = document.getElementById('edit_evaluator_id').value;
-      const formData = {
-        evaluator_config: {
-          enabled: document.getElementById('edit_enabled').checked,
-          config: JSON.parse(document.getElementById('edit_config').value)
-        }
-      };
-
-      fetch(`/prompt_tracker/prompts/<%= @prompt.id %>/evaluators/${configId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify(formData)
-      })
-      .then(response => {
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          alert('Failed to update evaluator configuration');
-        }
-      })
-      .catch(error => {
-        console.error('Error updating evaluator config:', error);
-        alert('Failed to update evaluator configuration');
-      });
-    });
-  }
-});
-
-// Edit evaluator config
-function editEvaluatorConfig(configId) {
-  fetch(`/prompt_tracker/prompts/<%= @prompt.id %>/evaluators/${configId}.json`)
-    .then(response => response.json())
-    .then(config => {
-      document.getElementById('edit_evaluator_id').value = configId;
-      document.getElementById('edit_evaluator_key').value = config.evaluator_key;
-      document.getElementById('edit_enabled').checked = config.enabled;
-      document.getElementById('edit_config').value = JSON.stringify(config.config, null, 2);
-
-      const modal = new bootstrap.Modal(document.getElementById('editEvaluatorModal'));
-      modal.show();
-    })
-    .catch(error => {
-      console.error('Error fetching evaluator config:', error);
-      alert('Failed to load evaluator configuration');
-    });
-}
-</script>

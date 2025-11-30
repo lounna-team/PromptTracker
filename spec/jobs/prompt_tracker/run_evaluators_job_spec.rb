@@ -40,7 +40,7 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
       test_run.reload
       expect(test_run.status).to eq("passed")
       expect(test_run.passed).to be true
-      expect(test_run.evaluator_results).to be_present
+      expect(test_run.evaluations).to be_present
     end
 
     it "sets evaluator counts" do
@@ -50,6 +50,18 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
       expect(test_run.total_evaluators).to eq(1)
       expect(test_run.passed_evaluators).to eq(1)
       expect(test_run.failed_evaluators).to eq(0)
+    end
+
+    it "creates Evaluation records" do
+      expect {
+        described_class.new.perform(test_run.id)
+      }.to change { PromptTracker::Evaluation.count }.by(1)
+
+      test_run.reload
+      evaluation = test_run.evaluations.first
+      expect(evaluation.evaluator_id).to eq("keyword_evaluator_v1")
+      expect(evaluation.evaluation_context).to eq("test_run")
+      expect(evaluation.passed).to be true
     end
 
     context "when evaluators fail" do
@@ -146,9 +158,10 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
                template_variables: { name: "John" },
                evaluator_configs: [
                  {
-                   evaluator_key: "gpt4_judge",
+                   evaluator_key: "llm_judge",
                    threshold: 7,
                    config: {
+                     judge_model: "gpt-4",
                      criteria: [ "helpfulness", "clarity" ],
                      score_max: 10
                    }
@@ -181,13 +194,20 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
         described_class.new.perform(test_run.id)
 
         test_run.reload
-        # evaluator_results are stored as JSON, so keys are strings
-        expect(test_run.evaluator_results.first["evaluator_key"]).to eq("gpt4_judge")
-        expect(test_run.evaluator_results.first["score"]).to be_present
-        expect(test_run.evaluator_results.first["feedback"]).to be_present
+        evaluation = test_run.evaluations.first
+        expect(evaluation.evaluator_id).to eq("llm_judge:gpt-4")
+        expect(evaluation.score).to be_present
+        expect(evaluation.feedback).to be_present
       end
 
       context "with real LLM enabled" do
+        around do |example|
+          original_env = ENV["PROMPT_TRACKER_USE_REAL_LLM"]
+          ENV["PROMPT_TRACKER_USE_REAL_LLM"] = "true"
+          example.run
+          ENV["PROMPT_TRACKER_USE_REAL_LLM"] = original_env
+        end
+
         it "calls RubyLLM.chat with the judge model" do
           described_class.new.perform(test_run.id)
 

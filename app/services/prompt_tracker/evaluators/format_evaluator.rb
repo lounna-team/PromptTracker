@@ -35,6 +35,16 @@ module PromptTracker
         strict: false            # Strict mode: no extra keys allowed in JSON
       }.freeze
 
+      # Metadata for registry auto-discovery
+      def self.metadata
+        {
+          name: "Format Validator",
+          description: "Validates response format (JSON, Markdown, etc.)",
+          icon: "file-code",
+          default_config: DEFAULT_CONFIG
+        }
+      end
+
       def initialize(llm_response, config = {})
         super(llm_response, DEFAULT_CONFIG.merge(config))
         validate_config!
@@ -64,10 +74,6 @@ module PromptTracker
         else
           "Unknown format: #{config[:format]}"
         end
-      end
-
-      def evaluator_id
-        "format_evaluator_v1"
       end
 
       def metadata
@@ -312,6 +318,13 @@ module PromptTracker
 
       def plain_text_feedback
         response_text.length > 0 ? "Valid plain text" : "Empty response"
+      end
+
+      public
+
+      # Pass if format is valid
+      def passed?
+        format_valid?
       end
     end
   end

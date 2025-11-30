@@ -44,6 +44,7 @@ module PromptTracker
     belongs_to :prompt_test, touch: true
     belongs_to :prompt_version
     belongs_to :llm_response, optional: true
+    has_many :evaluations, class_name: "PromptTracker::Evaluation", foreign_key: :prompt_test_run_id, dependent: :destroy
 
     # Validations
     validates :status, presence: true
@@ -90,18 +91,18 @@ module PromptTracker
       (passed_evaluators.to_f / total_evaluators * 100).round(2)
     end
 
-    # Get failed evaluator details
+    # Get failed evaluations
     #
-    # @return [Array<Hash>] array of failed evaluator results
-    def failed_evaluator_details
-      (evaluator_results || []).select { |r| !r['passed'] }
+    # @return [ActiveRecord::Relation] evaluations that failed
+    def failed_evaluations
+      evaluations.where(passed: false)
     end
 
-    # Get passed evaluator details
+    # Get passed evaluations
     #
-    # @return [Array<Hash>] array of passed evaluator results
-    def passed_evaluator_details
-      (evaluator_results || []).select { |r| r['passed'] }
+    # @return [ActiveRecord::Relation] evaluations that passed
+    def passed_evaluations
+      evaluations.where(passed: true)
     end
 
     # Check if all evaluators passed
@@ -111,20 +112,6 @@ module PromptTracker
       failed_evaluators.zero? && total_evaluators.positive?
     end
 
-    # Calculate overall score from evaluator results
-    #
-    # @return [Float, nil] average score from all evaluators, or nil if no evaluators
-    def overall_score
-      return nil if evaluator_results.blank? || evaluator_results.empty?
-
-      # Extract scores from evaluator results
-      scores = evaluator_results.map { |result| result["score"].to_i || result[:score].to_i }.compact
-      return nil if scores.empty?
-
-      # Calculate average
-      scores.sum.to_f / scores.length
-    end
-
     private
 
   def broadcast_creation
@@ -132,6 +119,14 @@ module PromptTracker
     test = prompt_test.reload
     version = prompt_version
     prompt = version.prompt
+
+    # If this is the first run, remove the placeholder row
+    if test.prompt_test_runs.count == 1
+      broadcast_remove(
+        stream: "prompt_test_#{prompt_test_id}",
+        target: "no_runs_placeholder"
+      )
+    end
 
     # Update the recent runs table on the PromptTest#show page
     broadcast_prepend(
@@ -230,6 +225,14 @@ module PromptTracker
       stream,
       target: target,
       html: html
+    )
+  end
+
+  # Helper method to broadcast remove action
+  def broadcast_remove(stream:, target:)
+    Turbo::StreamsChannel.broadcast_remove_to(
+      stream,
+      target: target
     )
   end
   end

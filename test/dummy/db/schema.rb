@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_26_124329) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_30_101219) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -48,7 +48,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_26_124329) do
     t.decimal "score", precision: 10, scale: 2, null: false
     t.decimal "score_min", precision: 10, scale: 2, default: "0.0"
     t.decimal "score_max", precision: 10, scale: 2, default: "5.0"
-    t.jsonb "criteria_scores", default: {}
     t.string "evaluator_type", null: false
     t.string "evaluator_id"
     t.text "feedback"
@@ -56,27 +55,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_26_124329) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "evaluation_context", default: "tracked_call"
+    t.boolean "passed"
+    t.bigint "prompt_test_run_id"
+    t.bigint "evaluator_config_id"
     t.index ["evaluation_context"], name: "index_prompt_tracker_evaluations_on_evaluation_context"
+    t.index ["evaluator_config_id"], name: "index_prompt_tracker_evaluations_on_evaluator_config_id"
     t.index ["evaluator_type", "created_at"], name: "index_evaluations_on_type_and_created_at"
     t.index ["evaluator_type"], name: "index_prompt_tracker_evaluations_on_evaluator_type"
     t.index ["llm_response_id"], name: "index_prompt_tracker_evaluations_on_llm_response_id"
+    t.index ["passed"], name: "index_prompt_tracker_evaluations_on_passed"
+    t.index ["prompt_test_run_id"], name: "index_prompt_tracker_evaluations_on_prompt_test_run_id"
     t.index ["score"], name: "index_evaluations_on_score"
   end
 
   create_table "prompt_tracker_evaluator_configs", force: :cascade do |t|
-    t.string "evaluator_key", null: false
+    t.string "evaluator_type", null: false
     t.boolean "enabled", default: true, null: false
     t.jsonb "config", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "configurable_type"
     t.bigint "configurable_id"
-    t.integer "threshold"
-    t.string "evaluation_mode", default: "scored", null: false
-    t.index ["configurable_type", "configurable_id", "evaluator_key"], name: "index_evaluator_configs_unique_per_configurable", unique: true
+    t.index ["configurable_type", "configurable_id", "evaluator_type"], name: "index_evaluator_configs_unique_per_configurable", unique: true
     t.index ["configurable_type", "configurable_id"], name: "index_evaluator_configs_on_configurable"
     t.index ["enabled"], name: "index_evaluator_configs_on_enabled"
-    t.index ["evaluation_mode"], name: "index_prompt_tracker_evaluator_configs_on_evaluation_mode"
   end
 
   create_table "prompt_tracker_llm_responses", force: :cascade do |t|
@@ -190,15 +192,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_26_124329) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "score_aggregation_strategy", default: "weighted_average"
     t.index ["archived_at"], name: "index_prompt_tracker_prompts_on_archived_at"
     t.index ["category"], name: "index_prompt_tracker_prompts_on_category"
     t.index ["name"], name: "index_prompt_tracker_prompts_on_name", unique: true
-    t.index ["score_aggregation_strategy"], name: "index_prompts_on_aggregation_strategy"
   end
 
   add_foreign_key "prompt_tracker_ab_tests", "prompt_tracker_prompts", column: "prompt_id"
   add_foreign_key "prompt_tracker_evaluations", "prompt_tracker_llm_responses", column: "llm_response_id"
+  add_foreign_key "prompt_tracker_evaluations", "prompt_tracker_prompt_test_runs", column: "prompt_test_run_id"
   add_foreign_key "prompt_tracker_llm_responses", "prompt_tracker_ab_tests", column: "ab_test_id"
   add_foreign_key "prompt_tracker_llm_responses", "prompt_tracker_prompt_versions", column: "prompt_version_id"
   add_foreign_key "prompt_tracker_prompt_test_runs", "prompt_tracker_llm_responses", column: "llm_response_id"

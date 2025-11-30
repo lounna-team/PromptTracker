@@ -63,24 +63,16 @@ PromptTracker::Engine.routes.draw do
   # ========================================
   namespace :monitoring do
     get "/", to: "dashboard#index", as: :root
+  end
 
-    # Production LLM responses (tracked calls)
-    resources :responses, controller: "llm_responses", only: [:index, :show] do
-      collection do
-        get :search
-      end
-    end
-
-    # Production evaluations (auto-eval results)
-    resources :evaluations, only: [:index, :show, :create] do
-      collection do
-        get :form_template
-      end
+  # LLM Responses (used by both monitoring and legacy routes)
+  resources :llm_responses, only: [:index, :show], path: "responses" do
+    collection do
+      get :search
     end
   end
 
-  # Legacy routes (kept for backward compatibility)
-  resources :llm_responses, only: [:index, :show], path: "responses"
+  # Evaluations (used by both monitoring and test sections)
   resources :evaluations, only: [:index, :show, :create] do
     collection do
       get :form_template

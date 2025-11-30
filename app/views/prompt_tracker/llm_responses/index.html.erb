@@ -79,13 +79,14 @@
                 <td><%= status_badge(response.status) %></td>
                 <td>
                   <% if response.evaluations.any? %>
-                    <% overall_score = response.overall_score %>
-                    <% color = overall_score >= 80 ? 'success' : (overall_score >= 60 ? 'warning' : 'danger') %>
-                    <span class="badge bg-<%= color %>">
-                      <%= overall_score.round(1) %>
+                    <% passed_count = response.evaluations.where(passed: true).count %>
+                    <% total_count = response.evaluations.count %>
+                    <% all_passed = passed_count == total_count %>
+                    <span class="badge bg-<%= all_passed ? 'success' : 'danger' %>">
+                      <%= passed_count %>/<%= total_count %>
                     </span>
                     <br>
-                    <small class="text-muted"><%= response.evaluations.count %> eval(s)</small>
+                    <small class="text-muted"><%= total_count %> eval(s)</small>
                   <% else %>
                     <span class="text-muted">—</span>
                   <% end %>

@@ -171,18 +171,17 @@ module PromptTracker
     # @param llm_response [LlmResponse] the LLM response to evaluate
     # @return [Array<Hash>] array of evaluator results
     def run_evaluators(llm_response)
-      # Get evaluator configs, ordered by priority (binary evaluators first)
-      evaluator_configs = prompt_test.evaluator_configs.enabled.order(priority: :desc, evaluation_mode: :desc)
+      # Get evaluator configs, ordered by priority
+      evaluator_configs = prompt_test.evaluator_configs.enabled.order(priority: :desc)
       results = []
 
       evaluator_configs.each do |config|
-        evaluator_key = config.evaluator_key.to_sym
-        evaluation_mode = config.evaluation_mode
-        threshold = config.threshold
+        evaluator_type = config.evaluator_type
         evaluator_config = config.config || {}
 
-        # Build and run evaluator
-        evaluator = EvaluatorRegistry.build(evaluator_key, llm_response, evaluator_config)
+        # Build evaluator from class name
+        evaluator_class = evaluator_type.constantize
+        evaluator = evaluator_class.new(llm_response, evaluator_config)
 
         # Check if this is an LLM judge evaluator that needs a block
         evaluation = if evaluator.is_a?(PromptTracker::Evaluators::LlmJudgeEvaluator)
@@ -201,20 +200,12 @@ module PromptTracker
           evaluator.evaluate
         end
 
-        # Determine if evaluator passed based on mode
-        passed = if evaluation_mode == "binary"
-          # Binary mode: check if evaluator has passed? method, otherwise use score > 0
-          evaluator.respond_to?(:passed?) ? evaluator.passed? : evaluation.score > 0
-        else
-          # Scored mode: check if score meets threshold
-          evaluation.score >= (threshold || 0)
-        end
+        # Get passed status from evaluation
+        passed = evaluation.passed
 
         results << {
-          evaluator_key: evaluator_key.to_s,
-          evaluation_mode: evaluation_mode,
+          evaluator_type: evaluator_type,
           score: evaluation.score,
-          threshold: threshold,
           passed: passed,
           feedback: evaluation.feedback
         }

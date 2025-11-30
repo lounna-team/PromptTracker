@@ -9,16 +9,21 @@ module PromptTracker
     #
     # Subclasses should implement:
     # - #evaluate_score: Calculate the numeric score
-    # - #evaluator_id: Unique identifier for this evaluator
+    # - .metadata: Class method providing evaluator metadata (optional)
     #
     # @example Creating a custom evaluator
     #   class MyEvaluator < BaseEvaluator
-    #     def evaluate_score
-    #       response_text.length > 100 ? 100 : 50
+    #     def self.metadata
+    #       {
+    #         name: "My Evaluator",
+    #         description: "Evaluates response length",
+    #         category: :custom,
+    #         icon: "gear"
+    #       }
     #     end
     #
-    #     def evaluator_id
-    #       "my_evaluator_v1"
+    #     def evaluate_score
+    #       response_text.length > 100 ? 100 : 50
     #     end
     #   end
     #
@@ -41,15 +46,18 @@ module PromptTracker
         score = evaluate_score
         feedback_text = generate_feedback
 
-        EvaluationService.create_automated(
+        Evaluation.create!(
           llm_response: llm_response,
-          evaluator_id: evaluator_id,
+          evaluator_type: self.class.name,
+          evaluator_config_id: config[:evaluator_config_id],
           score: score,
           score_min: score_min,
           score_max: score_max,
-          criteria_scores: {},
+          passed: passed?,
           feedback: feedback_text,
-          metadata: metadata
+          metadata: metadata,
+          evaluation_context: config[:evaluation_context] || "tracked_call",
+          prompt_test_run_id: config[:prompt_test_run_id]
         )
       end
 
@@ -67,14 +75,6 @@ module PromptTracker
       # @return [String, nil] feedback text
       def generate_feedback
         nil
-      end
-
-      # Get the evaluator identifier
-      # Subclasses should override this method
-      #
-      # @return [String] unique identifier for this evaluator
-      def evaluator_id
-        raise NotImplementedError, "Subclasses must implement #evaluator_id"
       end
 
       # Get the minimum possible score
@@ -101,7 +101,26 @@ module PromptTracker
         { config: config }
       end
 
+      # Determine if the evaluation passed
+      # Default implementation: normalized score >= 0.8 (80%)
+      # Subclasses can override this method for custom pass/fail logic
+      #
+      # @return [Boolean] true if evaluation passed
+      def passed?
+        normalized_score >= 0.8
+      end
+
       protected
+
+      # Calculate normalized score (0.0 to 1.0)
+      #
+      # @return [Float] normalized score
+      def normalized_score
+        return 0.0 if score_max == score_min
+
+        score = evaluate_score
+        (score - score_min) / (score_max - score_min).to_f
+      end
 
       # Helper to get the response text
       #

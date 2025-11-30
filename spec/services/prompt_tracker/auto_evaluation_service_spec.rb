@@ -10,7 +10,7 @@ RSpec.describe PromptTracker::AutoEvaluationService do
   describe ".evaluate" do
     it "creates a new instance and calls evaluate" do
       service = instance_double(described_class)
-      allow(described_class).to receive(:new).with(llm_response).and_return(service)
+      allow(described_class).to receive(:new).with(llm_response, context: "tracked_call").and_return(service)
       allow(service).to receive(:evaluate)
 
       described_class.evaluate(llm_response)

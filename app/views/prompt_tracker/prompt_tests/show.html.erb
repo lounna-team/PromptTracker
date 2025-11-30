@@ -98,7 +98,6 @@
           <% @test.evaluator_configs.each do |config| %>
             <div class="mb-3 p-3 border rounded">
               <h6><%= config["evaluator_key"] %></h6>
-              <p class="mb-1"><strong>Threshold:</strong> <%= config["threshold"] %>%</p>
               <% if config["config"].present? %>
                 <p class="mb-0"><strong>Config:</strong></p>
                 <pre class="bg-light p-2 rounded mb-0"><code><%= JSON.pretty_generate(config["config"]) %></code></pre>
@@ -119,29 +118,31 @@
     <h5 class="mb-0">Recent Test Runs</h5>
   </div>
   <div class="card-body">
-    <% if @recent_runs.any? %>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Run Time</th>
-              <th>Version</th>
-              <th>Status</th>
-              <th class="text-end">Duration</th>
-              <th class="text-end">Cost</th>
-              <th>Evaluators</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recent_runs_tbody">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Run Time</th>
+            <th>Version</th>
+            <th>Status</th>
+            <th class="text-end">Duration</th>
+            <th class="text-end">Cost</th>
+            <th>Evaluators</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recent_runs_tbody">
+          <% if @recent_runs.any? %>
             <% @recent_runs.each do |run| %>
               <%= render "test_run_row", run: run %>
             <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted">No test runs yet</p>
-    <% end %>
+          <% else %>
+            <tr id="no_runs_placeholder">
+              <td colspan="7" class="text-center text-muted py-4">No test runs yet. Click "Run Test" to get started!</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>

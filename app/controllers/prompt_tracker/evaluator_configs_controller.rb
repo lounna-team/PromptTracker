@@ -8,24 +8,45 @@ module PromptTracker
 
     # GET /evaluator_configs/config_form
     # Returns the configuration form partial for a specific evaluator
+    # Supports both add (new config) and edit (existing config) modes
     def config_form
       evaluator_key = params[:evaluator_key]
+      config_id = params[:config_id]
+
+      # Check if evaluator exists in registry
+      unless EvaluatorRegistry.exists?(evaluator_key)
+        render json: { error: "Evaluator '#{evaluator_key}' not found" }, status: :not_found
+        return
+      end
+
+      # Fetch existing config if editing
+      existing_config = config_id ? EvaluatorConfig.find_by(id: config_id) : nil
 
       # Try to render the specific form for this evaluator
-      template_path = "prompt_tracker/evaluators/forms/#{evaluator_key}"
+      template_path = "prompt_tracker/evaluator_configs/forms/#{evaluator_key}"
 
-      # Render the partial wrapped in a turbo-frame tag
-      partial_content = render_to_string(partial: template_path)
+      # Render the partial with existing_config and namespace available
+      partial_content = render_to_string(
+        partial: template_path,
+        locals: {
+          existing_config: existing_config,
+          namespace: "evaluator_config[config]"
+        }
+      )
+
+      # Use different frame ID for edit vs add
+      frame_id = config_id ? "edit_evaluator_config_container" : "evaluator_config_container"
 
       render html: <<~HTML.html_safe, layout: false
-        <turbo-frame id="evaluator_config_container">
+        <turbo-frame id="#{frame_id}">
           #{partial_content}
         </turbo-frame>
       HTML
     rescue ActionView::MissingTemplate
       # If no custom form exists, return a message in turbo-frame
+      frame_id = config_id ? "edit_evaluator_config_container" : "evaluator_config_container"
       render html: <<~HTML.html_safe, layout: false
-        <turbo-frame id="evaluator_config_container">
+        <turbo-frame id="#{frame_id}">
           <div class="alert alert-warning">
             <i class="bi bi-info-circle"></i>
             <strong>No custom configuration form available</strong>
@@ -66,12 +87,12 @@ module PromptTracker
 
       if @evaluator_config.save
         respond_to do |format|
-          format.html { redirect_to @prompt, notice: "Evaluator configured successfully." }
+          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator configured successfully." }
           format.json { render json: @evaluator_config, status: :created }
         end
       else
         respond_to do |format|
-          format.html { redirect_to @prompt, alert: "Failed to configure evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
+          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to configure evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
           format.json { render json: { errors: @evaluator_config.errors.full_messages }, status: :unprocessable_entity }
         end
       end
@@ -86,12 +107,12 @@ module PromptTracker
 
       if @evaluator_config.update(processed_params)
         respond_to do |format|
-          format.html { redirect_to @prompt, notice: "Evaluator updated successfully." }
+          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator updated successfully." }
           format.json { render json: @evaluator_config }
         end
       else
         respond_to do |format|
-          format.html { redirect_to @prompt, alert: "Failed to update evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
+          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to update evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
           format.json { render json: { errors: @evaluator_config.errors.full_messages }, status: :unprocessable_entity }
         end
       end
@@ -103,7 +124,7 @@ module PromptTracker
       @evaluator_config.destroy
 
       respond_to do |format|
-        format.html { redirect_to @prompt, notice: "Evaluator removed successfully." }
+        format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator removed successfully." }
         format.json { head :no_content }
       end
     end
@@ -130,8 +151,6 @@ module PromptTracker
       params.require(:evaluator_config).permit(
         :evaluator_key,
         :enabled,
-        :evaluation_mode,
-        :threshold,
         config: {}
       )
     end

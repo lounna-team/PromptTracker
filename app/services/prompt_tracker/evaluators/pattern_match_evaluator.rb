@@ -28,6 +28,16 @@ module PromptTracker
         match_all: true    # true = all must match, false = any must match
       }.freeze
 
+      # Metadata for registry auto-discovery
+      def self.metadata
+        {
+          name: "Pattern Match",
+          description: "Checks if response matches regex patterns (typically used in binary mode)",
+          icon: "regex",
+          default_config: DEFAULT_CONFIG
+        }
+      end
+
       def initialize(llm_response, config = {})
         super(llm_response, DEFAULT_CONFIG.merge(config))
       end
@@ -57,10 +67,6 @@ module PromptTracker
         else
           "✗ No patterns matched. Tried: #{patterns.join(', ')}"
         end
-      end
-
-      def evaluator_id
-        "pattern_match_v1"
       end
 
       # For binary mode evaluation

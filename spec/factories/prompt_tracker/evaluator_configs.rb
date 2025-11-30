@@ -9,18 +9,15 @@
 #  configurable_type :string           not null
 #  created_at        :datetime         not null
 #  enabled           :boolean          default(TRUE), not null
-#  evaluation_mode   :string           default("scored"), not null
-#  evaluator_key     :string           not null
+#  evaluator_type    :string           not null
 #  id                :bigint           not null, primary key
-#  threshold         :integer
 #  updated_at        :datetime         not null
 #
 FactoryBot.define do
   factory :evaluator_config, class: "PromptTracker::EvaluatorConfig" do
     association :configurable, factory: :prompt_version
-    evaluator_key { "length" }
+    evaluator_type { "PromptTracker::Evaluators::LengthEvaluator" }
     enabled { true }
-    evaluation_mode { "scored" }
     config do
       {
         "min_length" => 50,
@@ -47,16 +44,8 @@ FactoryBot.define do
       enabled { false }
     end
 
-    trait :binary do
-      evaluation_mode { "binary" }
-    end
-
-    trait :with_threshold do
-      threshold { 80 }
-    end
-
     trait :keyword_evaluator do
-      evaluator_key { "keyword" }
+      evaluator_type { "PromptTracker::Evaluators::KeywordEvaluator" }
       config do
         {
           "required_keywords" => [ "hello", "help" ],
@@ -66,7 +55,7 @@ FactoryBot.define do
     end
 
     trait :format_evaluator do
-      evaluator_key { "format" }
+      evaluator_type { "PromptTracker::Evaluators::FormatEvaluator" }
       config do
         {
           "format" => "json",
@@ -79,7 +68,7 @@ FactoryBot.define do
     end
 
     trait :llm_judge do
-      evaluator_key { "llm_judge" }
+      evaluator_type { "PromptTracker::Evaluators::LlmJudgeEvaluator" }
       config do
         {
           "judge_model" => "gpt-4o",
@@ -90,8 +79,7 @@ FactoryBot.define do
     end
 
     trait :exact_match do
-      evaluator_key { "exact_match" }
-      evaluation_mode { "binary" }
+      evaluator_type { "PromptTracker::Evaluators::ExactMatchEvaluator" }
       config do
         {
           "expected_output" => "Hello, world!"

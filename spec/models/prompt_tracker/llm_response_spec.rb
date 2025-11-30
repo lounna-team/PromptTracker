@@ -56,9 +56,9 @@ RSpec.describe PromptTracker::LlmResponse, type: :model do
              is_test_run: true)
     end
 
-    describe ".production_calls" do
+    describe ".tracked_calls" do
       it "returns only non-test responses" do
-        expect(described_class.production_calls).to contain_exactly(production_response)
+        expect(described_class.tracked_calls).to contain_exactly(production_response)
       end
     end
 
