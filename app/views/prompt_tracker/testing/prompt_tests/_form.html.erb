@@ -1,8 +1,9 @@
 <% prompt ||= @prompt %>
 <% version ||= @version %>
 <% test ||= @test %>
+<% in_modal ||= false %>
 
-<%= form_with(model: [prompt, version, test], url: test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(prompt, version) : testing_prompt_prompt_version_prompt_test_path(prompt, version, test), local: true) do |f| %>
+<%= form_with(model: [prompt, version, test], url: test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(prompt, version) : testing_prompt_prompt_version_prompt_test_path(prompt, version, test), local: !in_modal, data: in_modal ? { turbo_stream: true } : {}) do |f| %>
   <% if test.errors.any? %>
     <div class="alert alert-danger">
       <h5><%= pluralize(test.errors.count, "error") %> prohibited this test from being saved:</h5>

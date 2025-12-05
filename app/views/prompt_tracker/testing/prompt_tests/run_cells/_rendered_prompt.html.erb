@@ -1,4 +1,4 @@
-<td>
+<td data-column="rendered_prompt">
   <% if run.llm_response&.rendered_prompt.present? %>
     <% prompt_id = "prompt-#{run.id}" %>
     <div class="expandable-text">
@@ -21,4 +21,3 @@
     <span class="text-muted">-</span>
   <% end %>
 </td>
-

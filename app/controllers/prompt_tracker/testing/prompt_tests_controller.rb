@@ -47,22 +47,17 @@ module PromptTracker
         )
       end
 
+      # The PromptTestRun after_create_commit callbacks will broadcast updates
+      # No need to manually update the UI here
+      flash[:notice] = "Started #{enabled_tests.count} test#{enabled_tests.count > 1 ? 's' : ''} in the background!"
+
       respond_to do |format|
         format.html do
-          # Redirect to tests index page
-          redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
-                      notice: "Started #{enabled_tests.count} test#{enabled_tests.count > 1 ? 's' : ''} in the background!"
+          redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version)
         end
         format.turbo_stream do
-          # Reload tests to get updated last_run and total_runs counts
-          @tests = @version.prompt_tests.includes(:prompt_test_runs)
-
-          # Stay on current page and update the tests table
-          render turbo_stream: turbo_stream.replace(
-            "tests-table-#{@version.id}",
-            partial: "prompt_tracker/testing/prompt_versions/tests_table_body",
-            locals: { tests: @tests, prompt: @prompt, version: @version }
-          )
+          # Stay on the same page - broadcasts will update the UI
+          redirect_to testing_prompt_prompt_version_path(@prompt, @version), status: :see_other
         end
       end
     end
@@ -85,7 +80,15 @@ module PromptTracker
       @test = @version.prompt_tests.build(test_params)
 
       if @test.save
-        redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), notice: "Test created successfully."
+        respond_to do |format|
+          format.html do
+            redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), notice: "Test created successfully."
+          end
+          format.turbo_stream do
+            # Redirect using Turbo - flash will be shown on the redirected page
+            redirect_to testing_prompt_prompt_version_path(@prompt, @version), notice: "Test created successfully.", status: :see_other
+          end
+        end
       else
         render :new, status: :unprocessable_entity
       end
@@ -98,7 +101,15 @@ module PromptTracker
     # PATCH/PUT /prompts/:prompt_id/versions/:prompt_version_id/tests/:id
     def update
       if @test.update(test_params)
-        redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), notice: "Test updated successfully."
+        respond_to do |format|
+          format.html do
+            redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), notice: "Test updated successfully."
+          end
+          format.turbo_stream do
+            # Redirect using Turbo - flash will be shown on the redirected page
+            redirect_to testing_prompt_prompt_version_path(@prompt, @version), notice: "Test updated successfully.", status: :see_other
+          end
+        end
       else
         render :edit, status: :unprocessable_entity
       end

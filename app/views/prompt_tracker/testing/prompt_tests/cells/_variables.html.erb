@@ -1,4 +1,4 @@
-<td>
+<td data-column="variables">
   <% if test.template_variables.present? && test.template_variables.any? %>
     <% variables_id = "test-variables-#{test.id}" %>
     <div class="expandable-text">
@@ -28,4 +28,3 @@
     <span class="text-muted">-</span>
   <% end %>
 </td>
-

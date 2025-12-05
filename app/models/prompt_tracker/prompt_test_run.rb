@@ -162,8 +162,24 @@ module PromptTracker
       locals: { test: test, prompt: prompt, version: version }
     )
 
-    # Update the overall status card on tests index page
+    # Update the accordion content (preserves open/closed state)
+    broadcast_replace(
+      stream: "prompt_version_#{version.id}",
+      target: "test-runs-content-#{test.id}",
+      partial: "prompt_tracker/testing/prompt_tests/test_runs_accordion_content",
+      locals: { test: test }
+    )
+
+    # Update the modals container to include new evaluation modals
     all_tests = version.prompt_tests.includes(:prompt_test_runs).order(created_at: :desc)
+    broadcast_replace(
+      stream: "prompt_version_#{version.id}",
+      target: "test-modals",
+      partial: "prompt_tracker/testing/prompt_versions/test_modals",
+      locals: { tests: all_tests, prompt: prompt, version: version }
+    )
+
+    # Update the overall status card on tests index page
     broadcast_replace(
       stream: "prompt_version_#{version.id}",
       target: "overall_status_card",
@@ -202,8 +218,24 @@ module PromptTracker
       locals: { test: test, prompt: prompt, version: version }
     )
 
-    # 4) Update the overall status card on tests index page
+    # 4) Update the accordion content (preserves open/closed state)
+    broadcast_replace(
+      stream: "prompt_version_#{version.id}",
+      target: "test-runs-content-#{test.id}",
+      partial: "prompt_tracker/testing/prompt_tests/test_runs_accordion_content",
+      locals: { test: test }
+    )
+
+    # 5) Update the modals container to include updated evaluation modals
     all_tests = version.prompt_tests.includes(:prompt_test_runs).order(created_at: :desc)
+    broadcast_replace(
+      stream: "prompt_version_#{version.id}",
+      target: "test-modals",
+      partial: "prompt_tracker/testing/prompt_versions/test_modals",
+      locals: { tests: all_tests, prompt: prompt, version: version }
+    )
+
+    # 6) Update the overall status card on tests index page
     broadcast_replace(
       stream: "prompt_version_#{version.id}",
       target: "overall_status_card",

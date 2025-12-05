@@ -1,4 +1,4 @@
-<td class="test-status">
+<td class="test-status" data-column="status">
   <% if test.last_run %>
     <% case test.last_run.status %>
     <% when 'running' %>
@@ -18,4 +18,3 @@
     <span class="badge bg-secondary">Not Run</span>
   <% end %>
 </td>
-

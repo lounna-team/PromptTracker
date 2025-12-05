@@ -1,0 +1,33 @@
+<% latest_runs = test.prompt_test_runs.includes(llm_response: :evaluations).order(created_at: :desc).limit(5) %>
+<% if latest_runs.any? %>
+  <div class="bg-light p-3" data-controller="column-visibility" data-column-visibility-storage-key-value="testRunsTableColumns_<%= test.id %>">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-clock-history"></i> Latest 5 Test Runs</h6>
+      <%= render "prompt_tracker/testing/prompt_tests/test_runs_column_visibility_dropdown", test: test %>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered bg-white mb-0">
+        <thead>
+          <tr>
+            <th style="width: 10%;" data-column="run_status">Status</th>
+            <th style="width: 12%;" data-column="run_time">Run Time</th>
+            <th style="width: 10%;" data-column="response_time">Response Time</th>
+            <th style="width: 8%;" data-column="run_cost">Cost</th>
+            <th style="width: 25%;" data-column="rendered_prompt">Rendered Prompt</th>
+            <th style="width: 25%;" data-column="run_response">Response</th>
+            <th style="width: 10%;" data-column="run_evaluations">Evaluations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% latest_runs.each do |run| %>
+            <%= render "prompt_tracker/testing/prompt_tests/test_run_row", run: run %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="bg-light p-3">
+    <p class="text-muted mb-0"><i class="bi bi-info-circle"></i> No test runs yet. Click "Run Test" to execute this test.</p>
+  </div>
+<% end %>

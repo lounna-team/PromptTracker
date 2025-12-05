@@ -1,4 +1,4 @@
-<td>
+<td data-column="run_evaluations">
   <% if run.llm_response&.evaluations&.any? %>
     <% run.llm_response.evaluations.each do |evaluation| %>
       <div class="mb-1">
@@ -17,4 +17,3 @@
     <span class="text-muted">No evaluations</span>
   <% end %>
 </td>
-

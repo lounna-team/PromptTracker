@@ -137,7 +137,7 @@ module PromptTracker
 
       unless @version
         respond_to do |format|
-          format.html { redirect_to @prompt, alert: "No active version found. Please create a version first." }
+          format.html { redirect_to testing_prompt_path(@prompt), alert: "No active version found. Please create a version first." }
           format.json { render json: { error: "No active version" }, status: :unprocessable_entity }
         end
       end
@@ -155,6 +155,7 @@ module PromptTracker
       )
     end
 
+    # this should be scoped
     # Process config params from form (handle arrays, convert types, etc.)
     def process_config_params(config_hash)
       return {} if config_hash.blank?

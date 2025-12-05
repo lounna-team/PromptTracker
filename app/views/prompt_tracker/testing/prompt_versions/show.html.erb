@@ -1,7 +1,4 @@
 <%= turbo_stream_from "prompt_version_#{@version.id}" %>
-<% @tests.each do |test| %>
-  <%= turbo_stream_from "prompt_test_#{test.id}" %>
-<% end %>
 
 <% content_for :breadcrumbs do %>
   <li class="breadcrumb-item"><%= link_to "Prompts", testing_prompts_path %></li>
@@ -21,7 +18,7 @@
       <span class="ms-3"><i class="bi bi-calendar"></i> Created <%= format_timestamp(@version.created_at) %></span>
     </p>
   </div>
-  <div class="col-auto d-flex gap-2">
+  <div class="col-auto d-flex gap-2 align-items-start">
     <% unless @version.active? %>
       <%= button_to activate_testing_prompt_prompt_version_path(@prompt, @version), method: :post, class: "btn btn-success", data: { confirm: "Activate this version? This will deprecate all other versions." } do %>
         <i class="bi bi-check-circle"></i> Activate Version
@@ -45,27 +42,7 @@
 
 <div class="row mb-4">
   <div class="col-md-3">
-    <div class="card metric-card">
-      <div class="metric-value">
-        <% if @total_tests == 0 %>
-          <span class="text-muted">No Tests</span>
-        <% elsif @tests_failing == 0 %>
-          <span class="text-success"><i class="bi bi-check-circle-fill"></i> Passing</span>
-        <% elsif @tests_passing == 0 %>
-          <span class="text-danger"><i class="bi bi-x-circle-fill"></i> Failing</span>
-        <% else %>
-          <span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Partial</span>
-        <% end %>
-      </div>
-      <div class="metric-label">Test Suite Status</div>
-      <small class="text-muted d-block mt-1">
-        <% if @total_tests > 0 %>
-          <%= @tests_passing %> passing, <%= @tests_failing %> failing
-        <% else %>
-          Create tests to validate quality
-        <% end %>
-      </small>
-    </div>
+    <%= render "prompt_tracker/testing/prompt_tests/overall_status_card", tests: @tests %>
   </div>
   <div class="col-md-3">
     <div class="card metric-card">
@@ -135,13 +112,14 @@
 </div>
 
 <!-- Tests -->
-<div class="card mb-4">
+<div class="card mb-4" data-controller="column-visibility">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Tests</h5>
-    <div>
-      <span class="badge bg-secondary me-2"><%= @tests.count %> tests</span>
+    <div class="d-flex gap-2">
+      <span class="badge bg-secondary align-self-center"><%= @tests.count %> tests</span>
       <% if @tests.any? %>
-        <%= button_to run_all_testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), method: :post, class: "btn btn-sm btn-success me-2", data: { turbo_stream: true } do %>
+        <%= render "prompt_tracker/testing/prompt_versions/column_visibility_dropdown" %>
+        <%= button_to run_all_testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), method: :post, class: "btn btn-sm btn-success", data: { turbo_stream: true } do %>
           <i class="bi bi-play-circle"></i> Run All
         <% end %>
       <% end %>
@@ -164,13 +142,7 @@
   </div>
 </div>
 
-<!-- Evaluation Modals (outside table structure) -->
-<% if @tests.any? %>
-  <% @tests.each do |test| %>
-    <%= render "prompt_tracker/testing/prompt_tests/evaluation_modals", test: test %>
-    <%= render "prompt_tracker/testing/prompt_tests/evaluator_config_modals", test: test %>
-  <% end %>
-<% end %>
+<%= render "test_modals", tests: @tests, prompt: @prompt, version: @version %>
 
 <!-- Auto-Evaluators Configuration -->
 <div class="row mb-4">
@@ -194,7 +166,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <%= render "prompt_tracker/testing/prompt_tests/form", prompt: @prompt, version: @version, test: PromptTracker::PromptTest.new(prompt_version: @version, enabled: true) %>
+        <%= render "prompt_tracker/testing/prompt_tests/form", prompt: @prompt, version: @version, test: PromptTracker::PromptTest.new(prompt_version: @version, enabled: true), in_modal: true %>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-<td>
+<td data-column="run_response">
   <% if run.llm_response&.response_text.present? %>
     <% response_id = "response-#{run.id}" %>
     <div class="expandable-text">
@@ -21,4 +21,3 @@
     <span class="text-muted">-</span>
   <% end %>
 </td>
-
