@@ -1,0 +1,22 @@
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th style="width: 20%;">Test Name</th>
+        <th style="width: 15%;">Template</th>
+        <th style="width: 15%;">Variables</th>
+        <th style="width: 15%;">Evaluator Configs</th>
+        <th style="width: 8%;">Last Status</th>
+        <th style="width: 10%;">Last Run</th>
+        <th style="width: 8%;" class="text-end">Total Runs</th>
+        <th style="width: 9%;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tests-table-<%= version.id %>">
+      <% tests.each do |test| %>
+        <%= render "prompt_tracker/testing/prompt_tests/test_row", test: test, prompt: prompt, version: version %>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+

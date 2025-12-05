@@ -184,7 +184,7 @@
   <% end %>
 
   <!-- Flash messages -->
-  <div class="container-fluid mt-3">
+  <div class="container-fluid mt-3" id="flash-messages">
     <% flash.each do |type, message| %>
       <div class="alert alert-<%= type == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show" role="alert">
         <%= message %>

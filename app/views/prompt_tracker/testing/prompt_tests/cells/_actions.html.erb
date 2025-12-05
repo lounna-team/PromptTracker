@@ -1,0 +1,6 @@
+<td>
+  <%= link_to "View", testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "btn btn-sm btn-outline-primary me-1" %>
+  <%= link_to "Edit", edit_testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "btn btn-sm btn-outline-secondary me-1" %>
+  <%= button_to "Run", run_testing_prompt_prompt_version_prompt_test_path(prompt, version, test), method: :post, class: "btn btn-sm btn-outline-success" %>
+</td>
+

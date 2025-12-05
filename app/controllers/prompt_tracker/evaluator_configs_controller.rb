@@ -87,12 +87,12 @@ module PromptTracker
 
       if @evaluator_config.save
         respond_to do |format|
-          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator configured successfully." }
+          format.html { redirect_to testing_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator configured successfully." }
           format.json { render json: @evaluator_config, status: :created }
         end
       else
         respond_to do |format|
-          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to configure evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
+          format.html { redirect_to testing_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to configure evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
           format.json { render json: { errors: @evaluator_config.errors.full_messages }, status: :unprocessable_entity }
         end
       end
@@ -107,12 +107,12 @@ module PromptTracker
 
       if @evaluator_config.update(processed_params)
         respond_to do |format|
-          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator updated successfully." }
+          format.html { redirect_to testing_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator updated successfully." }
           format.json { render json: @evaluator_config }
         end
       else
         respond_to do |format|
-          format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to update evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
+          format.html { redirect_to testing_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), alert: "Failed to update evaluator: #{@evaluator_config.errors.full_messages.join(', ')}" }
           format.json { render json: { errors: @evaluator_config.errors.full_messages }, status: :unprocessable_entity }
         end
       end
@@ -124,7 +124,7 @@ module PromptTracker
       @evaluator_config.destroy
 
       respond_to do |format|
-        format.html { redirect_to prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator removed successfully." }
+        format.html { redirect_to testing_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators"), notice: "Evaluator removed successfully." }
         format.json { head :no_content }
       end
     end
@@ -163,16 +163,16 @@ module PromptTracker
 
       config_hash.each do |key, value|
         case key
-        when "required_keywords", "forbidden_keywords"
+        when "required_keywords", "forbidden_keywords", "patterns"
           # Convert textarea input (one per line) to array
           processed[key] = value.is_a?(String) ? value.split("\n").map(&:strip).reject(&:blank?) : value
         when "criteria"
           # Criteria comes as array from checkboxes
           processed[key] = value.is_a?(Array) ? value.reject(&:blank?) : []
-        when "case_sensitive", "strict"
+        when "case_sensitive", "strict", "match_all"
           # Convert checkbox values to boolean
-          processed[key] = value == "true" || value == true
-        when "min_length", "max_length", "ideal_min", "ideal_max", "score_min", "score_max"
+          processed[key] = value == "true" || value == true || value == "1"
+        when "min_length", "max_length", "ideal_min", "ideal_max", "score_min", "score_max", "threshold_score"
           # Convert to integer
           processed[key] = value.to_i
         when "schema"

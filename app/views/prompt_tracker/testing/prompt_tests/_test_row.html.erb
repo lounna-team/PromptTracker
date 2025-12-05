@@ -1,46 +1,41 @@
 <tr id="test_row_<%= test.id %>">
-  <td>
-    <strong>
-      <%= link_to test.name, testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "text-decoration-none" %>
-    </strong>
-    <% unless test.enabled? %>
-      <span class="badge bg-secondary ms-2">Disabled</span>
-    <% end %>
-    <% if test.description.present? %>
-      <br><small class="text-muted"><%= truncate(test.description, length: 80) %></small>
-    <% end %>
-  </td>
-  <td class="test-status">
-    <% if test.last_run %>
-      <% case test.last_run.status %>
-      <% when 'running' %>
-        <span class="badge bg-warning">
-          <span class="spinner-border spinner-border-sm me-1"></span>Running
-        </span>
-      <% when 'passed' %>
-        <span class="badge bg-success">Passed</span>
-      <% when 'failed' %>
-        <span class="badge bg-danger">Failed</span>
-      <% when 'error' %>
-        <span class="badge bg-danger">Error</span>
-      <% else %>
-        <span class="badge bg-secondary">Unknown</span>
-      <% end %>
-    <% else %>
-      <span class="badge bg-secondary">Not Run</span>
-    <% end %>
-  </td>
-  <td>
-    <% if test.last_run %>
-      <%= time_ago_in_words(test.last_run.created_at) %> ago
-    <% else %>
-      <span class="text-muted">Never</span>
-    <% end %>
-  </td>
-  <td class="text-end"><%= test.prompt_test_runs.count %></td>
-  <td>
-    <%= link_to "View", testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "btn btn-sm btn-outline-primary me-1" %>
-    <%= link_to "Edit", edit_testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "btn btn-sm btn-outline-secondary me-1" %>
-    <%= button_to "Run", run_testing_prompt_prompt_version_prompt_test_path(prompt, version, test), method: :post, class: "btn btn-sm btn-outline-success" %>
-  </td>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/name", test: test, prompt: prompt, version: version %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/template", test: test, version: version %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/variables", test: test %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/evaluator_configs", test: test %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/status", test: test %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/last_run", test: test %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/total_runs", test: test %>
+  <%= render "prompt_tracker/testing/prompt_tests/cells/actions", test: test, prompt: prompt, version: version %>
 </tr>
+
+<% latest_runs = test.prompt_test_runs.includes(llm_response: :evaluations).order(created_at: :desc).limit(5) %>
+<% if latest_runs.any? %>
+  <tr class="collapse" id="test-runs-<%= test.id %>">
+    <td colspan="8" class="p-0">
+      <div class="bg-light p-3">
+        <h6 class="mb-3"><i class="bi bi-clock-history"></i> Latest 5 Test Runs</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered bg-white mb-0">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Status</th>
+                <th style="width: 12%;">Run Time</th>
+                <th style="width: 10%;">Response Time</th>
+                <th style="width: 8%;">Cost</th>
+                <th style="width: 25%;">Rendered Prompt</th>
+                <th style="width: 25%;">Response</th>
+                <th style="width: 10%;">Evaluations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% latest_runs.each do |run| %>
+                <%= render "prompt_tracker/testing/prompt_tests/test_run_row", run: run %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </td>
+  </tr>
+<% end %>

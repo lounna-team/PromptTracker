@@ -7,8 +7,12 @@
   </div>
   <div class="card-body">
     <% config = evaluation.metadata['config'] || {} %>
-    <% patterns = config['patterns'] || [] %>
-    <% match_all = config['match_all'] %>
+    <%
+      # Handle both string (newline-separated) and array formats
+      raw_patterns = config['patterns'] || config[:patterns] || []
+      patterns = raw_patterns.is_a?(String) ? raw_patterns.split("\n").map(&:strip).reject(&:blank?) : Array(raw_patterns)
+    %>
+    <% match_all = config['match_all'] || config[:match_all] %>
 
     <div class="alert alert-secondary mb-3">
       <strong>Match Mode:</strong>

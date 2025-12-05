@@ -1,9 +1,13 @@
-<%= form_with(model: [@prompt, @version, @test], url: @test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(@prompt, @version) : testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), local: true) do |f| %>
-  <% if @test.errors.any? %>
+<% prompt ||= @prompt %>
+<% version ||= @version %>
+<% test ||= @test %>
+
+<%= form_with(model: [prompt, version, test], url: test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(prompt, version) : testing_prompt_prompt_version_prompt_test_path(prompt, version, test), local: true) do |f| %>
+  <% if test.errors.any? %>
     <div class="alert alert-danger">
-      <h5><%= pluralize(@test.errors.count, "error") %> prohibited this test from being saved:</h5>
+      <h5><%= pluralize(test.errors.count, "error") %> prohibited this test from being saved:</h5>
       <ul class="mb-0">
-        <% @test.errors.full_messages.each do |message| %>
+        <% test.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
@@ -48,7 +52,7 @@
         <div class="card-body">
           <p class="text-muted small">LLM model settings for this test</p>
 
-          <% current_config = @test.model_config || { "provider" => "openai", "model" => "gpt-4", "temperature" => 0.7 } %>
+          <% current_config = test.model_config || { "provider" => "openai", "model" => "gpt-4", "temperature" => 0.7 } %>
           <% providers = available_providers %>
           <% default_provider = providers.include?(current_config["provider"]) ? current_config["provider"] : providers.first %>
 
@@ -148,11 +152,11 @@
     <div class="card-body">
       <p class="text-muted small">Provide test values for the variables defined in this prompt version</p>
 
-      <% if @version.variables_schema.present? %>
-        <% current_vars = @test.template_variables || {} %>
+      <% if version.variables_schema.present? %>
+        <% current_vars = test.template_variables || {} %>
 
         <div class="row">
-          <% @version.variables_schema.each do |var| %>
+          <% version.variables_schema.each do |var| %>
             <% var_name = var["name"] || var[:name] %>
             <% var_type = var["type"] || var[:type] || "string" %>
             <% is_required = var["required"] || var[:required] %>
@@ -253,7 +257,7 @@
       <p class="text-muted small">Select evaluators to run for this test</p>
 
       <% available_evaluators = PromptTracker::EvaluatorRegistry.all %>
-      <% current_evaluators = @test.evaluator_configs.to_a %>
+      <% current_evaluators = test.evaluator_configs.to_a %>
 
       <div id="evaluators-list" class="row">
         <% available_evaluators.each do |key, meta| %>
@@ -315,7 +319,7 @@
   </div>
 
   <div class="d-flex justify-content-between">
-    <%= link_to "Cancel", @test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(@prompt, @version) : testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), class: "btn btn-outline-secondary" %>
-    <%= f.submit @test.new_record? ? "Create Test" : "Update Test", class: "btn btn-primary" %>
+    <%= link_to "Cancel", test.new_record? ? testing_prompt_prompt_version_prompt_tests_path(prompt, version) : testing_prompt_prompt_version_prompt_test_path(prompt, version, test), class: "btn btn-outline-secondary" %>
+    <%= f.submit test.new_record? ? "Create Test" : "Update Test", class: "btn btn-primary" %>
   </div>
 <% end %>

@@ -91,23 +91,179 @@
   </div>
 </div>
 
-<!-- Response Preview -->
+<!-- Prompt Section -->
 <div class="card mb-4">
   <div class="card-header">
-    <h5 class="mb-0"><i class="bi bi-file-text"></i> Response Preview</h5>
+    <h5 class="mb-0">
+      <i class="bi bi-chat-left-text"></i> Prompt
+      <span class="badge bg-secondary ms-2">v<%= @version.version_number %></span>
+    </h5>
   </div>
   <div class="card-body">
-    <% if @response.response_text.present? %>
-      <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
-        <%= simple_format(truncate(@response.response_text, length: 1000)) %>
+    <!-- Prompt Metadata -->
+    <div class="mb-3">
+      <div class="d-flex flex-wrap gap-3 mb-2">
+        <div>
+          <strong>Prompt:</strong>
+          <span class="text-dark"><%= @prompt.name %></span>
+        </div>
+        <div>
+          <strong>Version:</strong>
+          <span class="text-dark">v<%= @version.version_number %></span>
+        </div>
+        <% if @version.status.present? %>
+          <div>
+            <strong>Status:</strong>
+            <span class="badge <%= @version.status == 'active' ? 'bg-success' : (@version.status == 'deprecated' ? 'bg-warning' : 'bg-secondary') %>">
+              <%= @version.status.titleize %>
+            </span>
+          </div>
+        <% end %>
+        <% if @prompt.category.present? %>
+          <div>
+            <strong>Category:</strong>
+            <span class="badge bg-info"><%= @prompt.category %></span>
+          </div>
+        <% end %>
       </div>
-      <% if @response.response_text.length > 1000 %>
-        <div class="mt-2">
-          <%= link_to "View full response", llm_response_path(@response), class: "btn btn-sm btn-outline-primary" %>
+      <% if @prompt.description.present? %>
+        <div class="text-muted small">
+          <%= @prompt.description %>
         </div>
       <% end %>
-    <% else %>
-      <p class="text-muted mb-0">No response text available</p>
+    </div>
+
+    <!-- Prompt Template -->
+    <div>
+      <strong class="d-block mb-2">Template:</strong>
+      <div class="bg-light p-3 rounded" style="font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">
+<%= @version.template %></div>
+    </div>
+
+    <!-- Variables Used (if any) -->
+    <% if @response.variables_used.present? && @response.variables_used.any? %>
+      <div class="mt-3">
+        <strong class="d-block mb-2">Variables Used:</strong>
+        <div class="bg-light p-3 rounded">
+          <% @response.variables_used.each do |key, value| %>
+            <div class="mb-2">
+              <code class="text-primary">{{<%= key %>}}</code>
+              <span class="text-muted">=</span>
+              <code class="text-success">"<%= value %>"</code>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Rendered Prompt (Final prompt sent to LLM) -->
+    <% if @response.rendered_prompt.present? %>
+      <div class="mt-3">
+        <strong class="d-block mb-2">Rendered Prompt (sent to LLM):</strong>
+        <div class="p-3 rounded" style="background-color: #f8f9fa; border-left: 4px solid #3B82F6; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+<%= @response.rendered_prompt %></div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- LLM Response Section -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="bi bi-cpu"></i> LLM Response
+      <span class="badge <%= @response.status == 'success' ? 'bg-success' : (@response.status == 'error' ? 'bg-danger' : 'bg-warning') %> ms-2">
+        <%= @response.status.titleize %>
+      </span>
+    </h5>
+  </div>
+  <div class="card-body">
+    <!-- Response Metadata -->
+    <div class="mb-3">
+      <div class="d-flex flex-wrap gap-3 small text-muted">
+        <!-- Model -->
+        <div>
+          <i class="bi bi-gear"></i>
+          <strong>Model:</strong>
+          <code><%= @response.provider %>/<%= @response.model %></code>
+        </div>
+
+        <!-- Date -->
+        <div>
+          <i class="bi bi-calendar"></i>
+          <strong>Date:</strong>
+          <%= @response.created_at.strftime("%Y-%m-%d %H:%M:%S") %>
+          <span class="text-muted">(<%= time_ago_in_words(@response.created_at) %> ago)</span>
+        </div>
+
+        <!-- Environment -->
+        <% if @response.environment.present? %>
+          <div>
+            <i class="bi bi-server"></i>
+            <strong>Environment:</strong>
+            <span class="badge bg-secondary"><%= @response.environment %></span>
+          </div>
+        <% end %>
+
+        <!-- Response Time -->
+        <% if @response.response_time_ms.present? %>
+          <div>
+            <i class="bi bi-stopwatch"></i>
+            <strong>Response Time:</strong>
+            <%= @response.response_time_ms %>ms
+          </div>
+        <% end %>
+
+        <!-- Tokens -->
+        <% if @response.tokens_total.present? %>
+          <div>
+            <i class="bi bi-hash"></i>
+            <strong>Tokens:</strong>
+            <%= @response.tokens_total %>
+            <% if @response.tokens_prompt.present? && @response.tokens_completion.present? %>
+              <span class="text-muted">(<%= @response.tokens_prompt %> + <%= @response.tokens_completion %>)</span>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Cost -->
+        <% if @response.cost_usd.present? %>
+          <div>
+            <i class="bi bi-currency-dollar"></i>
+            <strong>Cost:</strong>
+            $<%= number_with_precision(@response.cost_usd, precision: 6) %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Response Text -->
+    <div>
+      <strong class="d-block mb-2">Response:</strong>
+      <% if @response.response_text.present? %>
+        <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;">
+<%= @response.response_text %></div>
+        <% if @response.response_text.length > 1000 %>
+          <div class="mt-2">
+            <%= link_to "View full response", llm_response_path(@response), class: "btn btn-sm btn-outline-primary" %>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="text-muted mb-0">No response text available</p>
+      <% end %>
+    </div>
+
+    <!-- Error Information (if failed) -->
+    <% if @response.status == 'error' && @response.error_message.present? %>
+      <div class="mt-3">
+        <div class="alert alert-danger mb-0">
+          <strong><i class="bi bi-exclamation-triangle"></i> Error:</strong>
+          <% if @response.error_type.present? %>
+            <code><%= @response.error_type %></code> -
+          <% end %>
+          <%= @response.error_message %>
+        </div>
+      </div>
     <% end %>
   </div>
 </div>

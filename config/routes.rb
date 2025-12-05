@@ -79,10 +79,7 @@ PromptTracker::Engine.routes.draw do
   end
 
   # Evaluations (used by both monitoring and test sections)
-  resources :evaluations, only: [:index, :show, :create] do
-    collection do
-      get :form_template
-    end
+  resources :evaluations, only: [:index, :show] do
     # Human evaluations nested under evaluations
     resources :human_evaluations, only: [:create]
   end

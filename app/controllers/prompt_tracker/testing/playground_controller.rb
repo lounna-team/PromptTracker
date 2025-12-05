@@ -97,7 +97,7 @@ module PromptTracker
               success: true,
               version_id: @prompt_version.id,
               version_number: @prompt_version.version_number,
-              redirect_url: testing_prompt_path(@prompt),
+              redirect_url: testing_prompt_prompt_version_path(@prompt, @prompt_version),
               action: 'updated'
             }
           else
@@ -120,7 +120,7 @@ module PromptTracker
               success: true,
               version_id: version.id,
               version_number: version.version_number,
-              redirect_url: testing_prompt_path(@prompt),
+              redirect_url: testing_prompt_prompt_version_path(@prompt, version),
               action: 'created'
             }
           else
@@ -158,7 +158,7 @@ module PromptTracker
             prompt_id: prompt.id,
             version_id: version.id,
             version_number: version.version_number,
-            redirect_url: testing_prompt_path(prompt)
+            redirect_url: testing_prompt_prompt_version_path(prompt, version)
           }
         else
           render json: {

@@ -17,8 +17,15 @@ module PromptTracker
       enabled_tests = @version.prompt_tests.enabled
 
       if enabled_tests.empty?
-        redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
-                    alert: "No enabled tests to run."
+        respond_to do |format|
+          format.html do
+            redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
+                        alert: "No enabled tests to run."
+          end
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.append("flash-messages", partial: "prompt_tracker/shared/flash", locals: { type: "alert", message: "No enabled tests to run." })
+          end
+        end
         return
       end
 
@@ -40,9 +47,24 @@ module PromptTracker
         )
       end
 
-      # Redirect immediately - tests are running in background
-      redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
-                  notice: "Started #{enabled_tests.count} test#{enabled_tests.count > 1 ? 's' : ''} in the background!"
+      respond_to do |format|
+        format.html do
+          # Redirect to tests index page
+          redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
+                      notice: "Started #{enabled_tests.count} test#{enabled_tests.count > 1 ? 's' : ''} in the background!"
+        end
+        format.turbo_stream do
+          # Reload tests to get updated last_run and total_runs counts
+          @tests = @version.prompt_tests.includes(:prompt_test_runs)
+
+          # Stay on current page and update the tests table
+          render turbo_stream: turbo_stream.replace(
+            "tests-table-#{@version.id}",
+            partial: "prompt_tracker/testing/prompt_versions/tests_table_body",
+            locals: { tests: @tests, prompt: @prompt, version: @version }
+          )
+        end
+      end
     end
 
     # GET /prompts/:prompt_id/versions/:prompt_version_id/tests/:id

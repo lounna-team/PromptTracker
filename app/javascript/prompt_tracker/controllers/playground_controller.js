@@ -20,7 +20,7 @@ export default class extends Controller {
     "alertMessage",
     "promptNameInput",
     "charCount",
-    "previewStatus"
+    "previewStatus",
     "modelProvider",
     "modelName",
     "modelTemperature",
@@ -136,6 +136,13 @@ export default class extends Controller {
 
     if (!template.trim()) {
       this.previewContainerTarget.innerHTML = '<p class="text-muted">Enter a template to see preview...</p>'
+      this.previewErrorTarget.style.display = 'none'
+      return
+    }
+
+    // Check for incomplete Liquid/Mustache syntax
+    if (this.hasIncompleteSyntax(template)) {
+      this.previewContainerTarget.innerHTML = '<p class="text-muted"><i class="bi bi-pencil"></i> Typing...</p>'
       this.previewErrorTarget.style.display = 'none'
       return
     }
@@ -266,6 +273,16 @@ export default class extends Controller {
     return Array.from(variables).sort()
   }
 
+  hasIncompleteSyntax(template) {
+    // Check for incomplete {{ or {% tags
+    const openBraces = (template.match(/\{\{/g) || []).length
+    const closeBraces = (template.match(/\}\}/g) || []).length
+    const openTags = (template.match(/\{%/g) || []).length
+    const closeTags = (template.match(/%\}/g) || []).length
+
+    return openBraces !== closeBraces || openTags !== closeTags
+  }
+
   collectVariables() {
     const variables = {}
     const inputs = this.variablesContainerTarget.querySelectorAll('.variable-input')
@@ -313,7 +330,7 @@ export default class extends Controller {
       promptName = this.promptNameInputTarget.value.trim()
     }
 
-      model_config: this.getModelConfig(),    const notes = prompt('Add notes for this version (optional):')
+    const notes = prompt('Add notes for this version (optional):')
     if (notes === null) return // User cancelled
 
     // Disable all save buttons and show loading state
@@ -455,39 +472,39 @@ export default class extends Controller {
       }
     }
   }
-}
 
   // Get model configuration from form
   getModelConfig() {
     const config = {}
-    
+
     if (this.hasModelProviderTarget) {
       config.provider = this.modelProviderTarget.value
     }
-    
+
     if (this.hasModelNameTarget && this.modelNameTarget.value) {
       config.model = this.modelNameTarget.value
     }
-    
+
     if (this.hasModelTemperatureTarget) {
       config.temperature = parseFloat(this.modelTemperatureTarget.value)
     }
-    
+
     if (this.hasModelMaxTokensTarget && this.modelMaxTokensTarget.value) {
       config.max_tokens = parseInt(this.modelMaxTokensTarget.value)
     }
-    
+
     if (this.hasModelTopPTarget && this.modelTopPTarget.value) {
       config.top_p = parseFloat(this.modelTopPTarget.value)
     }
-    
+
     if (this.hasModelFrequencyPenaltyTarget && this.modelFrequencyPenaltyTarget.value) {
       config.frequency_penalty = parseFloat(this.modelFrequencyPenaltyTarget.value)
     }
-    
+
     if (this.hasModelPresencePenaltyTarget && this.modelPresencePenaltyTarget.value) {
       config.presence_penalty = parseFloat(this.modelPresencePenaltyTarget.value)
     }
-    
+
     return config
   }
+}

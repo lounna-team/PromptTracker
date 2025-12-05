@@ -1,3 +1,8 @@
+<%= turbo_stream_from "prompt_version_#{@version.id}" %>
+<% @tests.each do |test| %>
+  <%= turbo_stream_from "prompt_test_#{test.id}" %>
+<% end %>
+
 <% content_for :breadcrumbs do %>
   <li class="breadcrumb-item"><%= link_to "Prompts", testing_prompts_path %></li>
   <li class="breadcrumb-item"><%= link_to @prompt.name, testing_prompt_path(@prompt) %></li>
@@ -16,17 +21,14 @@
       <span class="ms-3"><i class="bi bi-calendar"></i> Created <%= format_timestamp(@version.created_at) %></span>
     </p>
   </div>
-  <div class="col-auto">
+  <div class="col-auto d-flex gap-2">
     <% unless @version.active? %>
-      <%= button_to activate_testing_prompt_prompt_version_path(@prompt, @version), method: :post, class: "btn btn-success me-2", data: { confirm: "Activate this version? This will deprecate all other versions." } do %>
+      <%= button_to activate_testing_prompt_prompt_version_path(@prompt, @version), method: :post, class: "btn btn-success", data: { confirm: "Activate this version? This will deprecate all other versions." } do %>
         <i class="bi bi-check-circle"></i> Activate Version
       <% end %>
     <% end %>
-    <%= link_to testing_prompt_prompt_version_playground_path(@prompt, @version), class: "btn btn-primary me-2" do %>
+    <%= link_to testing_prompt_prompt_version_playground_path(@prompt, @version), class: "btn btn-primary" do %>
       <i class="bi bi-pencil-square"></i> Edit in Playground
-    <% end %>
-    <%= link_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), class: "btn btn-outline-primary me-2" do %>
-      <i class="bi bi-check2-square"></i> Tests
     <% end %>
     <%= link_to compare_testing_prompt_prompt_version_path(@prompt, @version), class: "btn btn-outline-info" do %>
       <i class="bi bi-arrow-left-right"></i> Compare Versions
@@ -100,26 +102,36 @@
   </div>
 </div>
 
-<!-- Model Config -->
-<% if @version.model_config.present? && @version.model_config.any? %>
-  <div class="card mb-4">
-    <div class="card-header">
-      <h6 class="mb-0">Model Configuration</h6>
+<!-- Template & Model Config -->
+<div class="row mb-4">
+  <div class="col-md-<%= @version.model_config.present? && @version.model_config.any? ? '8' : '12' %>">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-file-text"></i> Template</h6>
+        <span class="badge bg-secondary"><%= @version.template.length %> chars</span>
+      </div>
+      <div class="card-body">
+        <pre class="mb-0" style="max-height: 300px; overflow-y: auto;"><code><%= @version.template %></code></pre>
+      </div>
     </div>
-    <div class="card-body">
-      <pre class="mb-0"><code><%= JSON.pretty_generate(@version.model_config) %></code></pre>
+  </div>
+  <% if @version.model_config.present? && @version.model_config.any? %>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bi bi-gear"></i> Model Config</h6>
+        </div>
+        <div class="card-body">
+          <% @version.model_config.each do |key, value| %>
+            <div class="mb-2">
+              <small class="text-muted d-block"><%= key.to_s.titleize %></small>
+              <strong><%= value %></strong>
+            </div>
+          <% end %>
+        </div>
+      </div>
     </div>
-  </div>
-<% end %>
-
-<!-- Template -->
-<div class="card mb-4">
-  <div class="card-header">
-    <h6 class="mb-0">Template</h6>
-  </div>
-  <div class="card-body">
-    <pre><code><%= @version.template %></code></pre>
-  </div>
+  <% end %>
 </div>
 
 <!-- Tests -->
@@ -129,35 +141,18 @@
     <div>
       <span class="badge bg-secondary me-2"><%= @tests.count %> tests</span>
       <% if @tests.any? %>
-        <%= button_to run_all_testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), method: :post, class: "btn btn-sm btn-success me-2" do %>
+        <%= button_to run_all_testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), method: :post, class: "btn btn-sm btn-success me-2", data: { turbo_stream: true } do %>
           <i class="bi bi-play-circle"></i> Run All
         <% end %>
       <% end %>
-      <%= link_to new_testing_prompt_prompt_version_prompt_test_path(@prompt, @version), class: "btn btn-sm btn-primary" do %>
+      <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#new-test-modal">
         <i class="bi bi-plus-circle"></i> New Test
-      <% end %>
+      </button>
     </div>
   </div>
   <div class="card-body">
     <% if @tests.any? %>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Test Name</th>
-              <th>Last Status</th>
-              <th>Last Run</th>
-              <th class="text-end">Total Runs</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @tests.each do |test| %>
-              <%= render "prompt_tracker/testing/prompt_tests/test_row", test: test, prompt: @prompt, version: @version %>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+      <%= render "prompt_tracker/testing/prompt_versions/tests_table", tests: @tests, prompt: @prompt, version: @version %>
     <% else %>
       <div class="text-center py-5">
         <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #ccc;"></i>
@@ -169,6 +164,14 @@
   </div>
 </div>
 
+<!-- Evaluation Modals (outside table structure) -->
+<% if @tests.any? %>
+  <% @tests.each do |test| %>
+    <%= render "prompt_tracker/testing/prompt_tests/evaluation_modals", test: test %>
+    <%= render "prompt_tracker/testing/prompt_tests/evaluator_config_modals", test: test %>
+  <% end %>
+<% end %>
+
 <!-- Auto-Evaluators Configuration -->
 <div class="row mb-4">
   <div class="col-12">
@@ -178,3 +181,21 @@
 
 <!-- Evaluator Modals (outside card to avoid z-index issues) -->
 <%= render "evaluator_modals" %>
+
+<!-- New Test Modal -->
+<div class="modal fade" id="new-test-modal" tabindex="-1" aria-labelledby="new-test-modal-label" aria-hidden="true" data-controller="modal-fix" data-modal-fix-target="modal">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="new-test-modal-label">
+          <i class="bi bi-plus-circle"></i> Create New Test
+          <span class="badge bg-primary">v<%= @version.version_number %></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <%= render "prompt_tracker/testing/prompt_tests/form", prompt: @prompt, version: @version, test: PromptTracker::PromptTest.new(prompt_version: @version, enabled: true) %>
+      </div>
+    </div>
+  </div>
+</div>

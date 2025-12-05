@@ -72,16 +72,21 @@ module PromptTracker
       provider = model_config[:provider] || "openai"
       model = model_config[:model] || "gpt-4"
 
-      # Call LLM (real or mock)
+      # Call LLM (real or mock) with timing
+      start_time = Time.current
       if use_real_llm
         llm_api_response = call_real_llm(rendered_prompt, model_config)
       else
         llm_api_response = generate_mock_llm_response(rendered_prompt, model_config)
       end
+      response_time_ms = ((Time.current - start_time) * 1000).round
 
       # Extract token usage and response text
       tokens = extract_token_usage(llm_api_response)
       response_text = extract_response_text(llm_api_response)
+
+      # Calculate cost using RubyLLM's model registry
+      cost = calculate_cost_from_response(llm_api_response)
 
       # Create LlmResponse record (marked as test run to skip auto-evaluation)
       llm_response = LlmResponse.create!(
@@ -91,19 +96,15 @@ module PromptTracker
         provider: provider,
         model: model,
         response_text: response_text,
+        response_time_ms: response_time_ms,
         tokens_prompt: tokens[:prompt],
         tokens_completion: tokens[:completion],
         tokens_total: tokens[:total],
+        cost_usd: cost,
         status: "success",
         is_test_run: true,
         response_metadata: { test_run: true }
       )
-
-      # Calculate and update cost
-      if tokens[:total] && tokens[:total] > 0
-        cost = calculate_cost(provider, model, tokens[:prompt], tokens[:completion])
-        llm_response.update!(cost_usd: cost) if cost
-      end
 
       llm_response
     end
@@ -224,28 +225,25 @@ module PromptTracker
 
     # Extract response text from LLM API response
     #
-    # @param llm_api_response [Object] the LLM API response
+    # @param llm_api_response [RubyLLM::Message, Hash] the LLM API response
     # @return [String] the response text
     def extract_response_text(llm_api_response)
-      if llm_api_response.is_a?(String)
-        llm_api_response
-      elsif llm_api_response.is_a?(RubyLLM::Message)
-        llm_api_response.content
-      elsif llm_api_response.respond_to?(:dig)
-        llm_api_response.dig("choices", 0, "message", "content") ||
-          llm_api_response.dig(:choices, 0, :message, :content) ||
-          llm_api_response.to_s
-      else
+      # Real LLM returns RubyLLM::Message
+      return llm_api_response.content if llm_api_response.respond_to?(:content)
+
+      # Mock LLM returns Hash
+      llm_api_response.dig("choices", 0, "message", "content") ||
+        llm_api_response.dig(:choices, 0, :message, :content) ||
         llm_api_response.to_s
-      end
     end
 
     # Extract token usage from LLM API response
     #
-    # @param llm_api_response [Object] the LLM API response
+    # @param llm_api_response [RubyLLM::Message, Hash] the LLM API response
     # @return [Hash] hash with :prompt, :completion, :total keys
     def extract_token_usage(llm_api_response)
-      if llm_api_response.is_a?(RubyLLM::Message)
+      # Real LLM returns RubyLLM::Message
+      if llm_api_response.respond_to?(:input_tokens)
         return {
           prompt: llm_api_response.input_tokens,
           completion: llm_api_response.output_tokens,
@@ -253,64 +251,28 @@ module PromptTracker
         }
       end
 
-      return { prompt: nil, completion: nil, total: nil } unless llm_api_response.respond_to?(:dig)
-
-      {
-        prompt: llm_api_response.dig("usage", "prompt_tokens") || llm_api_response.dig(:usage, :prompt_tokens),
-        completion: llm_api_response.dig("usage", "completion_tokens") || llm_api_response.dig(:usage, :completion_tokens),
-        total: llm_api_response.dig("usage", "total_tokens") || llm_api_response.dig(:usage, :total_tokens)
-      }
+      # Mock LLM returns Hash (no token usage)
+      { prompt: nil, completion: nil, total: nil }
     end
 
-    # Calculate cost based on provider, model, and token usage
+    # Calculate cost using RubyLLM's model registry
     #
-    # @param provider [String] the LLM provider
-    # @param model [String] the model name
-    # @param prompt_tokens [Integer] number of prompt tokens
-    # @param completion_tokens [Integer] number of completion tokens
+    # @param llm_api_response [RubyLLM::Message, Hash] the LLM API response
     # @return [Float, nil] cost in USD or nil if pricing not available
-    def calculate_cost(provider, model, prompt_tokens, completion_tokens)
-      return nil unless prompt_tokens && completion_tokens
+    def calculate_cost_from_response(llm_api_response)
+      # Mock LLM responses don't have token info
+      return nil unless llm_api_response.respond_to?(:input_tokens)
+      return nil unless llm_api_response.input_tokens && llm_api_response.output_tokens
 
-      # Pricing per 1M tokens (as of 2024)
-      pricing = case provider.to_s.downcase
-      when "openai"
-        case model.to_s.downcase
-        when /gpt-4o/
-          { prompt: 2.50, completion: 10.00 }
-        when /gpt-4-turbo/, /gpt-4-1106/, /gpt-4-0125/
-          { prompt: 10.00, completion: 30.00 }
-        when /gpt-4-32k/
-          { prompt: 60.00, completion: 120.00 }
-        when /gpt-4/
-          { prompt: 30.00, completion: 60.00 }
-        when /gpt-3.5-turbo/
-          { prompt: 0.50, completion: 1.50 }
-        else
-          nil
-        end
-      when "anthropic"
-        case model.to_s.downcase
-        when /claude-3-opus/
-          { prompt: 15.00, completion: 75.00 }
-        when /claude-3-sonnet/
-          { prompt: 3.00, completion: 15.00 }
-        when /claude-3-haiku/
-          { prompt: 0.25, completion: 1.25 }
-        else
-          nil
-        end
-      else
-        nil
-      end
-
-      return nil unless pricing
+      # Use RubyLLM's model registry to get pricing information
+      model_info = RubyLLM.models.find(llm_api_response.model_id)
+      return nil unless model_info&.input_price_per_million && model_info&.output_price_per_million
 
       # Calculate cost: (tokens / 1,000,000) * price_per_million
-      prompt_cost = (prompt_tokens / 1_000_000.0) * pricing[:prompt]
-      completion_cost = (completion_tokens / 1_000_000.0) * pricing[:completion]
+      input_cost = llm_api_response.input_tokens * model_info.input_price_per_million / 1_000_000.0
+      output_cost = llm_api_response.output_tokens * model_info.output_price_per_million / 1_000_000.0
 
-      prompt_cost + completion_cost
+      input_cost + output_cost
     end
   end
 end
