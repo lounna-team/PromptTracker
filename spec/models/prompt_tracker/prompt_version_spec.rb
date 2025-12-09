@@ -15,7 +15,7 @@ module PromptTracker
     let(:valid_attributes) do
       {
         prompt: prompt,
-        template: "Hello {{name}}, how can I help with {{issue}}?",
+        user_prompt: "Hello {{name}}, how can I help with {{issue}}?",
         version_number: 1,
         status: "active",
         variables_schema: [

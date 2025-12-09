@@ -11,7 +11,8 @@
 #  notes            :text
 #  prompt_id        :bigint           not null
 #  status           :string           default("draft"), not null
-#  template         :text             not null
+#  system_prompt    :text
+#  user_prompt      :text             not null
 #  updated_at       :datetime         not null
 #  variables_schema :jsonb
 #  version_number   :integer          not null
@@ -19,7 +20,8 @@
 FactoryBot.define do
   factory :prompt_version, class: "PromptTracker::PromptVersion" do
     association :prompt, factory: :prompt
-    template { "Hello {{name}}, how can I help you today?" }
+    user_prompt { "Hello {{name}}, how can I help you today?" }
+    system_prompt { nil }
     sequence(:version_number) { |n| n }
     status { "draft" }
     variables_schema do

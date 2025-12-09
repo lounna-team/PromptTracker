@@ -7,7 +7,9 @@ import { Modal, Collapse } from "bootstrap"
  */
 export default class extends Controller {
   static targets = [
-    "templateEditor",
+    "systemPromptEditor",
+    "userPromptEditor",
+    "templateEditor", // Keep for backward compatibility during migration
     "variablesContainer",
     "previewContainer",
     "previewError",
@@ -55,25 +57,44 @@ export default class extends Controller {
   }
 
   attachEventListeners() {
-    // Tab key in template editor (insert 2 spaces)
-    this.templateEditorTarget.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault()
-        const start = this.templateEditorTarget.selectionStart
-        const end = this.templateEditorTarget.selectionEnd
-        const value = this.templateEditorTarget.value
-        this.templateEditorTarget.value = value.substring(0, start) + '  ' + value.substring(end)
-        this.templateEditorTarget.selectionStart = this.templateEditorTarget.selectionEnd = start + 2
-        this.templateEditorTarget.dispatchEvent(new Event('input'))
-      }
-    })
+    // Tab key in user prompt editor (insert 2 spaces)
+    if (this.hasUserPromptEditorTarget) {
+      this.userPromptEditorTarget.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          const start = this.userPromptEditorTarget.selectionStart
+          const end = this.userPromptEditorTarget.selectionEnd
+          const value = this.userPromptEditorTarget.value
+          this.userPromptEditorTarget.value = value.substring(0, start) + '  ' + value.substring(end)
+          this.userPromptEditorTarget.selectionStart = this.userPromptEditorTarget.selectionEnd = start + 2
+          this.userPromptEditorTarget.dispatchEvent(new Event('input'))
+        }
+      })
+    }
+
+    // Tab key in system prompt editor (insert 2 spaces)
+    if (this.hasSystemPromptEditorTarget) {
+      this.systemPromptEditorTarget.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          const start = this.systemPromptEditorTarget.selectionStart
+          const end = this.systemPromptEditorTarget.selectionEnd
+          const value = this.systemPromptEditorTarget.value
+          this.systemPromptEditorTarget.value = value.substring(0, start) + '  ' + value.substring(end)
+          this.systemPromptEditorTarget.selectionStart = this.systemPromptEditorTarget.selectionEnd = start + 2
+          this.systemPromptEditorTarget.dispatchEvent(new Event('input'))
+        }
+      })
+    }
 
     // Example template buttons
     document.querySelectorAll('.use-example-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const template = btn.dataset.template
-        this.templateEditorTarget.value = template
-        this.templateEditorTarget.dispatchEvent(new Event('input'))
+        if (this.hasUserPromptEditorTarget) {
+          this.userPromptEditorTarget.value = template
+          this.userPromptEditorTarget.dispatchEvent(new Event('input'))
+        }
         // Close modal
         const modal = Modal.getInstance(document.getElementById('templateExamplesModal'))
         if (modal) modal.hide()
@@ -90,11 +111,23 @@ export default class extends Controller {
     this.updateCharCount()
   }
 
-  // Action: Template editor input
-  onTemplateInput() {
+  // Action: User prompt editor input
+  onUserPromptInput() {
     this.debouncedUpdatePreview()
     this.updateVariableInputs()
     this.updateCharCount()
+  }
+
+  // Action: System prompt editor input
+  onSystemPromptInput() {
+    this.debouncedUpdatePreview()
+    this.updateVariableInputs()
+    this.updateCharCount()
+  }
+
+  // Backward compatibility
+  onTemplateInput() {
+    this.onUserPromptInput()
   }
 
   // Action: Variable input
@@ -131,17 +164,18 @@ export default class extends Controller {
   }
 
   async updatePreview() {
-    const template = this.templateEditorTarget.value
+    const systemPrompt = this.hasSystemPromptEditorTarget ? this.systemPromptEditorTarget.value : ''
+    const userPrompt = this.hasUserPromptEditorTarget ? this.userPromptEditorTarget.value : ''
     const variables = this.collectVariables()
 
-    if (!template.trim()) {
-      this.previewContainerTarget.innerHTML = '<p class="text-muted">Enter a template to see preview...</p>'
+    if (!userPrompt.trim()) {
+      this.previewContainerTarget.innerHTML = '<p class="text-muted">Enter a user prompt to see preview...</p>'
       this.previewErrorTarget.style.display = 'none'
       return
     }
 
     // Check for incomplete Liquid/Mustache syntax
-    if (this.hasIncompleteSyntax(template)) {
+    if (this.hasIncompleteSyntax(userPrompt) || this.hasIncompleteSyntax(systemPrompt)) {
       this.previewContainerTarget.innerHTML = '<p class="text-muted"><i class="bi bi-pencil"></i> Typing...</p>'
       this.previewErrorTarget.style.display = 'none'
       return
@@ -159,7 +193,8 @@ export default class extends Controller {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          template: template,
+          system_prompt: systemPrompt,
+          user_prompt: userPrompt,
           variables: variables
         })
       })
@@ -184,7 +219,22 @@ export default class extends Controller {
       const data = await response.json()
 
       if (data.success) {
-        this.previewContainerTarget.innerHTML = this.escapeHtml(data.rendered)
+        // Build preview HTML with both system and user prompts
+        let previewHtml = ''
+
+        if (data.rendered_system) {
+          previewHtml += `<div class="mb-3">
+            <div class="badge bg-secondary mb-2">System Prompt</div>
+            <div class="border-start border-3 border-secondary ps-3">${this.escapeHtml(data.rendered_system)}</div>
+          </div>`
+        }
+
+        previewHtml += `<div>
+          <div class="badge bg-primary mb-2">User Prompt</div>
+          <div class="border-start border-3 border-primary ps-3">${this.escapeHtml(data.rendered_user)}</div>
+        </div>`
+
+        this.previewContainerTarget.innerHTML = previewHtml
         this.previewErrorTarget.style.display = 'none'
         this.updateEngineBadge()
         this.updateVariablesFromDetection(data.variables_detected)
@@ -200,20 +250,27 @@ export default class extends Controller {
   }
 
   updateVariableInputs() {
-    const template = this.templateEditorTarget.value
-    const variables = this.extractVariables(template)
+    const userPrompt = this.hasUserPromptEditorTarget ? this.userPromptEditorTarget.value : ''
+    const systemPrompt = this.hasSystemPromptEditorTarget ? this.systemPromptEditorTarget.value : ''
+
+    // Extract variables from both prompts
+    const userVariables = this.extractVariables(userPrompt)
+    const systemVariables = this.extractVariables(systemPrompt)
+
+    // Combine and deduplicate variables
+    const allVariables = [...new Set([...systemVariables, ...userVariables])]
 
     // Get current variable values
     const currentValues = this.collectVariables()
 
     // Rebuild variable inputs
-    if (variables.length === 0) {
-      this.variablesContainerTarget.innerHTML = '<p class="text-muted">No variables detected. Start typing in the template editor.</p>'
+    if (allVariables.length === 0) {
+      this.variablesContainerTarget.innerHTML = '<p class="text-muted">No variables detected. Start typing in the prompt editors.</p>'
       return
     }
 
     let html = ''
-    variables.forEach(varName => {
+    allVariables.forEach(varName => {
       const value = currentValues[varName] || ''
       html += `
         <div class="mb-2">
@@ -310,10 +367,11 @@ export default class extends Controller {
   }
 
   async performSave(saveAction = 'new_version') {
-    const template = this.templateEditorTarget.value
+    const userPrompt = this.hasUserPromptEditorTarget ? this.userPromptEditorTarget.value : ''
+    const systemPrompt = this.hasSystemPromptEditorTarget ? this.systemPromptEditorTarget.value : ''
 
-    if (!template.trim()) {
-      this.showAlert('Please enter a template before saving.', 'warning')
+    if (!userPrompt.trim()) {
+      this.showAlert('Please enter a user prompt before saving.', 'warning')
       return
     }
 
@@ -343,7 +401,8 @@ export default class extends Controller {
     }
 
     const requestBody = {
-      template: template,
+      user_prompt: userPrompt,
+      system_prompt: systemPrompt,
       notes: notes,
       save_action: saveAction,
       model_config: this.getModelConfig()
@@ -425,7 +484,10 @@ export default class extends Controller {
   }
 
   updateCharCount() {
-    const count = this.templateEditorTarget.value.length
+    const userPromptLength = this.hasUserPromptEditorTarget ? this.userPromptEditorTarget.value.length : 0
+    const systemPromptLength = this.hasSystemPromptEditorTarget ? this.systemPromptEditorTarget.value.length : 0
+    const count = userPromptLength + systemPromptLength
+
     this.charCountTarget.textContent = `${count} chars`
 
     // Color code based on length

@@ -19,11 +19,11 @@ module PromptTracker
         # Version-specific playground
         @prompt = @prompt_version.prompt
         @version = @prompt_version
-        @variables = extract_variables_from_template(@version.template)
+        @variables = extract_variables_from_both_prompts(@version.system_prompt, @version.user_prompt)
       elsif @prompt
         # Prompt-level playground (shortcut to active/latest version)
         @version = @prompt.active_version || @prompt.latest_version
-        @variables = extract_variables_from_template(@version&.template || "")
+        @variables = extract_variables_from_both_prompts(@version&.system_prompt || "", @version&.user_prompt || "")
       else
         # Standalone playground
         @version = nil
@@ -34,33 +34,43 @@ module PromptTracker
 
     # POST /prompts/:prompt_id/playground/preview
     # POST /playground/preview
-    # Preview a template with given variables
+    # Preview both system_prompt and user_prompt with given variables
     def preview
-      template = params[:template]
+      system_prompt = params[:system_prompt] || ""
+      user_prompt = params[:user_prompt] || params[:template] # Support both for backward compatibility during migration
       # Convert ActionController::Parameters to hash
       variables = params[:variables]&.to_unsafe_h || {}
 
-      # Handle empty template
-      if template.blank?
+      # Handle empty user_prompt
+      if user_prompt.blank?
         render json: {
           success: false,
-          errors: ["Template cannot be empty"]
+          errors: [ "User prompt cannot be empty" ]
         }, status: :unprocessable_entity
         return
       end
 
-      # Render template directly without validation
+      # Render both prompts directly without validation
       # (validation is too strict for simple Mustache templates)
       begin
-        renderer = TemplateRenderer.new(template)
-        rendered = renderer.render(variables)
-        is_liquid = renderer.liquid_template?
+        # Render system prompt if present
+        rendered_system = nil
+        if system_prompt.present?
+          system_renderer = TemplateRenderer.new(system_prompt)
+          rendered_system = system_renderer.render(variables)
+        end
+
+        # Render user prompt
+        user_renderer = TemplateRenderer.new(user_prompt)
+        rendered_user = user_renderer.render(variables)
+        is_liquid = user_renderer.liquid_template?
 
         render json: {
           success: true,
-          rendered: rendered,
+          rendered_system: rendered_system,
+          rendered_user: rendered_user,
           engine: is_liquid ? "liquid" : "mustache",
-          variables_detected: extract_variables_from_template(template)
+          variables_detected: extract_variables_from_both_prompts(system_prompt, user_prompt)
         }
       rescue Liquid::SyntaxError => e
         render json: {
@@ -80,9 +90,10 @@ module PromptTracker
     # POST /playground/save (standalone - creates new prompt)
     # POST /prompts/:prompt_id/playground/save (creates new version or updates existing)
     # POST /prompts/:prompt_id/versions/:prompt_version_id/playground/save (updates specific version or creates new)
-    # Save the template as a new draft version, update existing version, or new prompt
+    # Save the user_prompt as a new draft version, update existing version, or new prompt
     def save
-      template = params[:template]
+      user_prompt = params[:user_prompt] || params[:template] # Support both for backward compatibility during migration
+      system_prompt = params[:system_prompt]
       notes = params[:notes]
       prompt_name = params[:prompt_name]
       save_action = params[:save_action] # 'update' or 'new_version'
@@ -90,15 +101,15 @@ module PromptTracker
 
       if @prompt
         # Check if we should update existing version or create new one
-        if save_action == 'update' && @prompt_version && !@prompt_version.has_responses?
+        if save_action == "update" && @prompt_version && !@prompt_version.has_responses?
           # Update existing version (only if it has no responses)
-          if @prompt_version.update(template: template, notes: notes, model_config: model_config)
+          if @prompt_version.update(user_prompt: user_prompt, system_prompt: system_prompt, notes: notes, model_config: model_config)
             render json: {
               success: true,
               version_id: @prompt_version.id,
               version_number: @prompt_version.version_number,
               redirect_url: testing_prompt_prompt_version_path(@prompt, @prompt_version),
-              action: 'updated'
+              action: "updated"
             }
           else
             render json: {
@@ -109,7 +120,8 @@ module PromptTracker
         else
           # Create new version
           version = @prompt.prompt_versions.build(
-            template: template,
+            user_prompt: user_prompt,
+            system_prompt: system_prompt,
             status: "draft",
             notes: notes,
             model_config: model_config
@@ -121,7 +133,7 @@ module PromptTracker
               version_id: version.id,
               version_number: version.version_number,
               redirect_url: testing_prompt_prompt_version_path(@prompt, version),
-              action: 'created'
+              action: "created"
             }
           else
             render json: {
@@ -135,7 +147,7 @@ module PromptTracker
         if prompt_name.blank?
           render json: {
             success: false,
-            errors: ["Prompt name is required"]
+            errors: [ "Prompt name is required" ]
           }, status: :unprocessable_entity
           return
         end
@@ -146,7 +158,8 @@ module PromptTracker
         )
 
         version = prompt.prompt_versions.build(
-          template: template,
+          user_prompt: user_prompt,
+          system_prompt: system_prompt,
           status: "draft",
           notes: notes,
           model_config: model_config
@@ -183,6 +196,14 @@ module PromptTracker
       if params[:version_id]
         @version = @prompt.prompt_versions.find(params[:version_id])
       end
+    end
+
+    # Extract variable names from both system and user prompts
+    # Combines variables from both and returns unique sorted list
+    def extract_variables_from_both_prompts(system_prompt, user_prompt)
+      system_vars = extract_variables_from_template(system_prompt || "")
+      user_vars = extract_variables_from_template(user_prompt || "")
+      (system_vars + user_vars).uniq.sort
     end
 
     # Extract variable names from template

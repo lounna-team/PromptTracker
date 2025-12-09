@@ -63,8 +63,8 @@ module PromptTracker
     # @param use_real_llm [Boolean] whether to use real LLM API
     # @return [LlmResponse] the LLM response record
     def execute_llm_call(test, version, use_real_llm)
-      # Render the template
-      renderer = TemplateRenderer.new(version.template)
+      # Render the user_prompt
+      renderer = TemplateRenderer.new(version.user_prompt)
       rendered_prompt = renderer.render(test.template_variables)
 
       # Get model config from test

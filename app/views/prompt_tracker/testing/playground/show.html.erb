@@ -79,13 +79,13 @@
 
   <!-- Split pane layout -->
   <div class="row">
-    <!-- Left pane: Template editor -->
+    <!-- Left pane: Prompt editors -->
     <div class="col-lg-6 mb-4">
       <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">
             <i class="bi bi-code-square"></i>
-            Template
+            Prompt
           </h5>
           <div>
             <span class="badge bg-secondary me-2" id="template-engine-badge" data-playground-target="engineBadge">Auto-detect</span>
@@ -93,16 +93,39 @@
           </div>
         </div>
         <div class="card-body">
+          <!-- System Prompt (optional) -->
           <div class="mb-3">
-            <label for="template-editor" class="form-label">Prompt Template</label>
+            <label for="system-prompt-editor" class="form-label">
+              System Prompt
+              <span class="badge bg-secondary">Optional</span>
+            </label>
             <textarea
-              id="template-editor"
+              id="system-prompt-editor"
               class="form-control font-monospace"
-              rows="15"
-              placeholder="Enter your prompt template here...&#10;&#10;Examples:&#10;  Variable: Hello {{ name }}!&#10;  Filter: Hello {{ name | capitalize }}!&#10;  Conditional: {% if premium %}Premium user{% endif %}"
-              data-playground-target="templateEditor"
-              data-action="input->playground#onTemplateInput"
-            ><%= @version&.template %></textarea>
+              rows="4"
+              placeholder="Set the AI's role, behavior, and constraints...&#10;&#10;Example: You are a helpful customer support agent. Be professional, empathetic, and concise."
+              data-playground-target="systemPromptEditor"
+              data-action="input->playground#onSystemPromptInput"
+            ><%= @version&.system_prompt %></textarea>
+            <div class="form-text">
+              Defines the AI's role and behavior. This is sent to the LLM as the system message.
+            </div>
+          </div>
+
+          <!-- User Prompt Template (required) -->
+          <div class="mb-3">
+            <label for="user-prompt-editor" class="form-label">
+              User Prompt Template
+              <span class="badge bg-danger">Required</span>
+            </label>
+            <textarea
+              id="user-prompt-editor"
+              class="form-control font-monospace"
+              rows="10"
+              placeholder="Enter your user prompt template here...&#10;&#10;Examples:&#10;  Variable: Hello {{ name }}!&#10;  Filter: Hello {{ name | capitalize }}!&#10;  Conditional: {% if premium %}Premium user{% endif %}"
+              data-playground-target="userPromptEditor"
+              data-action="input->playground#onUserPromptInput"
+            ><%= @version&.user_prompt %></textarea>
             <div class="form-text">
               Use Liquid syntax: <code>{{ variable }}</code> for substitution, filters, conditionals, and loops.
             </div>

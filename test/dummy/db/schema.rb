@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_08_000002) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_09_064448) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -180,7 +180,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_08_000002) do
 
   create_table "prompt_tracker_prompt_versions", force: :cascade do |t|
     t.bigint "prompt_id", null: false
-    t.text "template", null: false
+    t.text "user_prompt", null: false
     t.integer "version_number", null: false
     t.string "status", default: "draft", null: false
     t.jsonb "variables_schema", default: []
@@ -189,6 +189,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_08_000002) do
     t.string "created_by"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "system_prompt"
     t.index ["prompt_id", "status"], name: "index_prompt_versions_on_prompt_and_status"
     t.index ["prompt_id", "version_number"], name: "index_prompt_versions_on_prompt_and_version_number", unique: true
     t.index ["prompt_id"], name: "index_prompt_tracker_prompt_versions_on_prompt_id"

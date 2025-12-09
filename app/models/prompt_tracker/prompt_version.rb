@@ -11,20 +11,26 @@
 #  notes            :text
 #  prompt_id        :bigint           not null
 #  status           :string           default("draft"), not null
-#  template         :text             not null
+#  system_prompt    :text
+#  user_prompt      :text             not null
 #  updated_at       :datetime         not null
 #  variables_schema :jsonb
 #  version_number   :integer          not null
 #
 module PromptTracker
-  # Represents a specific version of a prompt template.
+  # Represents a specific version of a prompt.
   #
   # PromptVersions are immutable once they have LLM responses. This ensures
   # historical accuracy and reproducibility of results.
   #
+  # Each version has:
+  # - system_prompt: Optional instructions that set the AI's role and behavior
+  # - user_prompt: The main prompt template with variables (required)
+  #
   # @example Creating a new version
   #   version = prompt.prompt_versions.create!(
-  #     template: "Hello {{name}}, how can I help?",
+  #     system_prompt: "You are a helpful customer support agent.",
+  #     user_prompt: "Hello {{name}}, how can I help?",
   #     version_number: 1,
   #     status: "active",
   #     variables_schema: [
@@ -32,7 +38,7 @@ module PromptTracker
   #     ]
   #   )
   #
-  # @example Rendering a template
+  # @example Rendering the user prompt
   #   rendered = version.render(name: "John")
   #   # => "Hello John, how can I help?"
   #
@@ -69,14 +75,14 @@ module PromptTracker
              dependent: :destroy
 
     # Validations
-    validates :template, presence: true
+    validates :user_prompt, presence: true
     validates :version_number, presence: true, numericality: { only_integer: true, greater_than: 0 }
     validates :status, presence: true, inclusion: { in: STATUSES }
 
     validates :version_number,
               uniqueness: { scope: :prompt_id, message: "already exists for this prompt" }
 
-    validate :template_immutable_if_responses_exist, on: :update
+    validate :user_prompt_immutable_if_responses_exist, on: :update
     validate :variables_schema_must_be_array
     validate :model_config_must_be_hash
 
@@ -104,25 +110,25 @@ module PromptTracker
 
     # Instance Methods
 
-    # Renders the template with the provided variables using Liquid template engine.
+    # Renders the user prompt with the provided variables using Liquid template engine.
     #
     # @param variables [Hash] the variables to substitute
-    # @return [String] the rendered template
+    # @return [String] the rendered user prompt
     # @raise [ArgumentError] if required variables are missing
     # @raise [Liquid::SyntaxError] if Liquid template has syntax errors
     #
-    # @example Render template
+    # @example Render user prompt
     #   version.render(name: "John", issue: "billing")
     #   # => "Hello John, how can I help with billing?"
     #
     # @example Render with Liquid filters
     #   version.render({ name: "john" })
-    #   # => "Hello JOHN!" (if template uses {{ name | upcase }})
+    #   # => "Hello JOHN!" (if user_prompt uses {{ name | upcase }})
     def render(variables = {})
       variables = variables.with_indifferent_access
       validate_required_variables!(variables)
 
-      renderer = TemplateRenderer.new(template)
+      renderer = TemplateRenderer.new(user_prompt)
       renderer.render(variables)
     end
 
@@ -217,7 +223,8 @@ module PromptTracker
         "name" => prompt.name,
         "description" => prompt.description,
         "category" => prompt.category,
-        "template" => template,
+        "system_prompt" => system_prompt,
+        "user_prompt" => user_prompt,
         "variables" => variables_schema,
         "model_config" => model_config,
         "notes" => notes
@@ -251,11 +258,11 @@ module PromptTracker
       raise ArgumentError, "Missing required variables: #{missing_vars.join(', ')}"
     end
 
-    # Prevents template changes if responses exist
-    def template_immutable_if_responses_exist
-      return unless template_changed? && has_responses?
+    # Prevents user_prompt changes if responses exist
+    def user_prompt_immutable_if_responses_exist
+      return unless user_prompt_changed? && has_responses?
 
-      errors.add(:template, "cannot be changed after responses exist")
+      errors.add(:user_prompt, "cannot be changed after responses exist")
     end
 
     # Validates that variables_schema is an array
@@ -272,19 +279,19 @@ module PromptTracker
       errors.add(:model_config, "must be a hash")
     end
 
-    # Determines if variables should be extracted from template
+    # Determines if variables should be extracted from user_prompt
     def should_extract_variables?
       # Only extract if:
-      # 1. Template has changed (or is new)
+      # 1. User prompt has changed (or is new)
       # 2. Variables schema is blank (not explicitly set)
-      template.present? && (template_changed? || new_record?) && variables_schema.blank?
+      user_prompt.present? && (user_prompt_changed? || new_record?) && variables_schema.blank?
     end
 
-    # Extracts variables from template and populates variables_schema
+    # Extracts variables from user_prompt and populates variables_schema
     def extract_variables_schema
-      return if template.blank?
+      return if user_prompt.blank?
 
-      variable_names = extract_variable_names_from_template(template)
+      variable_names = extract_variable_names_from_template(user_prompt)
       return if variable_names.empty?
 
       # Build schema with default type and required settings
@@ -297,7 +304,7 @@ module PromptTracker
       end
     end
 
-    # Extract variable names from template
+    # Extract variable names from user_prompt
     # Supports both {{variable}} and {{ variable }} syntax
     def extract_variable_names_from_template(template_string)
       return [] if template_string.blank?

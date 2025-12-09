@@ -141,20 +141,38 @@
     </div>
   </div>
 
-  <!-- Template Comparison -->
+  <!-- Prompt Comparison -->
   <div class="card mb-4">
     <div class="card-header">
-      <h5 class="mb-0">Template Comparison</h5>
+      <h5 class="mb-0">Prompt Comparison</h5>
     </div>
     <div class="card-body">
       <div class="row">
         <div class="col-md-6">
           <h6>v<%= @version.version_number %> <%= status_badge(@version.status) %></h6>
-          <pre><code><%= @version.template %></code></pre>
+          <% if @version.system_prompt.present? %>
+            <div class="mb-3">
+              <div class="badge bg-secondary mb-2">System Prompt</div>
+              <pre class="border-start border-3 border-secondary ps-3"><code><%= @version.system_prompt %></code></pre>
+            </div>
+          <% end %>
+          <div>
+            <div class="badge bg-primary mb-2">User Prompt</div>
+            <pre class="border-start border-3 border-primary ps-3"><code><%= @version.user_prompt %></code></pre>
+          </div>
         </div>
         <div class="col-md-6">
           <h6>v<%= @compare_version.version_number %> <%= status_badge(@compare_version.status) %></h6>
-          <pre><code><%= @compare_version.template %></code></pre>
+          <% if @compare_version.system_prompt.present? %>
+            <div class="mb-3">
+              <div class="badge bg-secondary mb-2">System Prompt</div>
+              <pre class="border-start border-3 border-secondary ps-3"><code><%= @compare_version.system_prompt %></code></pre>
+            </div>
+          <% end %>
+          <div>
+            <div class="badge bg-primary mb-2">User Prompt</div>
+            <pre class="border-start border-3 border-primary ps-3"><code><%= @compare_version.user_prompt %></code></pre>
+          </div>
         </div>
       </div>
     </div>

@@ -221,6 +221,14 @@ module PromptTracker
       locals: { test: test, prompt: prompt, version: version }
     )
 
+    # 3b) Update the individual test run row on the prompt version page
+    broadcast_replace(
+      stream: "prompt_version_#{version.id}",
+      target: "test_run_row_#{id}",
+      partial: "prompt_tracker/testing/prompt_tests/test_run_row",
+      locals: { run: self }
+    )
+
     # 4) Update the accordion content (preserves open/closed state)
     broadcast_replace(
       stream: "prompt_version_#{version.id}",

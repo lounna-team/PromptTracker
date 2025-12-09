@@ -133,11 +133,21 @@
       <% end %>
     </div>
 
-    <!-- Prompt Template -->
+    <!-- Prompt -->
     <div>
-      <strong class="d-block mb-2">Template:</strong>
+      <strong class="d-block mb-2">Prompt:</strong>
       <div class="bg-light p-3 rounded" style="font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">
-<%= @version.template %></div>
+<% if @version.system_prompt.present? %>
+<div class="mb-2">
+<span class="badge bg-secondary">System</span>
+<%= @version.system_prompt %>
+</div>
+<% end %>
+<div>
+<span class="badge bg-primary">User</span>
+<%= @version.user_prompt %>
+</div>
+</div>
     </div>
 
     <!-- Variables Used (if any) -->
