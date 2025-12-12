@@ -81,9 +81,19 @@
         <i class="bi bi-robot text-muted" style="font-size: 3rem;"></i>
         <p class="text-muted mt-3">No auto-evaluators configured yet.</p>
         <p class="text-muted">Add evaluators to automatically evaluate production responses from this version.</p>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEvaluatorModal">
-          <i class="bi bi-plus-circle"></i> Add Your First Auto-Evaluator
-        </button>
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEvaluatorModal">
+            <i class="bi bi-plus-circle"></i> Add Your First Auto-Evaluator
+          </button>
+          <% if @has_test_evaluators %>
+            <%= button_to copy_from_tests_prompt_evaluator_configs_path(@prompt),
+                          method: :post,
+                          class: "btn btn-outline-primary",
+                          form: { data: { turbo: false } } do %>
+              <i class="bi bi-clipboard-check"></i> Copy evaluators from test config
+            <% end %>
+          <% end %>
+        </div>
       </div>
     <% end %>
   </div>

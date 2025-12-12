@@ -128,7 +128,7 @@ module PromptTracker
       broadcast_turbo_stream_replace(
         stream: "prompt_version_#{version.id}",
         target: "test_row_#{test.id}",
-        partial: "prompt_tracker/prompt_tests/test_row",
+        partial: "prompt_tracker/testing/prompt_tests/test_row",
         locals: { test: test, prompt: prompt, version: version }
       )
 
@@ -137,7 +137,7 @@ module PromptTracker
       broadcast_turbo_stream_replace(
         stream: "prompt_version_#{version.id}",
         target: "overall_status_card",
-        partial: "prompt_tracker/prompt_tests/overall_status_card",
+        partial: "prompt_tracker/testing/prompt_tests/overall_status_card",
         locals: { tests: all_tests }
       )
 
@@ -145,7 +145,7 @@ module PromptTracker
       broadcast_turbo_stream_replace(
         stream: "prompt_test_#{test.id}",
         target: "test_status_card",
-        partial: "prompt_tracker/prompt_tests/test_status_card",
+        partial: "prompt_tracker/testing/prompt_tests/test_status_card",
         locals: { test: test }
       )
 
@@ -153,7 +153,7 @@ module PromptTracker
       broadcast_turbo_stream_replace(
         stream: "prompt_test_#{test.id}",
         target: "test_run_row_#{test_run.id}",
-        partial: "prompt_tracker/prompt_tests/test_run_row",
+        partial: "prompt_tracker/testing/prompt_tests/test_run_row",
         locals: { run: test_run }
       )
     end

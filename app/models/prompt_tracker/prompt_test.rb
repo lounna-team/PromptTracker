@@ -13,23 +13,21 @@
 #  name               :string           not null
 #  prompt_version_id  :bigint           not null
 #  tags               :jsonb            not null
-#  template_variables :jsonb            not null
 #  updated_at         :datetime         not null
 #
 module PromptTracker
   # Represents a single test case for a prompt.
   #
   # A PromptTest defines:
-  # - Input variables to use
   # - Evaluators to run (both binary and scored modes)
   # - Model configuration for LLM calls
+  # - Test runs are executed against datasets (DatasetRow provides variables)
   #
-  # @example Create a test with binary and scored evaluators
+  # @example Create a test with evaluators
   #   test = PromptTest.create!(
   #     prompt_version: version,
   #     name: "greeting_premium_user",
   #     description: "Test greeting for premium customers",
-  #     template_variables: { customer_name: "Alice", account_type: "premium" },
   #     model_config: { provider: "openai", model: "gpt-4" }
   #   )
   #
@@ -63,7 +61,6 @@ module PromptTracker
     # Validations
     validates :name, presence: true
     validates :name, uniqueness: { scope: :prompt_version_id }
-    validates :template_variables, presence: true
     validates :model_config, presence: true
 
     # Store configs JSON temporarily for after_save callback

@@ -179,7 +179,6 @@ puts "  Creating sample tests..."
 test_greeting_premium = support_greeting_v3.prompt_tests.create!(
   name: "Premium Customer Greeting",
   description: "Test greeting for premium customers with billing issues",
-  template_variables: { "customer_name" => "John Smith", "issue_category" => "billing" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "premium", "billing" ],
   enabled: true
@@ -202,7 +201,6 @@ test_greeting_premium.evaluator_configs.create!(
 test_greeting_technical = support_greeting_v3.prompt_tests.create!(
   name: "Technical Support Greeting",
   description: "Test greeting for technical support inquiries",
-  template_variables: { "customer_name" => "Sarah Johnson", "issue_category" => "technical" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "technical" ],
   enabled: true
@@ -223,7 +221,6 @@ test_greeting_technical.evaluator_configs.create!(
 test_greeting_account = support_greeting_v3.prompt_tests.create!(
   name: "Account Issue Greeting",
   description: "Test greeting for account-related questions",
-  template_variables: { "customer_name" => "Mike Davis", "issue_category" => "account" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "account" ],
   enabled: true
@@ -244,7 +241,6 @@ test_greeting_account.evaluator_configs.create!(
 test_greeting_general = support_greeting_v3.prompt_tests.create!(
   name: "General Inquiry Greeting",
   description: "Test greeting for general customer inquiries",
-  template_variables: { "customer_name" => "Emily Chen", "issue_category" => "general" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "general" ],
   enabled: true
@@ -266,7 +262,6 @@ test_greeting_general.evaluator_configs.create!(
 test_greeting_edge = support_greeting_v3.prompt_tests.create!(
   name: "Edge Case - Very Long Name",
   description: "Test greeting with unusually long customer name",
-  template_variables: { "customer_name" => "Alexander Maximilian Christopher Wellington III", "issue_category" => "billing" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "edge-case" ],
   enabled: false
@@ -288,7 +283,6 @@ puts "  Creating advanced tests with multiple evaluators..."
 test_comprehensive_quality = support_greeting_v3.prompt_tests.create!(
   name: "Comprehensive Quality Check",
   description: "Tests greeting quality with multiple evaluators including LLM judge, length, and keyword checks",
-  template_variables: { "customer_name" => "Jennifer Martinez", "issue_category" => "refund request" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "comprehensive", "quality", "critical" ],
   enabled: true
@@ -344,9 +338,6 @@ test_comprehensive_quality.evaluator_configs.create!(
 test_email_format = email_summary_v1.prompt_tests.create!(
   name: "Email Summary Format Validation",
   description: "Validates email summary format with complex regex patterns",
-  template_variables: {
-    "email_thread" => "From: john@example.com\nSubject: Q4 Planning\n\nHi team, let's discuss Q4 goals..."
-  },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.3 },
   tags: [ "format", "validation", "email" ],
   enabled: true
@@ -402,10 +393,6 @@ test_email_format.evaluator_configs.create!(
 test_code_review_quality = code_review_v1.prompt_tests.create!(
   name: "Code Review Quality Assessment",
   description: "Tests code review feedback quality with LLM judge and keyword validation",
-  template_variables: {
-    "language" => "ruby",
-    "code" => "def calculate_total(items)\n  items.map { |i| i[:price] }.sum\nend"
-  },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
   tags: [ "code-review", "quality", "technical" ],
   enabled: true
@@ -462,7 +449,6 @@ test_code_review_quality.evaluator_configs.create!(
 test_exact_match = support_greeting_v3.prompt_tests.create!(
   name: "Exact Output Validation",
   description: "Tests for exact expected output with additional quality checks",
-  template_variables: { "customer_name" => "Alice", "issue_category" => "password reset" },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.7 },
   tags: [ "exact-match", "critical", "smoke" ],
   enabled: true
@@ -517,10 +503,6 @@ test_exact_match.evaluator_configs.create!(
 test_technical_patterns = code_review_v1.prompt_tests.create!(
   name: "Technical Content Pattern Validation",
   description: "Validates technical content with complex regex patterns for code snippets, technical terms, and formatting",
-  template_variables: {
-    "language" => "python",
-    "code" => "def process_data(data):\n    return [x * 2 for x in data if x > 0]"
-  },
   model_config: { "provider" => "openai", "model" => "gpt-4o", "temperature" => 0.4 },
   tags: [ "technical", "complex-patterns", "code-review" ],
   enabled: true

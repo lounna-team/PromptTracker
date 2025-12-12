@@ -82,7 +82,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         }
       }.to change(PromptTracker::EvaluatorConfig, :count).by(1)
 
-      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+      expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
       follow_redirect!
       expect(response.body).to include("Evaluator configured successfully")
     end
@@ -143,7 +143,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         }
       }.not_to change(PromptTracker::EvaluatorConfig, :count)
 
-      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+      expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
       follow_redirect!
       expect(response.body).to include("Failed to configure evaluator")
     end
@@ -178,7 +178,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         }
       }
 
-      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+      expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
       follow_redirect!
       expect(response.body).to include("Evaluator updated successfully")
 
@@ -202,7 +202,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         evaluator_config: { evaluator_key: "keyword" } # Change from length to keyword
       }
 
-      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+      expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
       follow_redirect!
       expect(response.body).to include("Evaluator updated successfully")
 
@@ -229,7 +229,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         delete "/prompt_tracker/prompts/#{prompt.id}/evaluators/#{evaluator_config.id}"
       }.to change(PromptTracker::EvaluatorConfig, :count).by(-1)
 
-      expect(response).to redirect_to("/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+      expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
       follow_redirect!
       expect(response.body).to include("Evaluator removed successfully")
     end
@@ -365,6 +365,116 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
 
       config = PromptTracker::EvaluatorConfig.last
       expect(config.config["schema"]).to be_nil
+    end
+  end
+
+  describe "POST /prompts/:prompt_id/evaluators/copy_from_tests" do
+    context "when there are no tests" do
+      it "redirects with alert message" do
+        version # ensure version exists
+        post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+
+        expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+        follow_redirect!
+        expect(response.body).to include("No evaluators found in test config to copy")
+      end
+    end
+
+    context "when tests have no evaluator configs" do
+      before do
+        create(:prompt_test, prompt_version: version)
+      end
+
+      it "redirects with alert message" do
+        post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+
+        expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+        follow_redirect!
+        expect(response.body).to include("No evaluators found in test config to copy")
+      end
+    end
+
+    context "when copying from tests with evaluators" do
+      let!(:test) { create(:prompt_test, prompt_version: version) }
+      let!(:test_config) do
+        create(:evaluator_config,
+               configurable: test,
+               evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+               config: { min_length: 10, max_length: 100 })
+      end
+
+      it "copies evaluators to monitoring" do
+        expect {
+          post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+        }.to change { version.evaluator_configs.count }.by(1)
+      end
+
+      it "redirects with success message" do
+        post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+
+        expect(response).to redirect_to("/prompt_tracker/monitoring/prompts/#{prompt.id}/versions/#{version.id}#auto-evaluators")
+        follow_redirect!
+        expect(response.body).to include("Successfully copied 1 evaluator(s) from test config")
+      end
+    end
+
+    context "when copying multiple evaluators" do
+      let!(:test1) { create(:prompt_test, prompt_version: version, name: "Test 1") }
+      let!(:test2) { create(:prompt_test, prompt_version: version, name: "Test 2") }
+      let!(:config1) do
+        create(:evaluator_config,
+               configurable: test1,
+               evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+               config: { min_length: 10 })
+      end
+      let!(:config2) do
+        create(:evaluator_config,
+               configurable: test2,
+               evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
+               config: { keywords: ["test"] })
+      end
+
+      it "copies all evaluators" do
+        expect {
+          post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+        }.to change { version.evaluator_configs.count }.by(2)
+      end
+
+      it "shows correct count in success message" do
+        post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+
+        follow_redirect!
+        expect(response.body).to include("Successfully copied 2 evaluator(s) from test config")
+      end
+    end
+
+    context "when some evaluators already exist in monitoring" do
+      let!(:test) { create(:prompt_test, prompt_version: version) }
+      let!(:test_config) do
+        create(:evaluator_config,
+               configurable: test,
+               evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+               config: { min_length: 10 })
+      end
+      let!(:existing_monitoring_config) do
+        create(:evaluator_config,
+               configurable: version,
+               evaluator_type: "PromptTracker::Evaluators::LengthEvaluator",
+               config: { min_length: 50 })
+      end
+
+      it "skips duplicates" do
+        expect {
+          post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+        }.not_to change { version.evaluator_configs.count }
+      end
+
+      it "shows skipped count in message" do
+        post "/prompt_tracker/prompts/#{prompt.id}/evaluators/copy_from_tests"
+
+        follow_redirect!
+        expect(response.body).to include("No evaluators found in test config to copy")
+      end
     end
   end
 end

@@ -4,6 +4,13 @@ require "rails_helper"
 
 module PromptTracker
   RSpec.describe DatasetRow, type: :model do
+    # Disable Turbo Stream broadcasts in tests to avoid route helper issues
+    before do
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_prepend_to_dataset)
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_replace_to_dataset)
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_remove_to_dataset)
+    end
+
     # Setup
     let(:prompt) do
       Prompt.create!(
@@ -164,4 +171,3 @@ module PromptTracker
     end
   end
 end
-

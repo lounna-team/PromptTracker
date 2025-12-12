@@ -3,5 +3,7 @@
   <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#edit-test-modal-<%= test.id %>">
     Edit
   </button>
-  <%= button_to "Run", run_testing_prompt_prompt_version_prompt_test_path(prompt, version, test), method: :post, class: "btn btn-sm btn-outline-success" %>
+  <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#runTestModal-<%= test.id %>">
+    Run
+  </button>
 </td>

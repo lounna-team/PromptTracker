@@ -17,6 +17,9 @@
 #  variables_schema :jsonb
 #  version_number   :integer          not null
 #
+# Note: PromptVersion has evaluator_configs (polymorphic association).
+# These are AUTO-EVALUATORS for MONITORING - they run automatically on tracked production calls.
+# This is different from PromptTest's evaluator_configs, which are for testing.
 FactoryBot.define do
   factory :prompt_version, class: "PromptTracker::PromptVersion" do
     association :prompt, factory: :prompt

@@ -13,8 +13,7 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
 
   let(:test) do
     test = create(:prompt_test,
-                  prompt_version: version,
-                  template_variables: { name: "John" })
+                  prompt_version: version)
     create(:evaluator_config,
            configurable: test,
            evaluator_key: "keyword",
@@ -66,8 +65,7 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
     context "when evaluators fail" do
       let(:test) do
         test = create(:prompt_test,
-                      prompt_version: version,
-                      template_variables: { name: "John" })
+                      prompt_version: version)
         create(:evaluator_config,
                configurable: test,
                evaluator_key: "keyword",
@@ -90,8 +88,7 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
     context "when assertions fail" do
       let(:test) do
         test = create(:prompt_test,
-                      prompt_version: version,
-                      template_variables: { name: "John" })
+                      prompt_version: version)
         # Create an evaluator that will fail
         create(:evaluator_config,
                configurable: test,
@@ -150,18 +147,16 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
 
     context "with LLM judge evaluator" do
       let(:test) do
-        create(:prompt_test,
-               prompt_version: version,
-               template_variables: { name: "John" },
-               evaluator_configs: [
-                 {
-                   evaluator_key: "llm_judge",
-                   config: {
-                     judge_model: "gpt-4o",
-                     custom_instructions: "Evaluate helpfulness and clarity"
-                   }
-                 }
-               ])
+        test = create(:prompt_test,
+                      prompt_version: version)
+        create(:evaluator_config,
+               configurable: test,
+               evaluator_key: "llm_judge",
+               config: {
+                 judge_model: "gpt-4o",
+                 custom_instructions: "Evaluate helpfulness and clarity"
+               })
+        test
       end
 
       # Mock RubyLLM responses
@@ -205,7 +200,7 @@ RSpec.describe PromptTracker::RunEvaluatorsJob, type: :job do
         it "calls RubyLLM.chat with the judge model" do
           described_class.new.perform(test_run.id)
 
-          expect(RubyLLM).to have_received(:chat).with(model: "gpt-4")
+          expect(RubyLLM).to have_received(:chat).with(model: "gpt-4o")
         end
 
         it "uses structured output with schema" do

@@ -127,9 +127,9 @@
     <div class="d-flex gap-2">
       <% if @tests.any? %>
         <%= render "prompt_tracker/testing/prompt_versions/column_visibility_dropdown" %>
-        <%= button_to run_all_testing_prompt_prompt_version_prompt_tests_path(@prompt, @version), method: :post, class: "btn btn-sm btn-success", data: { turbo_stream: true } do %>
+        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#runAllTestsModal">
           <i class="bi bi-play-circle"></i> Run All
-        <% end %>
+        </button>
       <% end %>
       <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#new-test-modal">
         <i class="bi bi-plus-circle"></i> New Test
@@ -181,3 +181,5 @@
     </div>
   </div>
 </div>
+
+<%= render "prompt_tracker/testing/prompt_versions/run_all_tests_modal" %>

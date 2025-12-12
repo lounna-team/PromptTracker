@@ -1,6 +1,7 @@
+<% dataset ||= @dataset # Support both local and instance variable %>
 <tr id="dataset-row-<%= row.id %>">
   <td class="text-muted"><%= index %></td>
-  <% @dataset.variable_names.each do |var_name| %>
+  <% dataset.variable_names.each do |var_name| %>
     <td>
       <% value = row.get_variable(var_name) %>
       <% if value.present? %>
@@ -27,7 +28,7 @@
       <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editRowModal-<%= row.id %>" title="Edit">
         <i class="bi bi-pencil"></i>
       </button>
-      <%= button_to testing_prompt_prompt_version_dataset_dataset_row_path(@prompt, @version, @dataset, row),
+      <%= button_to testing_prompt_prompt_version_dataset_dataset_row_path(@prompt || row.dataset.prompt_version.prompt, @version || row.dataset.prompt_version, dataset, row),
                     method: :delete,
                     class: "btn btn-outline-danger btn-sm",
                     data: { confirm: "Delete this row?", turbo_method: :delete },
@@ -47,12 +48,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <%= form_with(model: row,
-                    url: testing_prompt_prompt_version_dataset_dataset_row_path(@prompt, @version, @dataset, row),
+                    url: testing_prompt_prompt_version_dataset_dataset_row_path(@prompt || row.dataset.prompt_version.prompt, @version || row.dataset.prompt_version, dataset, row),
                     method: :patch) do |f| %>
         <div class="modal-body">
           <%= f.hidden_field :source, value: row.source %>
 
-          <% @dataset.schema.each do |var_schema| %>
+          <% dataset.schema.each do |var_schema| %>
             <div class="mb-3">
               <%= label_tag "dataset_row[row_data][#{var_schema['name']}]", var_schema['name'], class: "form-label" %>
               <% if var_schema['required'] %>

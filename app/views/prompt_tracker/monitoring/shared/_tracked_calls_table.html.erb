@@ -7,6 +7,8 @@
   # - empty_message: string (default: "No tracked calls found") - message when no calls
   # - show_evaluations_column: boolean (default: true) - whether to show evaluations column
   # - show_prompt_column: boolean (default: false) - whether to show prompt name/version column
+  # - prompt: Prompt object (optional) - for showing tracking code example in empty state
+  # - version: PromptVersion object (optional) - for showing tracking code example in empty state
 
   show_column_visibility = local_assigns.fetch(:show_column_visibility, true)
   show_pagination = local_assigns.fetch(:show_pagination, true)
@@ -14,6 +16,8 @@
   empty_message = local_assigns.fetch(:empty_message, "No tracked calls found")
   show_evaluations_column = local_assigns.fetch(:show_evaluations_column, true)
   show_prompt_column = local_assigns.fetch(:show_prompt_column, false)
+  prompt = local_assigns[:prompt]
+  version = local_assigns[:version]
 %>
 
 <% if tracked_calls.any? %>
@@ -209,5 +213,37 @@
   <div style="background: white; border: 2px solid #E5E7EB; border-radius: 8px; padding: 3rem; text-align: center;">
     <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
     <p style="color: #64748B; margin-top: 1rem;"><%= empty_message %></p>
+    <% if prompt && version %>
+      <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#trackFirstCallModal">
+        <i class="bi bi-code-square"></i> Track My First Call
+      </button>
+    <% end %>
   </div>
+
+  <!-- Track First Call Modal -->
+  <% if prompt && version %>
+    <div class="modal fade" id="trackFirstCallModal" tabindex="-1" aria-labelledby="trackFirstCallModalLabel" aria-hidden="true" data-controller="modal-fix" data-modal-fix-target="modal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="trackFirstCallModalLabel">
+              <i class="bi bi-code-square"></i> Track Your First Call
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <%= render "prompt_tracker/shared/tracking_code_example", prompt: prompt, version: version %>
+            <div class="alert alert-info mt-3">
+              <i class="bi bi-info-circle"></i>
+              <strong>Need more help?</strong>
+              <%= link_to "View full documentation", docs_tracking_path(prompt_id: prompt.id, version_id: version.id), target: "_blank", class: "alert-link" %>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
 <% end %>

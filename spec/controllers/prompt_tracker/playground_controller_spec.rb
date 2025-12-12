@@ -193,44 +193,36 @@ module PromptTracker
     end
 
     describe "private methods" do
-      controller do
-        def test_extract_variables
-          render json: { variables: extract_variables_from_template(params[:template]) }
+      let(:controller_instance) { described_class.new }
+
+      describe "#extract_variables_from_template" do
+        it "extracts Mustache variables" do
+          template = "{{name}} {{age}}"
+          variables = controller_instance.send(:extract_variables_from_template, template)
+
+          expect(variables).to match_array(["name", "age"])
         end
-      end
 
-      before do
-        routes.draw do
-          post "test_extract_variables" => "prompt_tracker/playground#test_extract_variables"
+        it "extracts Liquid filter variables" do
+          template = "{{ name | upcase }}"
+          variables = controller_instance.send(:extract_variables_from_template, template)
+
+          expect(variables).to include("name")
         end
-      end
 
-      it "extracts Mustache variables" do
-        post :test_extract_variables, params: { template: "{{name}} {{age}}" }
+        it "extracts Liquid conditional variables" do
+          template = "{% if premium %}Yes{% endif %}"
+          variables = controller_instance.send(:extract_variables_from_template, template)
 
-        json = JSON.parse(response.body)
-        expect(json["variables"]).to match_array(["name", "age"])
-      end
+          expect(variables).to include("premium")
+        end
 
-      it "extracts Liquid filter variables" do
-        post :test_extract_variables, params: { template: "{{ name | upcase }}" }
+        it "extracts Liquid loop variables" do
+          template = "{% for item in items %}{{ item }}{% endfor %}"
+          variables = controller_instance.send(:extract_variables_from_template, template)
 
-        json = JSON.parse(response.body)
-        expect(json["variables"]).to include("name")
-      end
-
-      it "extracts Liquid conditional variables" do
-        post :test_extract_variables, params: { template: "{% if premium %}Yes{% endif %}" }
-
-        json = JSON.parse(response.body)
-        expect(json["variables"]).to include("premium")
-      end
-
-      it "extracts Liquid loop variables" do
-        post :test_extract_variables, params: { template: "{% for item in items %}{{ item }}{% endfor %}" }
-
-        json = JSON.parse(response.body)
-        expect(json["variables"]).to include("items")
+          expect(variables).to include("items")
+        end
       end
     end
   end

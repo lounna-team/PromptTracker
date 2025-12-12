@@ -4,18 +4,44 @@ require "rails_helper"
 
 module PromptTracker
   RSpec.describe RunTestJob, type: :job do
+    # Disable Turbo Stream broadcasts in tests to avoid route helper issues
+    before do
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_prepend_to_dataset)
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_replace_to_dataset)
+      allow_any_instance_of(DatasetRow).to receive(:broadcast_remove_to_dataset)
+    end
+
     let(:prompt) { create(:prompt, name: "test_prompt") }
-    let(:version) { create(:prompt_version, prompt: prompt, user_prompt: "Hello {{name}}") }
+    let(:version) do
+      create(:prompt_version,
+             prompt: prompt,
+             user_prompt: "Hello {{name}}",
+             variables_schema: [
+               { "name" => "name", "type" => "string", "required" => true }
+             ])
+    end
+    let(:dataset) do
+      create(:dataset,
+             prompt_version: version,
+             name: "test_dataset",
+             schema: version.variables_schema)
+    end
+    let(:dataset_row) do
+      create(:dataset_row,
+             dataset: dataset,
+             row_data: { "name" => "John" },
+             source: "manual")
+    end
     let(:test) do
       create(:prompt_test,
              prompt_version: version,
-             template_variables: { name: "John" },
              model_config: { provider: "openai", model: "gpt-4" })
     end
     let(:test_run) do
       create(:prompt_test_run,
              prompt_test: test,
              prompt_version: version,
+             dataset_row: dataset_row,
              status: "running")
     end
 

@@ -64,16 +64,13 @@ module PromptTracker
       PromptTracker.configuration.basic_auth_password = "secret"
 
       # Test various routes
-      get prompts_path
+      get testing_root_path
       assert_response :unauthorized
 
-      get llm_responses_path
+      get monitoring_root_path
       assert_response :unauthorized
 
       get evaluations_path
-      assert_response :unauthorized
-
-      get analytics_root_path
       assert_response :unauthorized
     end
 
@@ -106,4 +103,3 @@ module PromptTracker
     end
   end
 end
-

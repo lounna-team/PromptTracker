@@ -34,6 +34,14 @@
     <p class="text-muted">
       Test: <%= link_to @test.name, testing_prompt_prompt_version_prompt_test_path(@test.prompt, @version, @test) %>
       | Version: <%= link_to "v#{@version.version_number}", testing_prompt_prompt_version_path(@test.prompt, @version) %>
+      <% if @test_run.dataset.present? %>
+        | Dataset: <%= link_to @test_run.dataset.name, testing_prompt_prompt_version_dataset_path(@test.prompt, @version, @test_run.dataset) %>
+        <% if @test_run.dataset_row.present? %>
+          (Row #<%= @test_run.dataset_row.id %>)
+        <% end %>
+      <% elsif @test_run.metadata["run_mode"] == "single" %>
+        | <span class="badge bg-info">Single Run</span>
+      <% end %>
       | Run at: <%= @test_run.created_at.strftime("%B %d, %Y at %I:%M %p") %>
     </p>
   </div>
@@ -116,6 +124,87 @@
   <div class="alert alert-danger mb-4">
     <h5><i class="bi bi-exclamation-triangle"></i> Error</h5>
     <pre class="mb-0"><%= @test_run.error_message %></pre>
+  </div>
+<% end %>
+
+<!-- Dataset Row Data (if applicable) -->
+<% if @test_run.dataset_row.present? %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-table"></i> Dataset Row Data
+      </h5>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        Variables used from
+        <%= link_to @test_run.dataset.name, testing_prompt_prompt_version_dataset_path(@test.prompt, @version, @test_run.dataset) %>
+        (Row #<%= @test_run.dataset_row.id %>):
+      </p>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @test_run.dataset_row.row_data.each do |key, value| %>
+            <tr>
+              <td><code><%= key %></code></td>
+              <td>
+                <% if value.to_s.length > 100 %>
+                  <details>
+                    <summary><%= truncate(value, length: 100) %></summary>
+                    <pre class="mt-2 mb-0"><%= value %></pre>
+                  </details>
+                <% else %>
+                  <%= value %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% elsif @test_run.metadata["custom_variables"].present? %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-pencil"></i> Custom Variables
+      </h5>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        Manually entered variables for this single run:
+      </p>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @test_run.metadata["custom_variables"].each do |key, value| %>
+            <tr>
+              <td><code><%= key %></code></td>
+              <td>
+                <% if value.to_s.length > 100 %>
+                  <details>
+                    <summary><%= truncate(value, length: 100) %></summary>
+                    <pre class="mt-2 mb-0"><%= value %></pre>
+                  </details>
+                <% else %>
+                  <%= value %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 <% end %>
 

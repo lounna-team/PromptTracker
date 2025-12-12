@@ -56,6 +56,9 @@ module PromptTracker
 
         # Get evaluator configs for this version
         @evaluator_configs = @version.evaluator_configs.enabled.order(created_at: :asc)
+
+        # Check if there are test evaluators available to copy
+        @has_test_evaluators = @version.prompt_tests.joins(:evaluator_configs).exists?
       end
     end
   end

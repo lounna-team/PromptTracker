@@ -13,7 +13,6 @@
 #  name               :string           not null
 #  prompt_version_id  :bigint           not null
 #  tags               :jsonb            not null
-#  template_variables :jsonb            not null
 #  updated_at         :datetime         not null
 #
 FactoryBot.define do
@@ -22,7 +21,6 @@ FactoryBot.define do
 
     sequence(:name) { |n| "test_#{n}" }
     description { "Test description" }
-    template_variables { { name: "John", role: "customer" } }
     model_config { { provider: "openai", model: "gpt-4", temperature: 0.7 } }
     enabled { true }
     metadata { {} }

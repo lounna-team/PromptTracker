@@ -137,7 +137,7 @@ module PromptTracker
 
       it "returns nil when no responses" do
         empty_version = prompt.prompt_versions.create!(
-          template: "Empty",
+          user_prompt: "Empty",
           status: "draft",
         )
 
@@ -236,7 +236,7 @@ module PromptTracker
     describe ".compare_versions" do
       it "compares two versions" do
         version2 = prompt.prompt_versions.create!(
-          template: "Test 2",
+          user_prompt: "Test 2",
           status: "draft",
         )
 
@@ -279,7 +279,7 @@ module PromptTracker
     describe ".best_version" do
       it "finds the best version" do
         version2 = prompt.prompt_versions.create!(
-          template: "Test 2",
+          user_prompt: "Test 2",
           status: "draft",
         )
 
@@ -319,7 +319,7 @@ module PromptTracker
 
       it "returns nil when no evaluations" do
         version2 = prompt.prompt_versions.create!(
-          template: "Test 2",
+          user_prompt: "Test 2",
           status: "draft",
         )
 

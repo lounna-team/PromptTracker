@@ -13,7 +13,6 @@
 #  name               :string           not null
 #  prompt_version_id  :bigint           not null
 #  tags               :jsonb            not null
-#  template_variables :jsonb            not null
 #  updated_at         :datetime         not null
 #
 require "rails_helper"
@@ -26,7 +25,6 @@ module PromptTracker
       create(:prompt_test,
              prompt_version: version,
              name: "test_greeting",
-             template_variables: { name: "Alice" },
              model_config: { provider: "openai", model: "gpt-4" })
     end
 
@@ -37,7 +35,6 @@ module PromptTracker
 
     describe "validations" do
       it { should validate_presence_of(:name) }
-      it { should validate_presence_of(:template_variables) }
       it { should validate_presence_of(:model_config) }
     end
 

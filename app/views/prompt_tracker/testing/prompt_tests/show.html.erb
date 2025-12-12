@@ -21,14 +21,13 @@
     <%= link_to edit_testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test), class: "btn btn-outline-secondary" do %>
       <i class="bi bi-pencil"></i> Edit
     <% end %>
-    <%= button_to run_testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test),
-                  method: :post,
-                  class: "btn btn-success",
-                  data: { turbo_stream: true } do %>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#runTestModal-<%= @test.id %>">
       <i class="bi bi-play-circle"></i> Run Test
-    <% end %>
+    </button>
   </div>
 </div>
+
+<%= render "prompt_tracker/testing/prompt_tests/run_test_modal", test: @test, prompt: @prompt, version: @version %>
 
 <!-- Test Stats -->
 <div class="row mb-4">
@@ -83,11 +82,13 @@
         <h5 class="mb-0">Test Configuration</h5>
       </div>
       <div class="card-body">
-        <h6>Template Variables</h6>
-        <pre class="bg-light p-3 rounded"><code><%= JSON.pretty_generate(@test.template_variables) %></code></pre>
-
-        <h6 class="mt-3">Model Configuration</h6>
+        <h6>Model Configuration</h6>
         <pre class="bg-light p-3 rounded"><code><%= JSON.pretty_generate(@test.model_config) %></code></pre>
+
+        <% if @test.metadata.present? && @test.metadata.any? %>
+          <h6 class="mt-3">Metadata</h6>
+          <pre class="bg-light p-3 rounded"><code><%= JSON.pretty_generate(@test.metadata) %></code></pre>
+        <% end %>
       </div>
     </div>
   </div>

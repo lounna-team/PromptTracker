@@ -61,6 +61,11 @@ module PromptTracker
     scope :llm_generated, -> { where(source: "llm_generated") }
     scope :imported, -> { where(source: "imported") }
 
+    # Callbacks
+    after_create_commit :broadcast_prepend_to_dataset
+    after_update_commit :broadcast_replace_to_dataset
+    after_destroy_commit :broadcast_remove_to_dataset
+
     # Get variable value
     #
     # @param variable_name [String, Symbol] the variable name
@@ -85,8 +90,16 @@ module PromptTracker
         "dataset_#{dataset_id}_rows",
         target: "dataset-rows",
         partial: "prompt_tracker/testing/datasets/row",
-        locals: { row: self, index: dataset.dataset_rows.count }
+        locals: { row: self, index: dataset.dataset_rows.count, dataset: dataset }
       )
+
+      # Remove empty state if this is the first row
+      if dataset.dataset_rows.count == 1
+        broadcast_remove_to(
+          "dataset_#{dataset_id}_rows",
+          target: "empty-state"
+        )
+      end
     end
 
     # Broadcast replace to dataset rows table
@@ -95,7 +108,7 @@ module PromptTracker
         "dataset_#{dataset_id}_rows",
         target: "dataset-row-#{id}",
         partial: "prompt_tracker/testing/datasets/row",
-        locals: { row: self, index: dataset.dataset_rows.where("id <= ?", id).count }
+        locals: { row: self, index: dataset.dataset_rows.where("id <= ?", id).count, dataset: dataset }
       )
     end
 

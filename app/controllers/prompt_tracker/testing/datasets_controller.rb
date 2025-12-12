@@ -9,7 +9,7 @@ module PromptTracker
     #
     class DatasetsController < ApplicationController
       before_action :set_prompt_version
-      before_action :set_dataset, only: [:show, :edit, :update, :destroy]
+      before_action :set_dataset, only: [ :show, :edit, :update, :destroy, :generate_rows ]
 
       # GET /testing/prompts/:prompt_id/versions/:prompt_version_id/datasets
       def index
@@ -60,6 +60,24 @@ module PromptTracker
                     notice: "Dataset deleted successfully."
       end
 
+      # POST /testing/prompts/:prompt_id/versions/:prompt_version_id/datasets/:id/generate_rows
+      def generate_rows
+        count = params[:count].to_i
+        instructions = params[:instructions].presence
+        model = params[:model].presence
+
+        # Enqueue background job
+        GenerateDatasetRowsJob.perform_later(
+          @dataset.id,
+          count: count,
+          instructions: instructions,
+          model: model
+        )
+
+        redirect_to testing_prompt_prompt_version_dataset_path(@prompt, @version, @dataset),
+                    notice: "Generating #{count} rows in the background. Rows will appear shortly."
+      end
+
       private
 
       def set_prompt_version
@@ -77,4 +95,3 @@ module PromptTracker
     end
   end
 end
-

@@ -14,7 +14,7 @@ PromptTracker::Engine.routes.draw do
     end
 
     # Prompt versions (for testing)
-    resources :prompts, only: [] do
+    resources :prompts, only: [ :index, :show ] do
       # Playground for editing existing prompts
       resource :playground, only: [:show], controller: 'playground' do
         post :preview, on: :member
@@ -40,17 +40,18 @@ PromptTracker::Engine.routes.draw do
           end
           member do
             post :run
+            get :load_more_runs
           end
         end
 
         # Datasets nested under prompt versions
-        resources :datasets, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
-          # Dataset rows nested under datasets
-          resources :dataset_rows, only: [:create, :update, :destroy], path: "rows" do
-            collection do
-              post :generate # LLM-powered generation
-            end
+        resources :datasets, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
+          member do
+            post :generate_rows # LLM-powered row generation
           end
+
+          # Dataset rows nested under datasets
+          resources :dataset_rows, only: [ :create, :update, :destroy ], path: "rows"
         end
       end
     end
@@ -86,10 +87,19 @@ PromptTracker::Engine.routes.draw do
     end
   end
 
+  # Documentation
+  namespace :docs do
+    get :tracking
+  end
+
   # Prompts (for monitoring - evaluator configs)
   resources :prompts, only: [] do
     # Evaluator configs nested under prompts (for monitoring)
-    resources :evaluator_configs, only: [ :index, :show, :create, :update, :destroy ], path: "evaluators"
+    resources :evaluator_configs, only: [ :index, :show, :create, :update, :destroy ], path: "evaluators" do
+      collection do
+        post :copy_from_tests
+      end
+    end
 
     # A/B tests nested under prompts (for creating new tests)
     resources :ab_tests, only: [:new, :create], path: "ab-tests"

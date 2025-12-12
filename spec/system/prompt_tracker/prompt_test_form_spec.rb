@@ -8,7 +8,7 @@ RSpec.describe "PromptTest Form", type: :system, js: true do
 
   describe "evaluator configuration with JavaScript" do
     before do
-      visit "/prompt_tracker/prompts/#{prompt.id}/versions/#{version.id}/tests/new"
+      visit "/prompt_tracker/testing/prompts/#{prompt.id}/versions/#{version.id}/tests/new"
     end
 
     context "on page load" do

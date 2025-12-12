@@ -28,7 +28,6 @@ module PromptTracker
       version.prompt_tests.create!(
         name: "greeting_test",
         description: "Test greeting functionality",
-        template_variables: { "name" => "Alice" },
         model_config: { "provider" => "openai", "model" => "gpt-4" }
       )
     end

@@ -4,6 +4,9 @@
   <li class="breadcrumb-item active"><%= @dataset.name %></li>
 <% end %>
 
+<!-- Subscribe to Turbo Stream for real-time row updates -->
+<%= turbo_stream_from "dataset_#{@dataset.id}_rows" %>
+
 <div class="page-header" style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 1.5rem; margin-bottom: 2rem;">
   <div class="d-flex justify-content-between align-items-start">
     <div>
@@ -56,44 +59,21 @@
         <i class="bi bi-stars"></i> Generate with AI
       </button>
     </div>
+
+    <!-- Generation Status (updated via Turbo Streams) -->
+    <div id="generation-status" class="mt-3">
+      <!-- Status messages will appear here -->
+    </div>
   </div>
 </div>
 
 <!-- Rows Table -->
 <div class="card" data-controller="modal-fix">
   <div class="card-header">
-    <h5 class="mb-0"><i class="bi bi-table"></i> Dataset Rows (<%= @dataset.row_count %>)</h5>
+    <h5 class="mb-0"><i class="bi bi-table"></i> Dataset Rows (<span id="dataset-row-count"><%= @dataset.row_count %></span>)</h5>
   </div>
-  <div class="card-body">
-    <% if @rows.any? %>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <% @dataset.variable_names.each do |var_name| %>
-                <th><%= var_name %></th>
-              <% end %>
-              <th style="width: 100px;">Source</th>
-              <th style="width: 120px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="dataset-rows">
-            <% @rows.each_with_index do |row, index| %>
-              <%= render "row", row: row, index: (@rows.current_page - 1) * @rows.limit_value + index + 1 %>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-
-      <%= paginate @rows %>
-    <% else %>
-      <div class="text-center py-5">
-        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-        <p class="text-muted mt-3">No rows in this dataset yet</p>
-        <p class="text-muted">Add rows manually or generate them with AI to get started.</p>
-      </div>
-    <% end %>
+  <div class="card-body" id="rows-table-container">
+    <%= render "rows_table", rows: @rows, dataset: @dataset %>
   </div>
 </div>
 
@@ -161,32 +141,55 @@
   </div>
 
   <!-- Generate Rows Modal -->
-  <div class="modal fade" id="generateRowsModal" tabindex="-1" data-modal-fix-target="modal">
+  <div class="modal fade" id="generateRowsModal" tabindex="-1" data-modal-fix-target="modal" data-controller="modal-fix">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-stars"></i> Generate Rows with AI</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
-            <strong>Coming Soon:</strong> AI-powered dataset row generation will be implemented in the next phase.
+        <%= form_with(url: generate_rows_testing_prompt_prompt_version_dataset_path(@prompt, @version, @dataset),
+                      method: :post,
+                      data: { turbo: false }) do |f| %>
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-stars"></i> Generate Rows with AI</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
+          <div class="modal-body">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i>
+              <strong>AI-Powered Generation:</strong> The LLM will analyze your prompt templates and generate realistic test data that matches your schema.
+            </div>
 
-          <p class="text-muted">
-            This feature will allow you to:
-          </p>
-          <ul class="text-muted">
-            <li>Describe the type of data you need</li>
-            <li>Specify how many rows to generate</li>
-            <li>Choose which LLM provider to use</li>
-            <li>Automatically populate your dataset with realistic test data</li>
-          </ul>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
+            <div class="mb-3">
+              <%= f.label :count, "Number of Rows", class: "form-label" %>
+              <%= f.number_field :count, value: 10, min: 1, max: 100, class: "form-control", required: true %>
+              <div class="form-text">Generate between 1 and 100 rows (recommended: 10-20 for quick testing)</div>
+            </div>
+
+            <div class="mb-3">
+              <%= f.label :instructions, "Custom Instructions (Optional)", class: "form-label" %>
+              <%= f.text_area :instructions,
+                              class: "form-control",
+                              rows: 4,
+                              placeholder: "e.g., 'Focus on edge cases with special characters' or 'Generate international examples with different languages'" %>
+              <div class="form-text">Provide specific guidance to customize the generated data</div>
+            </div>
+
+            <div class="mb-3">
+              <%= f.label :model, "Model (Optional)", class: "form-label" %>
+              <%= f.text_field :model,
+                               class: "form-control",
+                               placeholder: "Leave blank to use default model" %>
+              <div class="form-text">Specify a model ID (e.g., 'gpt-4o', 'claude-sonnet-4') or leave blank for default</div>
+            </div>
+
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>Note:</strong> Generation happens in the background. Rows will appear in real-time as they're created.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= f.submit "Generate Rows", class: "btn btn-primary" %>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

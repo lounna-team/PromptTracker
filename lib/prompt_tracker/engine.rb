@@ -24,6 +24,7 @@ module PromptTracker
         prompt_tracker/controllers/column_visibility_controller.js
         prompt_tracker/controllers/prompt_search_controller.js
         prompt_tracker/turbo_streams/close_modal.js
+        prompt_tracker/controllers/run_test_modal_controller.js
       ]
     end
     # # Make engine JS available to Sprockets (so importmap can find it)

@@ -129,6 +129,25 @@ module PromptTracker
       end
     end
 
+    # POST /prompts/:prompt_id/evaluators/copy_from_tests
+    # Copy evaluator configs from tests to monitoring
+    def copy_from_tests
+      result = CopyTestEvaluatorsService.call(prompt_version: @version)
+
+      if result.success?
+        if result.copied_count > 0
+          flash[:notice] = "Successfully copied #{result.copied_count} evaluator(s) from test config."
+          flash[:notice] += " Skipped #{result.skipped_count} duplicate(s)." if result.skipped_count > 0
+        else
+          flash[:alert] = "No evaluators found in test config to copy."
+        end
+      else
+        flash[:alert] = "Failed to copy evaluators: #{result.error}"
+      end
+
+      redirect_to monitoring_prompt_prompt_version_path(@prompt, @version, anchor: "auto-evaluators")
+    end
+
     private
 
     def set_prompt_and_version

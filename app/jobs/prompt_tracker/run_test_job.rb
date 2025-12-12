@@ -31,7 +31,7 @@ module PromptTracker
 
       start_time = Time.current
 
-      llm_response = execute_llm_call(test, version, use_real_llm)
+      llm_response = execute_llm_call(test, version, test_run, use_real_llm)
 
       # Run evaluators
       evaluator_results = run_evaluators(test, llm_response, test_run)
@@ -60,12 +60,16 @@ module PromptTracker
     #
     # @param test [PromptTest] the test to run
     # @param version [PromptVersion] the version to test
+    # @param test_run [PromptTestRun] the test run (contains dataset_row if applicable)
     # @param use_real_llm [Boolean] whether to use real LLM API
     # @return [LlmResponse] the LLM response record
-    def execute_llm_call(test, version, use_real_llm)
-      # Render the user_prompt
+    def execute_llm_call(test, version, test_run, use_real_llm)
+      # Determine which variables to use
+      template_vars = determine_template_variables(test_run)
+
+      # Render the user_prompt with variables
       renderer = TemplateRenderer.new(version.user_prompt)
-      rendered_prompt = renderer.render(test.template_variables)
+      rendered_prompt = renderer.render(template_vars)
 
       # Get model config from test
       model_config = test.model_config.with_indifferent_access
@@ -92,7 +96,7 @@ module PromptTracker
       llm_response = LlmResponse.create!(
         prompt_version: version,
         rendered_prompt: rendered_prompt,
-        variables_used: test.template_variables,
+        variables_used: template_vars,
         provider: provider,
         model: model,
         response_text: response_text,
@@ -107,6 +111,23 @@ module PromptTracker
       )
 
       llm_response
+    end
+
+    # Determine which template variables to use for this test run
+    #
+    # @param test_run [PromptTestRun] the test run
+    # @return [Hash] the template variables to use
+    def determine_template_variables(test_run)
+      if test_run.dataset_row.present?
+        # Use dataset row data
+        test_run.dataset_row.row_data
+      elsif test_run.metadata["custom_variables"].present?
+        # Use custom variables from modal (for single runs)
+        test_run.metadata["custom_variables"]
+      else
+        # Fallback to empty hash (no variables)
+        {}
+      end
     end
 
     # Call real LLM API

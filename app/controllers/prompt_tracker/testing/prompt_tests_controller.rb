@@ -5,7 +5,7 @@ module PromptTracker
     # Controller for managing prompt tests in the Testing section
     class PromptTestsController < ApplicationController
     before_action :set_prompt_version
-    before_action :set_test, only: [:show, :edit, :update, :destroy, :run]
+    before_action :set_test, only: [:show, :edit, :update, :destroy, :run, :load_more_runs]
 
     # GET /prompts/:prompt_id/versions/:prompt_version_id/tests
     def index
@@ -17,48 +17,17 @@ module PromptTracker
       enabled_tests = @version.prompt_tests.enabled
 
       if enabled_tests.empty?
-        respond_to do |format|
-          format.html do
-            redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version),
-                        alert: "No enabled tests to run."
-          end
-          format.turbo_stream do
-            render turbo_stream: turbo_stream.append("flash-messages", partial: "prompt_tracker/shared/flash", locals: { type: "alert", message: "No enabled tests to run." })
-          end
-        end
+        redirect_to testing_prompt_prompt_version_path(@prompt, @version),
+                    alert: "No enabled tests to run."
         return
       end
 
-      # Create test runs and enqueue background jobs for each test
-      enabled_tests.each do |test|
-        # Create test run immediately with "running" status
-        # The after_create_commit callback will broadcast Turbo Stream updates
-        test_run = PromptTestRun.create!(
-          prompt_test: test,
-          prompt_version: @version,
-          status: "running",
-          metadata: { triggered_by: "run_all", user: "web_ui" }
-        )
+      run_mode = params[:run_mode] || "dataset"
 
-        # Enqueue background job to execute the test
-        RunTestJob.perform_later(
-          test_run.id,
-          use_real_llm: use_real_llm?
-        )
-      end
-
-      # The PromptTestRun after_create_commit callbacks will broadcast updates
-      # No need to manually update the UI here
-      flash[:notice] = "Started #{enabled_tests.count} test#{enabled_tests.count > 1 ? 's' : ''} in the background!"
-
-      respond_to do |format|
-        format.html do
-          redirect_to testing_prompt_prompt_version_prompt_tests_path(@prompt, @version)
-        end
-        format.turbo_stream do
-          # Stay on the same page - broadcasts will update the UI
-          redirect_to testing_prompt_prompt_version_path(@prompt, @version), status: :see_other
-        end
+      if run_mode == "dataset"
+        run_all_with_dataset(enabled_tests)
+      else
+        run_all_with_custom_variables(enabled_tests)
       end
     end
 
@@ -70,7 +39,6 @@ module PromptTracker
     # GET /prompts/:prompt_id/versions/:prompt_version_id/tests/new
     def new
       @test = @version.prompt_tests.build(
-        template_variables: {},
         model_config: { provider: "openai", model: "gpt-4" }
       )
     end
@@ -123,30 +91,32 @@ module PromptTracker
 
     # POST /prompts/:prompt_id/versions/:prompt_version_id/tests/:id/run
     def run
-      # Create test run immediately with "running" status for instant UI feedback
-      test_run = PromptTestRun.create!(
-        prompt_test: @test,
-        prompt_version: @version,
-        status: 'running',
-        metadata: { triggered_by: "manual", user: "web_ui" }
-      )
+      run_mode = params[:run_mode] || "dataset"
 
-      # Enqueue background job to execute the test
-      RunTestJob.perform_later(
-        test_run.id,
-        use_real_llm: use_real_llm?
-      )
+      if run_mode == "dataset"
+        run_with_dataset(@test)
+      else
+        run_with_custom_variables(@test)
+      end
+    end
+
+    # GET /prompts/:prompt_id/versions/:prompt_version_id/tests/:id/load_more_runs
+    # Load additional test runs for progressive loading
+    def load_more_runs
+      offset = params[:offset].present? ? params[:offset].to_i : 5
+      limit = params[:limit].present? ? params[:limit].to_i : 5
+
+      @additional_runs = @test.prompt_test_runs
+                              .includes(:human_evaluations, llm_response: :evaluations)
+                              .order(created_at: :desc)
+                              .offset(offset)
+                              .limit(limit)
+
+      @total_runs_count = @test.prompt_test_runs.count
+      @next_offset = offset + limit
 
       respond_to do |format|
-        format.turbo_stream do
-          # The after_create_commit callback on PromptTestRun already broadcasts the updates
-          # Render empty turbo stream to acknowledge the request without redirecting
-          render turbo_stream: []
-        end
-        format.html do
-          redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, @test),
-                      notice: "Test started in the background! The page will update automatically when complete."
-        end
+        format.turbo_stream
       end
     end
 
@@ -166,14 +136,13 @@ module PromptTracker
         :name,
         :description,
         :enabled,
-        :template_variables,
         :model_config,
         :metadata,
         :evaluator_configs
       )
 
       # Parse JSON strings to hashes/arrays
-      [ :template_variables, :model_config, :metadata, :evaluator_configs ].each do |key|
+      [ :model_config, :metadata, :evaluator_configs ].each do |key|
         if permitted[key].is_a?(String)
           permitted[key] = JSON.parse(permitted[key])
         end
@@ -233,6 +202,121 @@ module PromptTracker
           }
         ]
       }
+    end
+
+    # Run a single test with a dataset
+    def run_with_dataset(test)
+      dataset_id = params[:dataset_id]
+
+      unless dataset_id.present?
+        redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, test),
+                    alert: "Please select a dataset."
+        return
+      end
+
+      dataset = @version.datasets.find(dataset_id)
+      total_runs = 0
+
+      # Create one test run for each dataset row
+      dataset.dataset_rows.each do |row|
+        test_run = PromptTestRun.create!(
+          prompt_test: test,
+          prompt_version: @version,
+          dataset: dataset,
+          dataset_row: row,
+          status: "running",
+          metadata: { triggered_by: "manual", user: "web_ui", run_mode: "dataset" }
+        )
+
+        # Enqueue background job
+        RunTestJob.perform_later(test_run.id, use_real_llm: use_real_llm?)
+        total_runs += 1
+      end
+
+      redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, test),
+                  notice: "Started #{total_runs} test run#{total_runs > 1 ? 's' : ''} (one per dataset row)!"
+    end
+
+    # Run a single test with custom variables
+    def run_with_custom_variables(test)
+      custom_vars = params[:custom_variables] || {}
+
+      test_run = PromptTestRun.create!(
+        prompt_test: test,
+        prompt_version: @version,
+        status: "running",
+        metadata: {
+          triggered_by: "manual",
+          user: "web_ui",
+          run_mode: "single",
+          custom_variables: custom_vars
+        }
+      )
+
+      RunTestJob.perform_later(test_run.id, use_real_llm: use_real_llm?)
+
+      redirect_to testing_prompt_prompt_version_prompt_test_path(@prompt, @version, test),
+                  notice: "Test started in the background!"
+    end
+
+    # Run all tests with a dataset
+    def run_all_with_dataset(tests)
+      dataset_id = params[:dataset_id]
+
+      unless dataset_id.present?
+        redirect_to testing_prompt_prompt_version_path(@prompt, @version),
+                    alert: "Please select a dataset."
+        return
+      end
+
+      dataset = @version.datasets.find(dataset_id)
+      total_runs = 0
+
+      # Create test runs for each test × each dataset row
+      tests.each do |test|
+        dataset.dataset_rows.each do |row|
+          test_run = PromptTestRun.create!(
+            prompt_test: test,
+            prompt_version: @version,
+            dataset: dataset,
+            dataset_row: row,
+            status: "running",
+            metadata: { triggered_by: "run_all", user: "web_ui", run_mode: "dataset" }
+          )
+
+          RunTestJob.perform_later(test_run.id, use_real_llm: use_real_llm?)
+          total_runs += 1
+        end
+      end
+
+      redirect_to testing_prompt_prompt_version_path(@prompt, @version),
+                  notice: "Started #{total_runs} test run#{total_runs > 1 ? 's' : ''} (#{tests.count} tests × #{dataset.dataset_rows.count} rows)!"
+    end
+
+    # Run all tests with custom variables
+    def run_all_with_custom_variables(tests)
+      custom_vars = params[:custom_variables] || {}
+      total_runs = 0
+
+      tests.each do |test|
+        test_run = PromptTestRun.create!(
+          prompt_test: test,
+          prompt_version: @version,
+          status: "running",
+          metadata: {
+            triggered_by: "run_all",
+            user: "web_ui",
+            run_mode: "single",
+            custom_variables: custom_vars
+          }
+        )
+
+        RunTestJob.perform_later(test_run.id, use_real_llm: use_real_llm?)
+        total_runs += 1
+      end
+
+      redirect_to testing_prompt_prompt_version_path(@prompt, @version),
+                  notice: "Started #{total_runs} test#{total_runs > 1 ? 's' : ''} in the background!"
     end
     end
   end
