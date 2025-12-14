@@ -34,7 +34,7 @@ RSpec.describe PromptTracker::AbTestCoordinator do
       it "returns a version from the A/B test" do
         result = described_class.select_version_for_prompt(prompt.name)
 
-        expect(result[:version]).to be_in([version_a, version_b])
+        expect(result[:version]).to be_in([ version_a, version_b ])
         expect(result[:ab_test]).to eq(ab_test)
         expect(result[:variant]).to be_in(%w[A B])
       end
@@ -105,7 +105,7 @@ RSpec.describe PromptTracker::AbTestCoordinator do
       it "returns a version from the A/B test" do
         result = described_class.select_version_for(prompt)
 
-        expect(result[:version]).to be_in([version_a, version_b])
+        expect(result[:version]).to be_in([ version_a, version_b ])
         expect(result[:ab_test]).to eq(ab_test)
         expect(result[:variant]).to be_in(%w[A B])
       end

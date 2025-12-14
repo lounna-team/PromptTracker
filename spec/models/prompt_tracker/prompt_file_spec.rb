@@ -27,7 +27,7 @@ module PromptTracker
     end
 
     let(:temp_file) do
-      file = Tempfile.new(["test_prompt", ".yml"])
+      file = Tempfile.new([ "test_prompt", ".yml" ])
       file.write(valid_yaml)
       file.close
       file
@@ -62,7 +62,7 @@ module PromptTracker
       end
 
       it "is invalid with invalid YAML syntax" do
-        temp = Tempfile.new(["invalid", ".yml"])
+        temp = Tempfile.new([ "invalid", ".yml" ])
         temp.write("invalid: yaml: syntax:")
         temp.close
 
@@ -74,7 +74,7 @@ module PromptTracker
       end
 
       it "is invalid if YAML is not a hash" do
-        temp = Tempfile.new(["array", ".yml"])
+        temp = Tempfile.new([ "array", ".yml" ])
         temp.write("- item1\n- item2")
         temp.close
 
@@ -248,7 +248,7 @@ module PromptTracker
     end
 
     def create_temp_file(content)
-      temp = Tempfile.new(["test", ".yml"])
+      temp = Tempfile.new([ "test", ".yml" ])
       temp.write(content)
       temp.close
       temp

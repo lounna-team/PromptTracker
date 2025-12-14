@@ -5,7 +5,7 @@ module PromptTracker
     # Controller for viewing prompt versions in the Testing section
     class PromptVersionsController < ApplicationController
     before_action :set_prompt
-    before_action :set_version, only: [:show, :compare, :activate]
+    before_action :set_version, only: [ :show, :compare, :activate ]
 
     # GET /prompts/:prompt_id/versions/:id
     # Show version details with tests

@@ -75,7 +75,7 @@ module PromptTracker
           response = create_response('{"name": "John", "age": 30}')
           evaluator = FormatEvaluator.new(response, {
             format: :json,
-            required_keys: ["name", "age"]
+            required_keys: [ "name", "age" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -85,7 +85,7 @@ module PromptTracker
           response = create_response('{"name": "John"}')
           evaluator = FormatEvaluator.new(response, {
             format: :json,
-            required_keys: ["name", "age"]
+            required_keys: [ "name", "age" ]
           })
 
           expect(evaluator.evaluate_score).to eq(50)
@@ -95,7 +95,7 @@ module PromptTracker
           response = create_response('{"name": "John"}')
           evaluator = FormatEvaluator.new(response, {
             format: :json,
-            required_keys: ["name", "age", "email"]
+            required_keys: [ "name", "age", "email" ]
           })
 
           score = evaluator.evaluate_score
@@ -219,7 +219,7 @@ module PromptTracker
           response = create_response('{"name": "John"}')
           evaluator = FormatEvaluator.new(response, {
             format: :json,
-            required_keys: ["name"]
+            required_keys: [ "name" ]
           })
 
           metadata = evaluator.metadata

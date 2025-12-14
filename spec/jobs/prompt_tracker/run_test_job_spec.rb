@@ -159,7 +159,7 @@ module PromptTracker
           create(:evaluator_config,
                  configurable: test,
                  evaluator_key: "keyword",
-                 config: { required_keywords: ["Hello", "help"] })
+                 config: { required_keywords: [ "Hello", "help" ] })
         end
 
         it "runs evaluators and updates test run" do

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'liquid'
+require "liquid"
 
 module PromptTracker
   # Service for rendering prompt templates with variable substitution using Liquid.
@@ -34,7 +34,7 @@ module PromptTracker
     # @raise [ArgumentError] if unknown engine specified
     def render(variables = {}, engine: nil)
       # Validate engine parameter if provided
-      if engine && ![:liquid, :mustache].include?(engine)
+      if engine && ![ :liquid, :mustache ].include?(engine)
         raise ArgumentError, "Unknown template engine: #{engine}. Supported engines: :liquid, :mustache"
       end
 

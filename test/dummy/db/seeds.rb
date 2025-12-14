@@ -26,7 +26,7 @@ support_greeting = PromptTracker::Prompt.create!(
   name: "customer_support_greeting",
   description: "Initial greeting for customer support interactions",
   category: "support",
-  tags: ["customer-facing", "greeting", "high-priority"],
+  tags: [ "customer-facing", "greeting", "high-priority" ],
   created_by: "support-team@example.com"
 )
 
@@ -104,7 +104,7 @@ email_summary = PromptTracker::Prompt.create!(
   name: "email_summary_generator",
   description: "Generates concise summaries of long email threads",
   category: "email",
-  tags: ["productivity", "summarization"],
+  tags: [ "productivity", "summarization" ],
   created_by: "product-team@example.com"
 )
 
@@ -140,7 +140,7 @@ code_review = PromptTracker::Prompt.create!(
   name: "code_review_assistant",
   description: "Provides constructive code review feedback",
   category: "development",
-  tags: ["code-quality", "engineering"],
+  tags: [ "code-quality", "engineering" ],
   created_by: "engineering@example.com"
 )
 
@@ -317,8 +317,8 @@ test_comprehensive_quality.evaluator_configs.create!(
   evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
 
   config: {
-    "required_keywords" => ["help", "refund"],
-    "forbidden_keywords" => ["unfortunately", "cannot", "unable"],
+    "required_keywords" => [ "help", "refund" ],
+    "forbidden_keywords" => [ "unfortunately", "cannot", "unable" ],
     "case_sensitive" => false
   },
   enabled: true
@@ -428,8 +428,8 @@ test_code_review_quality.evaluator_configs.create!(
   evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
 
   config: {
-    "required_keywords" => ["code", "quality", "readability"],
-    "forbidden_keywords" => ["terrible", "awful", "stupid"],
+    "required_keywords" => [ "code", "quality", "readability" ],
+    "forbidden_keywords" => [ "terrible", "awful", "stupid" ],
     "case_sensitive" => false
   },
   enabled: true
@@ -543,7 +543,7 @@ test_technical_patterns.evaluator_configs.create!(
   evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
 
   config: {
-    "required_keywords" => ["comprehension", "performance", "edge case"],
+    "required_keywords" => [ "comprehension", "performance", "edge case" ],
     "forbidden_keywords" => [],
     "case_sensitive" => false
   },
@@ -687,7 +687,7 @@ successful_responses.each_with_index do |response, i|
     score_max: 100,
     passed: score >= 80,
     evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
-    feedback: ["Great response!", "Very helpful", "Could be more concise", "Perfect tone"][i % 4],
+    feedback: [ "Great response!", "Very helpful", "Could be more concise", "Perfect tone" ][i % 4],
     metadata: {
       "required_found" => rand(2..3),
       "forbidden_found" => 0,
@@ -778,8 +778,8 @@ puts "  Creating A/B test responses..."
 # Variant A responses (current version)
 15.times do |i|
   response = support_greeting_v3.llm_responses.create!(
-    rendered_prompt: "Hi #{['Alice', 'Bob', 'Charlie'][i % 3]}! Thanks for contacting us. I'm here to help with your billing question. What's going on?",
-    variables_used: { "customer_name" => ['Alice', 'Bob', 'Charlie'][i % 3], "issue_category" => "billing" },
+    rendered_prompt: "Hi #{[ 'Alice', 'Bob', 'Charlie' ][i % 3]}! Thanks for contacting us. I'm here to help with your billing question. What's going on?",
+    variables_used: { "customer_name" => [ "Alice", "Bob", "Charlie" ][i % 3], "issue_category" => "billing" },
     provider: "openai",
     model: "gpt-4o",
     user_id: "ab_test_user_a_#{i + 1}",
@@ -813,7 +813,7 @@ end
 8.times do |i|
   response = support_greeting_v4.llm_responses.create!(
     rendered_prompt: "Hey #{[ 'Dave', 'Eve', 'Frank' ][i % 3]}! What's up with billing?",
-    variables_used: { "customer_name" => [ 'Dave', 'Eve', 'Frank' ][i % 3], "issue_category" => "billing" },
+    variables_used: { "customer_name" => [ "Dave", "Eve", "Frank" ][i % 3], "issue_category" => "billing" },
     provider: "openai",
     model: "gpt-4o",
     user_id: "ab_test_user_b_#{i + 1}",

@@ -49,7 +49,7 @@ module PromptTracker
       @test_run = PromptTestRun.create!(
         prompt_test: prompt_test,
         prompt_version: prompt_version,
-        status: 'running',
+        status: "running",
         metadata: metadata
       )
 
@@ -93,7 +93,7 @@ module PromptTracker
       @test_run = PromptTestRun.create!(
         prompt_test: prompt_test,
         prompt_version: prompt_version,
-        status: 'running',
+        status: "running",
         metadata: metadata.merge(async: true, started_at: start_time.iso8601)
       )
 
@@ -126,8 +126,8 @@ module PromptTracker
 
       # Get model config from test
       model_config = prompt_test.model_config.with_indifferent_access
-      provider = model_config[:provider] || 'openai'
-      model = model_config[:model] || 'gpt-4'
+      provider = model_config[:provider] || "openai"
+      model = model_config[:model] || "gpt-4"
 
       # If block provided, use it; otherwise use LlmCallService
       if block_given?
@@ -256,7 +256,7 @@ module PromptTracker
     # @param execution_time_ms [Integer] execution time in milliseconds
     def update_test_run_error(error, execution_time_ms)
       @test_run.update!(
-        status: 'error',
+        status: "error",
         passed: false,
         error_message: "#{error.class}: #{error.message}",
         execution_time_ms: execution_time_ms
@@ -306,7 +306,7 @@ module PromptTracker
     # @param evaluator_config [Hash] the evaluator configuration
     # @return [String] mock judge response with scores
     def generate_mock_judge_response(judge_prompt, evaluator_config)
-      criteria = evaluator_config["criteria"] || evaluator_config[:criteria] || ["overall"]
+      criteria = evaluator_config["criteria"] || evaluator_config[:criteria] || [ "overall" ]
       score_max = evaluator_config["score_max"] || evaluator_config[:score_max] || 100
 
       # Generate mock scores for each criterion (80-95% of max)
@@ -345,7 +345,7 @@ module PromptTracker
         llm_api_response.content
       elsif llm_api_response.respond_to?(:dig)
         # OpenAI format
-        llm_api_response.dig('choices', 0, 'message', 'content') ||
+        llm_api_response.dig("choices", 0, "message", "content") ||
           llm_api_response.dig(:choices, 0, :message, :content) ||
           llm_api_response.to_s
       else
@@ -371,9 +371,9 @@ module PromptTracker
 
       # OpenAI format
       {
-        prompt: llm_api_response.dig('usage', 'prompt_tokens') || llm_api_response.dig(:usage, :prompt_tokens),
-        completion: llm_api_response.dig('usage', 'completion_tokens') || llm_api_response.dig(:usage, :completion_tokens),
-        total: llm_api_response.dig('usage', 'total_tokens') || llm_api_response.dig(:usage, :total_tokens)
+        prompt: llm_api_response.dig("usage", "prompt_tokens") || llm_api_response.dig(:usage, :prompt_tokens),
+        completion: llm_api_response.dig("usage", "completion_tokens") || llm_api_response.dig(:usage, :completion_tokens),
+        total: llm_api_response.dig("usage", "total_tokens") || llm_api_response.dig(:usage, :total_tokens)
       }
     end
 
@@ -389,7 +389,7 @@ module PromptTracker
 
       # Pricing per 1M tokens (as of 2024)
       pricing = case provider.to_s.downcase
-      when 'openai'
+      when "openai"
         case model.to_s.downcase
         when /gpt-4o/
           { prompt: 2.50, completion: 10.00 }  # GPT-4o: $2.50/$10 per 1M tokens
@@ -404,7 +404,7 @@ module PromptTracker
         else
           nil
         end
-      when 'anthropic'
+      when "anthropic"
         case model.to_s.downcase
         when /claude-3-opus/
           { prompt: 15.00, completion: 75.00 }  # Claude 3 Opus: $15/$75 per 1M tokens

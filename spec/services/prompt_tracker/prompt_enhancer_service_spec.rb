@@ -10,7 +10,7 @@ module PromptTracker
           text: {
             system_prompt: "You are a professional customer support agent. Be helpful, empathetic, and concise.",
             user_prompt: "Help {{ customer_name }} with their {{ issue_type }} issue: {{ issue_description }}",
-            suggested_variables: ["customer_name", "issue_type", "issue_description"],
+            suggested_variables: [ "customer_name", "issue_type", "issue_description" ],
             explanation: "Enhanced prompt with clear role definition and structured variables"
           }.to_json
         }
@@ -66,7 +66,7 @@ module PromptTracker
             text: {
               system_prompt: "You are an expert email writer. Create professional, clear emails.",
               user_prompt: "Write an email to {{ recipient_name }} about {{ subject }}. Tone: {{ tone }}",
-              suggested_variables: ["recipient_name", "subject", "tone"],
+              suggested_variables: [ "recipient_name", "subject", "tone" ],
               explanation: "Generated professional email writing prompt with key variables"
             }.to_json
           }

@@ -48,7 +48,7 @@ module PromptTracker
 
     describe "fuzzy model matching" do
       it "matches GPT-4 variants to base GPT-4 pricing" do
-        variants = ["gpt-4-0125-preview", "gpt-4-turbo-preview", "gpt-4-1106-preview"]
+        variants = [ "gpt-4-0125-preview", "gpt-4-turbo-preview", "gpt-4-1106-preview" ]
 
         variants.each do |variant|
           calculator = described_class.new("openai", variant)

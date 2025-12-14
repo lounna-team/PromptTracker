@@ -3,7 +3,7 @@
 module PromptTracker
   # Controller for managing human evaluations
   class HumanEvaluationsController < ApplicationController
-    before_action :set_evaluation, only: [:create]
+    before_action :set_evaluation, only: [ :create ]
 
     # POST /evaluations/:evaluation_id/human_evaluations
     # Create a new human evaluation for an automated evaluation
@@ -30,4 +30,3 @@ module PromptTracker
     end
   end
 end
-

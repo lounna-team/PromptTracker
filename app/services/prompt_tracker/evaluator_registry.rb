@@ -142,14 +142,14 @@ module PromptTracker
       #
       # @return [void]
       def auto_discover_evaluators
-        evaluators_path = File.join(File.dirname(__FILE__), 'evaluators', '*.rb')
+        evaluators_path = File.join(File.dirname(__FILE__), "evaluators", "*.rb")
 
         Dir.glob(evaluators_path).each do |file|
           # Skip base evaluator
-          next if file.end_with?('base_evaluator.rb')
+          next if file.end_with?("base_evaluator.rb")
 
           # Extract class name from filename
-          filename = File.basename(file, '.rb')
+          filename = File.basename(file, ".rb")
           class_name = filename.camelize
 
           begin

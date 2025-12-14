@@ -13,17 +13,17 @@ FactoryBot.define do
         row.dataset.schema.each do |var_schema|
           # Generate sample data based on variable name and type
           row.row_data[var_schema["name"]] = case var_schema["name"]
-                                              when /name/i
+          when /name/i
                                                 "John Doe"
-                                              when /email/i
+          when /email/i
                                                 "test@example.com"
-                                              when /issue/i
+          when /issue/i
                                                 "Sample issue description"
-                                              when /message/i
+          when /message/i
                                                 "Sample message content"
-                                              else
+          else
                                                 "Sample #{var_schema['name']}"
-                                              end
+          end
         end
       end
     end

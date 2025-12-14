@@ -30,7 +30,7 @@ FactoryBot.define do
 
     trait :invalid_schema do
       after(:build) do |dataset|
-        dataset.schema = [{ "name" => "wrong_var", "type" => "string" }]
+        dataset.schema = [ { "name" => "wrong_var", "type" => "string" } ]
       end
     end
   end

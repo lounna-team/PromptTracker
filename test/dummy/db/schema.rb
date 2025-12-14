@@ -35,12 +35,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["completed_at"], name: "index_prompt_tracker_ab_tests_on_completed_at"
-    t.index ["metric_to_optimize"], name: "index_prompt_tracker_ab_tests_on_metric_to_optimize"
-    t.index ["prompt_id", "status"], name: "index_prompt_tracker_ab_tests_on_prompt_id_and_status"
-    t.index ["prompt_id"], name: "index_prompt_tracker_ab_tests_on_prompt_id"
-    t.index ["started_at"], name: "index_prompt_tracker_ab_tests_on_started_at"
-    t.index ["status"], name: "index_prompt_tracker_ab_tests_on_status"
+    t.index [ "completed_at" ], name: "index_prompt_tracker_ab_tests_on_completed_at"
+    t.index [ "metric_to_optimize" ], name: "index_prompt_tracker_ab_tests_on_metric_to_optimize"
+    t.index [ "prompt_id", "status" ], name: "index_prompt_tracker_ab_tests_on_prompt_id_and_status"
+    t.index [ "prompt_id" ], name: "index_prompt_tracker_ab_tests_on_prompt_id"
+    t.index [ "started_at" ], name: "index_prompt_tracker_ab_tests_on_started_at"
+    t.index [ "status" ], name: "index_prompt_tracker_ab_tests_on_status"
   end
 
   create_table "prompt_tracker_dataset_rows", force: :cascade do |t|
@@ -50,9 +50,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["created_at"], name: "index_prompt_tracker_dataset_rows_on_created_at"
-    t.index ["dataset_id"], name: "index_prompt_tracker_dataset_rows_on_dataset_id"
-    t.index ["source"], name: "index_prompt_tracker_dataset_rows_on_source"
+    t.index [ "created_at" ], name: "index_prompt_tracker_dataset_rows_on_created_at"
+    t.index [ "dataset_id" ], name: "index_prompt_tracker_dataset_rows_on_dataset_id"
+    t.index [ "source" ], name: "index_prompt_tracker_dataset_rows_on_source"
   end
 
   create_table "prompt_tracker_datasets", force: :cascade do |t|
@@ -64,9 +64,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["created_at"], name: "index_prompt_tracker_datasets_on_created_at"
-    t.index ["prompt_version_id", "name"], name: "index_prompt_tracker_datasets_on_prompt_version_id_and_name", unique: true
-    t.index ["prompt_version_id"], name: "index_prompt_tracker_datasets_on_prompt_version_id"
+    t.index [ "created_at" ], name: "index_prompt_tracker_datasets_on_created_at"
+    t.index [ "prompt_version_id", "name" ], name: "index_prompt_tracker_datasets_on_prompt_version_id_and_name", unique: true
+    t.index [ "prompt_version_id" ], name: "index_prompt_tracker_datasets_on_prompt_version_id"
   end
 
   create_table "prompt_tracker_evaluations", force: :cascade do |t|
@@ -84,14 +84,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.boolean "passed"
     t.bigint "prompt_test_run_id"
     t.bigint "evaluator_config_id"
-    t.index ["evaluation_context"], name: "index_prompt_tracker_evaluations_on_evaluation_context"
-    t.index ["evaluator_config_id"], name: "index_prompt_tracker_evaluations_on_evaluator_config_id"
-    t.index ["evaluator_type", "created_at"], name: "index_evaluations_on_type_and_created_at"
-    t.index ["evaluator_type"], name: "index_prompt_tracker_evaluations_on_evaluator_type"
-    t.index ["llm_response_id"], name: "index_prompt_tracker_evaluations_on_llm_response_id"
-    t.index ["passed"], name: "index_prompt_tracker_evaluations_on_passed"
-    t.index ["prompt_test_run_id"], name: "index_prompt_tracker_evaluations_on_prompt_test_run_id"
-    t.index ["score"], name: "index_evaluations_on_score"
+    t.index [ "evaluation_context" ], name: "index_prompt_tracker_evaluations_on_evaluation_context"
+    t.index [ "evaluator_config_id" ], name: "index_prompt_tracker_evaluations_on_evaluator_config_id"
+    t.index [ "evaluator_type", "created_at" ], name: "index_evaluations_on_type_and_created_at"
+    t.index [ "evaluator_type" ], name: "index_prompt_tracker_evaluations_on_evaluator_type"
+    t.index [ "llm_response_id" ], name: "index_prompt_tracker_evaluations_on_llm_response_id"
+    t.index [ "passed" ], name: "index_prompt_tracker_evaluations_on_passed"
+    t.index [ "prompt_test_run_id" ], name: "index_prompt_tracker_evaluations_on_prompt_test_run_id"
+    t.index [ "score" ], name: "index_evaluations_on_score"
   end
 
   create_table "prompt_tracker_evaluator_configs", force: :cascade do |t|
@@ -102,9 +102,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.datetime "updated_at", null: false
     t.string "configurable_type"
     t.bigint "configurable_id"
-    t.index ["configurable_type", "configurable_id", "evaluator_type"], name: "index_evaluator_configs_unique_per_configurable", unique: true
-    t.index ["configurable_type", "configurable_id"], name: "index_evaluator_configs_on_configurable"
-    t.index ["enabled"], name: "index_evaluator_configs_on_enabled"
+    t.index [ "configurable_type", "configurable_id", "evaluator_type" ], name: "index_evaluator_configs_unique_per_configurable", unique: true
+    t.index [ "configurable_type", "configurable_id" ], name: "index_evaluator_configs_on_configurable"
+    t.index [ "enabled" ], name: "index_evaluator_configs_on_enabled"
   end
 
   create_table "prompt_tracker_human_evaluations", force: :cascade do |t|
@@ -115,9 +115,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.datetime "updated_at", null: false
     t.bigint "llm_response_id"
     t.bigint "prompt_test_run_id"
-    t.index ["evaluation_id"], name: "index_prompt_tracker_human_evaluations_on_evaluation_id"
-    t.index ["llm_response_id"], name: "index_prompt_tracker_human_evaluations_on_llm_response_id"
-    t.index ["prompt_test_run_id"], name: "index_prompt_tracker_human_evaluations_on_prompt_test_run_id"
+    t.index [ "evaluation_id" ], name: "index_prompt_tracker_human_evaluations_on_evaluation_id"
+    t.index [ "llm_response_id" ], name: "index_prompt_tracker_human_evaluations_on_llm_response_id"
+    t.index [ "prompt_test_run_id" ], name: "index_prompt_tracker_human_evaluations_on_prompt_test_run_id"
     t.check_constraint "evaluation_id IS NOT NULL AND llm_response_id IS NULL AND prompt_test_run_id IS NULL OR evaluation_id IS NULL AND llm_response_id IS NOT NULL AND prompt_test_run_id IS NULL OR evaluation_id IS NULL AND llm_response_id IS NULL AND prompt_test_run_id IS NOT NULL", name: "human_evaluation_belongs_to_one"
   end
 
@@ -146,18 +146,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.bigint "ab_test_id"
     t.string "ab_variant"
     t.boolean "is_test_run", default: false, null: false
-    t.index ["ab_test_id", "ab_variant"], name: "index_llm_responses_on_ab_test_and_variant"
-    t.index ["ab_test_id"], name: "index_prompt_tracker_llm_responses_on_ab_test_id"
-    t.index ["environment"], name: "index_prompt_tracker_llm_responses_on_environment"
-    t.index ["is_test_run"], name: "index_prompt_tracker_llm_responses_on_is_test_run"
-    t.index ["model"], name: "index_prompt_tracker_llm_responses_on_model"
-    t.index ["prompt_version_id"], name: "index_prompt_tracker_llm_responses_on_prompt_version_id"
-    t.index ["provider", "model", "created_at"], name: "index_llm_responses_on_provider_model_created_at"
-    t.index ["provider"], name: "index_prompt_tracker_llm_responses_on_provider"
-    t.index ["session_id"], name: "index_prompt_tracker_llm_responses_on_session_id"
-    t.index ["status", "created_at"], name: "index_llm_responses_on_status_and_created_at"
-    t.index ["status"], name: "index_prompt_tracker_llm_responses_on_status"
-    t.index ["user_id"], name: "index_prompt_tracker_llm_responses_on_user_id"
+    t.index [ "ab_test_id", "ab_variant" ], name: "index_llm_responses_on_ab_test_and_variant"
+    t.index [ "ab_test_id" ], name: "index_prompt_tracker_llm_responses_on_ab_test_id"
+    t.index [ "environment" ], name: "index_prompt_tracker_llm_responses_on_environment"
+    t.index [ "is_test_run" ], name: "index_prompt_tracker_llm_responses_on_is_test_run"
+    t.index [ "model" ], name: "index_prompt_tracker_llm_responses_on_model"
+    t.index [ "prompt_version_id" ], name: "index_prompt_tracker_llm_responses_on_prompt_version_id"
+    t.index [ "provider", "model", "created_at" ], name: "index_llm_responses_on_provider_model_created_at"
+    t.index [ "provider" ], name: "index_prompt_tracker_llm_responses_on_provider"
+    t.index [ "session_id" ], name: "index_prompt_tracker_llm_responses_on_session_id"
+    t.index [ "status", "created_at" ], name: "index_llm_responses_on_status_and_created_at"
+    t.index [ "status" ], name: "index_prompt_tracker_llm_responses_on_status"
+    t.index [ "user_id" ], name: "index_prompt_tracker_llm_responses_on_user_id"
   end
 
   create_table "prompt_tracker_prompt_test_runs", force: :cascade do |t|
@@ -179,16 +179,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.datetime "updated_at", null: false
     t.bigint "dataset_id"
     t.bigint "dataset_row_id"
-    t.index ["created_at"], name: "index_prompt_tracker_prompt_test_runs_on_created_at"
-    t.index ["dataset_id", "created_at"], name: "index_prompt_test_runs_on_dataset_and_created_at"
-    t.index ["dataset_id"], name: "index_prompt_tracker_prompt_test_runs_on_dataset_id"
-    t.index ["dataset_row_id"], name: "index_prompt_tracker_prompt_test_runs_on_dataset_row_id"
-    t.index ["llm_response_id"], name: "index_prompt_tracker_prompt_test_runs_on_llm_response_id"
-    t.index ["passed"], name: "index_prompt_tracker_prompt_test_runs_on_passed"
-    t.index ["prompt_test_id", "created_at"], name: "idx_on_prompt_test_id_created_at_4bc08ca15a"
-    t.index ["prompt_test_id"], name: "index_prompt_tracker_prompt_test_runs_on_prompt_test_id"
-    t.index ["prompt_version_id"], name: "index_prompt_tracker_prompt_test_runs_on_prompt_version_id"
-    t.index ["status"], name: "index_prompt_tracker_prompt_test_runs_on_status"
+    t.index [ "created_at" ], name: "index_prompt_tracker_prompt_test_runs_on_created_at"
+    t.index [ "dataset_id", "created_at" ], name: "index_prompt_test_runs_on_dataset_and_created_at"
+    t.index [ "dataset_id" ], name: "index_prompt_tracker_prompt_test_runs_on_dataset_id"
+    t.index [ "dataset_row_id" ], name: "index_prompt_tracker_prompt_test_runs_on_dataset_row_id"
+    t.index [ "llm_response_id" ], name: "index_prompt_tracker_prompt_test_runs_on_llm_response_id"
+    t.index [ "passed" ], name: "index_prompt_tracker_prompt_test_runs_on_passed"
+    t.index [ "prompt_test_id", "created_at" ], name: "idx_on_prompt_test_id_created_at_4bc08ca15a"
+    t.index [ "prompt_test_id" ], name: "index_prompt_tracker_prompt_test_runs_on_prompt_test_id"
+    t.index [ "prompt_version_id" ], name: "index_prompt_tracker_prompt_test_runs_on_prompt_version_id"
+    t.index [ "status" ], name: "index_prompt_tracker_prompt_test_runs_on_status"
   end
 
   create_table "prompt_tracker_prompt_tests", force: :cascade do |t|
@@ -201,11 +201,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["enabled"], name: "index_prompt_tracker_prompt_tests_on_enabled"
-    t.index ["name"], name: "index_prompt_tracker_prompt_tests_on_name"
-    t.index ["prompt_version_id", "name"], name: "idx_on_prompt_version_id_name_8a1cf40215", unique: true
-    t.index ["prompt_version_id"], name: "index_prompt_tracker_prompt_tests_on_prompt_version_id"
-    t.index ["tags"], name: "index_prompt_tracker_prompt_tests_on_tags", using: :gin
+    t.index [ "enabled" ], name: "index_prompt_tracker_prompt_tests_on_enabled"
+    t.index [ "name" ], name: "index_prompt_tracker_prompt_tests_on_name"
+    t.index [ "prompt_version_id", "name" ], name: "idx_on_prompt_version_id_name_8a1cf40215", unique: true
+    t.index [ "prompt_version_id" ], name: "index_prompt_tracker_prompt_tests_on_prompt_version_id"
+    t.index [ "tags" ], name: "index_prompt_tracker_prompt_tests_on_tags", using: :gin
   end
 
   create_table "prompt_tracker_prompt_versions", force: :cascade do |t|
@@ -220,10 +220,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "system_prompt"
-    t.index ["prompt_id", "status"], name: "index_prompt_versions_on_prompt_and_status"
-    t.index ["prompt_id", "version_number"], name: "index_prompt_versions_on_prompt_and_version_number", unique: true
-    t.index ["prompt_id"], name: "index_prompt_tracker_prompt_versions_on_prompt_id"
-    t.index ["status"], name: "index_prompt_tracker_prompt_versions_on_status"
+    t.index [ "prompt_id", "status" ], name: "index_prompt_versions_on_prompt_and_status"
+    t.index [ "prompt_id", "version_number" ], name: "index_prompt_versions_on_prompt_and_version_number", unique: true
+    t.index [ "prompt_id" ], name: "index_prompt_tracker_prompt_versions_on_prompt_id"
+    t.index [ "status" ], name: "index_prompt_tracker_prompt_versions_on_status"
   end
 
   create_table "prompt_tracker_prompts", force: :cascade do |t|
@@ -235,9 +235,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_085351) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["archived_at"], name: "index_prompt_tracker_prompts_on_archived_at"
-    t.index ["category"], name: "index_prompt_tracker_prompts_on_category"
-    t.index ["name"], name: "index_prompt_tracker_prompts_on_name", unique: true
+    t.index [ "archived_at" ], name: "index_prompt_tracker_prompts_on_archived_at"
+    t.index [ "category" ], name: "index_prompt_tracker_prompts_on_category"
+    t.index [ "name" ], name: "index_prompt_tracker_prompts_on_name", unique: true
   end
 
   add_foreign_key "prompt_tracker_ab_tests", "prompt_tracker_prompts", column: "prompt_id"

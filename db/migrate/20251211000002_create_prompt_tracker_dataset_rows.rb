@@ -29,4 +29,3 @@ class CreatePromptTrackerDatasetRows < ActiveRecord::Migration[7.2]
     add_index :prompt_tracker_dataset_rows, :source
   end
 end
-

@@ -8,7 +8,7 @@ module PromptTracker
     #
     class DatasetRowsController < ApplicationController
       before_action :set_dataset
-      before_action :set_row, only: [:update, :destroy]
+      before_action :set_row, only: [ :update, :destroy ]
 
       # POST /testing/prompts/:prompt_id/versions/:prompt_version_id/datasets/:dataset_id/rows
       def create

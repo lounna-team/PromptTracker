@@ -32,8 +32,7 @@ class CreatePromptTrackerDatasets < ActiveRecord::Migration[7.2]
     end
 
     # Indexes
-    add_index :prompt_tracker_datasets, [:prompt_version_id, :name], unique: true
+    add_index :prompt_tracker_datasets, [ :prompt_version_id, :name ], unique: true
     add_index :prompt_tracker_datasets, :created_at
   end
 end
-

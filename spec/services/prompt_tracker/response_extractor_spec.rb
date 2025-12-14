@@ -261,7 +261,7 @@ module PromptTracker
 
       it "handles response with nil values" do
         response = {
-          "choices" => [nil],
+          "choices" => [ nil ],
           "usage" => nil
         }
         extractor = ResponseExtractor.new(response)
@@ -325,7 +325,7 @@ module PromptTracker
 
       it "does not include standard keys in provider_metadata" do
         response = {
-          "choices" => [{ "message" => { "content" => "Hi" } }],
+          "choices" => [ { "message" => { "content" => "Hi" } } ],
           "model" => "gpt-4",
           "custom_field" => "custom_value"
         }

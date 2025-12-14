@@ -7,4 +7,3 @@ RSpec.describe PromptTracker do
     expect(PromptTracker::VERSION).to be_present
   end
 end
-

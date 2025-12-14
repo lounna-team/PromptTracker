@@ -112,4 +112,3 @@ RSpec.describe PromptTracker::LlmResponse, type: :model do
     end
   end
 end
-

@@ -58,7 +58,7 @@ keyword_config = prompt.evaluator_configs.create!(
   priority: 2,
   weight: 0.30,
   config: {
-    required_keywords: ["hello", "help"],
+    required_keywords: [ "hello", "help" ],
     forbidden_keywords: [],
     case_sensitive: false
   }

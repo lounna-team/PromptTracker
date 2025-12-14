@@ -112,4 +112,3 @@ module PromptTracker
     end
   end
 end
-

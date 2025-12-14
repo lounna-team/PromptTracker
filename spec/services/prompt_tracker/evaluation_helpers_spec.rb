@@ -186,7 +186,7 @@ module PromptTracker
           status: "success"
         )
 
-        [60, 70, 80, 90, 100].each do |score|
+        [ 60, 70, 80, 90, 100 ].each do |score|
           response.evaluations.create!(
             evaluator_type: "automated",
             evaluator_id: "test",
@@ -213,7 +213,7 @@ module PromptTracker
           status: "success"
         )
 
-        [60, 70, 80, 90].each do |score|
+        [ 60, 70, 80, 90 ].each do |score|
           response.evaluations.create!(
             evaluator_type: "automated",
             evaluator_id: "test",
@@ -270,7 +270,7 @@ module PromptTracker
           score_max: 100
         )
 
-        comparison = EvaluationHelpers.compare_versions([version, version2])
+        comparison = EvaluationHelpers.compare_versions([ version, version2 ])
         expect(comparison[version.version_number]).to eq(0.8)
         expect(comparison[version2.version_number]).to eq(0.6)
       end
@@ -313,7 +313,7 @@ module PromptTracker
           score_max: 100
         )
 
-        best = EvaluationHelpers.best_version([version, version2])
+        best = EvaluationHelpers.best_version([ version, version2 ])
         expect(best).to eq(version2)
       end
 
@@ -323,7 +323,7 @@ module PromptTracker
           status: "draft",
         )
 
-        best = EvaluationHelpers.best_version([version, version2])
+        best = EvaluationHelpers.best_version([ version, version2 ])
         expect(best).to be_nil
       end
     end

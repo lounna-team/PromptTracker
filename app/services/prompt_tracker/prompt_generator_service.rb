@@ -7,7 +7,7 @@ module PromptTracker
   # 2. Propose dynamic variables
   # 3. Generate system and user prompts with variables
   class PromptGeneratorService
-    DEFAULT_MODEL = ENV.fetch('PROMPT_GENERATOR_MODEL', 'gpt-4o-mini')
+    DEFAULT_MODEL = ENV.fetch("PROMPT_GENERATOR_MODEL", "gpt-4o-mini")
     DEFAULT_TEMPERATURE = 0.7
 
     def self.generate(description:)
@@ -69,7 +69,7 @@ module PromptTracker
       response = chat.ask(prompt)
 
       # Parse variable names from response
-      response.content.split("\n").map(&:strip).reject(&:empty?).map { |v| v.gsub(/^-\s*/, '') }
+      response.content.split("\n").map(&:strip).reject(&:empty?).map { |v| v.gsub(/^-\s*/, "") }
     end
 
     def generate_prompts(requirements, variables)

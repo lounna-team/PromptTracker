@@ -58,9 +58,9 @@ module PromptTracker
     # Scopes
     scope :passed, -> { where(passed: true) }
     scope :failed, -> { where(passed: false) }
-    scope :pending, -> { where(status: 'pending') }
-    scope :running, -> { where(status: 'running') }
-    scope :completed, -> { where(status: ['passed', 'failed', 'error']) }
+    scope :pending, -> { where(status: "pending") }
+    scope :running, -> { where(status: "running") }
+    scope :completed, -> { where(status: [ "passed", "failed", "error" ]) }
     scope :recent, -> { order(created_at: :desc) }
 
 
@@ -69,11 +69,11 @@ module PromptTracker
 
     # Status helpers
     def pending?
-      status == 'pending'
+      status == "pending"
     end
 
     def running?
-      status == 'running'
+      status == "running"
     end
 
     def completed?
@@ -81,11 +81,11 @@ module PromptTracker
     end
 
     def error?
-      status == 'error'
+      status == "error"
     end
 
     def skipped?
-      status == 'skipped'
+      status == "skipped"
     end
 
     # Get evaluator pass rate

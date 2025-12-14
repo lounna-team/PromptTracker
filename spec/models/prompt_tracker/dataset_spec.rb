@@ -56,7 +56,7 @@ module PromptTracker
           user_prompt: "Different {{name}}",
           version_number: 2,
           status: "draft",
-          variables_schema: [{ "name" => "name", "type" => "string", "required" => true }]
+          variables_schema: [ { "name" => "name", "type" => "string", "required" => true } ]
         )
 
         version.datasets.create!(name: "dataset1", schema: version.variables_schema)
@@ -75,7 +75,7 @@ module PromptTracker
       it "validates schema matches prompt version" do
         dataset = version.datasets.build(
           name: "test",
-          schema: [{ "name" => "wrong_var", "type" => "string" }]
+          schema: [ { "name" => "wrong_var", "type" => "string" } ]
         )
 
         expect(dataset).not_to be_valid
@@ -147,7 +147,7 @@ module PromptTracker
       it "returns list of variable names from schema" do
         dataset = version.datasets.create!(name: "test_dataset", schema: version.variables_schema)
 
-        expect(dataset.variable_names).to eq(["name", "issue"])
+        expect(dataset.variable_names).to eq([ "name", "issue" ])
       end
 
       it "returns empty array for empty schema" do

@@ -4,7 +4,7 @@ module PromptTracker
   module Testing
     # Controller for managing human evaluations in testing context
     class HumanEvaluationsController < ApplicationController
-      before_action :set_prompt_test_run, only: [:create]
+      before_action :set_prompt_test_run, only: [ :create ]
 
       # POST /testing/runs/:run_id/human_evaluations
       # Create a new human evaluation for a test run

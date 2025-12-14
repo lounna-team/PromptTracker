@@ -55,15 +55,15 @@ module PromptTracker
     #   status_badge("active") # => "<span class='badge badge-success'>active</span>"
     def status_badge(status)
       color = case status.to_s
-              when "active" then "success"
-              when "deprecated" then "warning"
-              when "draft" then "secondary"
-              when "archived" then "dark"
-              when "pending" then "info"
-              when "completed" then "success"
-              when "failed" then "danger"
-              else "secondary"
-              end
+      when "active" then "success"
+      when "deprecated" then "warning"
+      when "draft" then "secondary"
+      when "archived" then "dark"
+      when "pending" then "info"
+      when "completed" then "success"
+      when "failed" then "danger"
+      else "secondary"
+      end
 
       content_tag(:span, status, class: "badge badge-#{color}")
     end
@@ -82,13 +82,13 @@ module PromptTracker
       percentage = ((score - min) / (max - min) * 100).round
       color = if percentage >= 80
                 "success"
-              elsif percentage >= 60
+      elsif percentage >= 60
                 "primary"
-              elsif percentage >= 40
+      elsif percentage >= 40
                 "warning"
-              else
+      else
                 "danger"
-              end
+      end
 
       content_tag(:span, score.round(2), class: "badge badge-#{color}")
     end

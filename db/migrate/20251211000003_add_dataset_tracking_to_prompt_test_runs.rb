@@ -21,8 +21,7 @@ class AddDatasetTrackingToPromptTestRuns < ActiveRecord::Migration[7.2]
 
     # Add composite index for querying test runs by dataset
     add_index :prompt_tracker_prompt_test_runs,
-              [:dataset_id, :created_at],
+              [ :dataset_id, :created_at ],
               name: 'index_prompt_test_runs_on_dataset_and_created_at'
   end
 end
-

@@ -4,8 +4,8 @@ module PromptTracker
   module Monitoring
     # Controller for managing human evaluations in monitoring context
     class HumanEvaluationsController < ApplicationController
-      before_action :set_evaluation, only: [:create], if: -> { params[:evaluation_id].present? }
-      before_action :set_llm_response, only: [:create], if: -> { params[:llm_response_id].present? }
+      before_action :set_evaluation, only: [ :create ], if: -> { params[:evaluation_id].present? }
+      before_action :set_llm_response, only: [ :create ], if: -> { params[:llm_response_id].present? }
 
       # POST /monitoring/evaluations/:evaluation_id/human_evaluations
       # Create a new human evaluation for an automated evaluation

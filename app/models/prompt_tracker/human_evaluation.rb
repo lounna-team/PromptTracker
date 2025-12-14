@@ -77,7 +77,7 @@ module PromptTracker
 
     # Validate that exactly one association is set
     def must_belong_to_evaluation_or_llm_response
-      associations = [evaluation_id, llm_response_id, prompt_test_run_id].compact
+      associations = [ evaluation_id, llm_response_id, prompt_test_run_id ].compact
 
       if associations.empty?
         errors.add(:base, "Must belong to either an evaluation, llm_response, or prompt_test_run")

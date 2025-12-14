@@ -26,4 +26,3 @@ class AddPromptTestRunToHumanEvaluations < ActiveRecord::Migration[7.0]
     SQL
   end
 end
-

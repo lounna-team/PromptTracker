@@ -66,7 +66,7 @@ module PromptTracker
     def evaluator_key
       return nil if evaluator_type.blank?
 
-      evaluator_type.demodulize.underscore.gsub('_evaluator', '').to_sym
+      evaluator_type.demodulize.underscore.gsub("_evaluator", "").to_sym
     end
 
     # Sets the evaluator_type from a registry key
@@ -115,7 +115,7 @@ module PromptTracker
     def name
       return nil if evaluator_type.blank?
 
-      evaluator_metadata&.dig(:name) || evaluator_type.demodulize.gsub('Evaluator', '').titleize
+      evaluator_metadata&.dig(:name) || evaluator_type.demodulize.gsub("Evaluator", "").titleize
     end
 
     # Returns a description of this evaluator
@@ -130,8 +130,8 @@ module PromptTracker
     # @return [Hash] JSON representation with evaluator_key and evaluator_name included
     def as_json(options = {})
       super(options).merge(
-        'evaluator_key' => evaluator_key.to_s,
-        'evaluator_name' => name
+        "evaluator_key" => evaluator_key.to_s,
+        "evaluator_name" => name
       )
     end
   end

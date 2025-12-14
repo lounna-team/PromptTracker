@@ -88,7 +88,7 @@ module PromptTracker
           create(:evaluator_config,
                  configurable: test2,
                  evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
-                 config: { keywords: ["test"] })
+                 config: { keywords: [ "test" ] })
         end
 
         it "copies all unique evaluator configs" do
@@ -175,4 +175,3 @@ module PromptTracker
     end
   end
 end
-

@@ -8,7 +8,7 @@ module PromptTracker
     class PlaygroundController < ApplicationController
     before_action :set_prompt, if: -> { params[:prompt_id].present? }
     before_action :set_prompt_version, if: -> { params[:prompt_version_id].present? }
-    before_action :set_version, only: [:show]
+    before_action :set_version, only: [ :show ]
 
     # GET /playground (standalone)
     # GET /prompts/:prompt_id/playground (edit existing prompt - uses active/latest version)
@@ -75,14 +75,14 @@ module PromptTracker
       rescue Liquid::SyntaxError => e
         render json: {
           success: false,
-          errors: ["Liquid syntax error: #{e.message}"]
+          errors: [ "Liquid syntax error: #{e.message}" ]
         }, status: :unprocessable_entity
       rescue => e
         Rails.logger.error "Preview error: #{e.class} - #{e.message}"
         Rails.logger.error e.backtrace.join("\n")
         render json: {
           success: false,
-          errors: ["Rendering error: #{e.message}"]
+          errors: [ "Rendering error: #{e.message}" ]
         }, status: :unprocessable_entity
       end
     end

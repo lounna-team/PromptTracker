@@ -29,7 +29,7 @@ RSpec.describe "PromptTracker::DocsController", type: :request do
 
       it "shows context-specific example" do
         get "/prompt_tracker/docs/tracking", params: { prompt_id: prompt.id, version_id: version.id }
-        
+
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Quick Start for \"#{prompt.name}\"")
         expect(response.body).to include("user_name:")
@@ -38,10 +38,9 @@ RSpec.describe "PromptTracker::DocsController", type: :request do
 
       it "includes back link to monitoring" do
         get "/prompt_tracker/docs/tracking", params: { prompt_id: prompt.id, version_id: version.id }
-        
+
         expect(response.body).to include("Back to Monitoring")
       end
     end
   end
 end
-

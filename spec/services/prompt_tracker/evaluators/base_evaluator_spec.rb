@@ -78,27 +78,27 @@ module PromptTracker
         context "with array type" do
           it "converts textarea string (newline-separated) to array" do
             result = TestEvaluator.process_params({ keywords: "hello\nworld\ntest" })
-            expect(result["keywords"]).to eq(["hello", "world", "test"])
+            expect(result["keywords"]).to eq([ "hello", "world", "test" ])
           end
 
           it "strips whitespace from array elements" do
             result = TestEvaluator.process_params({ keywords: "  hello  \n  world  \n  test  " })
-            expect(result["keywords"]).to eq(["hello", "world", "test"])
+            expect(result["keywords"]).to eq([ "hello", "world", "test" ])
           end
 
           it "rejects blank lines" do
             result = TestEvaluator.process_params({ keywords: "hello\n\nworld\n  \ntest" })
-            expect(result["keywords"]).to eq(["hello", "world", "test"])
+            expect(result["keywords"]).to eq([ "hello", "world", "test" ])
           end
 
           it "keeps array as-is if already an array" do
-            result = TestEvaluator.process_params({ keywords: ["hello", "world"] })
-            expect(result["keywords"]).to eq(["hello", "world"])
+            result = TestEvaluator.process_params({ keywords: [ "hello", "world" ] })
+            expect(result["keywords"]).to eq([ "hello", "world" ])
           end
 
           it "rejects blank elements from arrays" do
-            result = TestEvaluator.process_params({ keywords: ["hello", "", "world", "  "] })
-            expect(result["keywords"]).to eq(["hello", "world"])
+            result = TestEvaluator.process_params({ keywords: [ "hello", "", "world", "  " ] })
+            expect(result["keywords"]).to eq([ "hello", "world" ])
           end
         end
 
@@ -155,4 +155,3 @@ module PromptTracker
     end
   end
 end
-

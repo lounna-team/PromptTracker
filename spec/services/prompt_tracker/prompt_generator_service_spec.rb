@@ -42,7 +42,7 @@ module PromptTracker
 
         expect(result[:system_prompt]).to eq('You are a helpful customer support assistant.')
         expect(result[:user_prompt]).to eq('Hello {{ customer_name }}, I can help with {{ issue_type }}.')
-        expect(result[:variables]).to eq(['customer_name', 'issue_type', 'product_name'])
+        expect(result[:variables]).to eq([ 'customer_name', 'issue_type', 'product_name' ])
         expect(result[:explanation]).to eq('This prompt provides friendly customer support.')
       end
 
@@ -86,7 +86,7 @@ module PromptTracker
 
         result = described_class.generate(description: description)
 
-        expect(result[:variables]).to eq(['customer_name', 'issue_type', 'product_name'])
+        expect(result[:variables]).to eq([ 'customer_name', 'issue_type', 'product_name' ])
       end
 
       it 'handles empty variable lists' do

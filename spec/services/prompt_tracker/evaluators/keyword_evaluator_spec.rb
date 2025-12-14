@@ -43,8 +43,8 @@ module PromptTracker
         it "converts textarea strings to arrays" do
           params = { required_keywords: "hello\nworld\ntest", forbidden_keywords: "bad\nevil" }
           result = KeywordEvaluator.process_params(params)
-          expect(result["required_keywords"]).to eq(["hello", "world", "test"])
-          expect(result["forbidden_keywords"]).to eq(["bad", "evil"])
+          expect(result["required_keywords"]).to eq([ "hello", "world", "test" ])
+          expect(result["forbidden_keywords"]).to eq([ "bad", "evil" ])
         end
 
         it "converts string boolean to boolean" do
@@ -58,7 +58,7 @@ module PromptTracker
         it "scores 100 when all required keywords present" do
           response = create_response("This response contains apple and banana")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"]
+            required_keywords: [ "apple", "banana" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -67,7 +67,7 @@ module PromptTracker
         it "scores 0 when no required keywords present" do
           response = create_response("This response has nothing")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"]
+            required_keywords: [ "apple", "banana" ]
           })
 
           expect(evaluator.evaluate_score).to eq(0)
@@ -76,7 +76,7 @@ module PromptTracker
         it "scores 50 when half of required keywords present" do
           response = create_response("This response contains apple only")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"]
+            required_keywords: [ "apple", "banana" ]
           })
 
           expect(evaluator.evaluate_score).to eq(50)
@@ -85,7 +85,7 @@ module PromptTracker
         it "is case insensitive by default" do
           response = create_response("This response contains APPLE and BANANA")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"]
+            required_keywords: [ "apple", "banana" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -96,7 +96,7 @@ module PromptTracker
         it "scores 100 when no forbidden keywords present" do
           response = create_response("This is a clean response")
           evaluator = KeywordEvaluator.new(response, {
-            forbidden_keywords: ["bad", "wrong"]
+            forbidden_keywords: [ "bad", "wrong" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -105,7 +105,7 @@ module PromptTracker
         it "scores 0 when all forbidden keywords present" do
           response = create_response("This is bad and wrong")
           evaluator = KeywordEvaluator.new(response, {
-            forbidden_keywords: ["bad", "wrong"]
+            forbidden_keywords: [ "bad", "wrong" ]
           })
 
           expect(evaluator.evaluate_score).to eq(0)
@@ -116,8 +116,8 @@ module PromptTracker
         it "combines scores correctly" do
           response = create_response("This response contains apple and banana")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad", "wrong"]
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad", "wrong" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -128,7 +128,7 @@ module PromptTracker
         it "is case insensitive by default" do
           response = create_response("APPLE")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple"]
+            required_keywords: [ "apple" ]
           })
 
           expect(evaluator.evaluate_score).to eq(100)
@@ -137,7 +137,7 @@ module PromptTracker
         it "can be case sensitive" do
           response = create_response("APPLE")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple"],
+            required_keywords: [ "apple" ],
             case_sensitive: true
           })
 
@@ -158,7 +158,7 @@ module PromptTracker
         it "lists missing required keywords" do
           response = create_response("This has apple")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana", "cherry"]
+            required_keywords: [ "apple", "banana", "cherry" ]
           })
 
           feedback = evaluator.generate_feedback
@@ -169,7 +169,7 @@ module PromptTracker
         it "lists forbidden keywords found" do
           response = create_response("This is bad and wrong")
           evaluator = KeywordEvaluator.new(response, {
-            forbidden_keywords: ["bad", "wrong"]
+            forbidden_keywords: [ "bad", "wrong" ]
           })
 
           feedback = evaluator.generate_feedback
@@ -180,8 +180,8 @@ module PromptTracker
         it "provides positive feedback when all criteria met" do
           response = create_response("This has apple and banana")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad"]
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad" ]
           })
 
           feedback = evaluator.generate_feedback
@@ -193,7 +193,7 @@ module PromptTracker
         it "creates evaluation record" do
           response = create_response("This has apple and banana")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"]
+            required_keywords: [ "apple", "banana" ]
           })
 
           evaluation = evaluator.evaluate
@@ -210,14 +210,14 @@ module PromptTracker
         it "includes metadata" do
           response = create_response("This has apple")
           evaluator = KeywordEvaluator.new(response, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad"],
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad" ],
             case_sensitive: false
           })
 
           metadata = evaluator.metadata
-          expect(metadata[:required_keywords]).to eq(["apple", "banana"])
-          expect(metadata[:forbidden_keywords]).to eq(["bad"])
+          expect(metadata[:required_keywords]).to eq([ "apple", "banana" ])
+          expect(metadata[:forbidden_keywords]).to eq([ "bad" ])
           expect(metadata[:case_sensitive]).to be false
         end
       end
@@ -227,24 +227,24 @@ module PromptTracker
           # All required present (70 points) + no forbidden (30 points) = 100
           response1 = create_response("apple banana")
           evaluator1 = KeywordEvaluator.new(response1, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad"]
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad" ]
           })
           expect(evaluator1.evaluate_score).to eq(100)
 
           # No required present (0 points) + no forbidden (30 points) = 30
           response2 = create_response("nothing here")
           evaluator2 = KeywordEvaluator.new(response2, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad"]
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad" ]
           })
           expect(evaluator2.evaluate_score).to eq(30)
 
           # All required present (70 points) + all forbidden (0 points) = 70
           response3 = create_response("apple banana bad")
           evaluator3 = KeywordEvaluator.new(response3, {
-            required_keywords: ["apple", "banana"],
-            forbidden_keywords: ["bad"]
+            required_keywords: [ "apple", "banana" ],
+            forbidden_keywords: [ "bad" ]
           })
           expect(evaluator3.evaluate_score).to eq(70)
         end

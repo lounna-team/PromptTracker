@@ -332,7 +332,7 @@ module PromptTracker
           v2 = PromptVersion.create!(valid_attributes.merge(version_number: 2))
 
           versions = prompt.prompt_versions.by_version.to_a
-          expect(versions).to eq([v3, v2, v1])
+          expect(versions).to eq([ v3, v2, v1 ])
         end
       end
     end
@@ -425,8 +425,6 @@ module PromptTracker
         version = PromptVersion.create!(valid_attributes.merge(status: "draft"))
         expect(version.draft?).to be true
       end
-
-
     end
 
     # Display & Utility Methods

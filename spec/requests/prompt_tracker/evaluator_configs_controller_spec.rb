@@ -45,7 +45,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
 
       json = JSON.parse(response.body)
       config_ids = json["configs"].map { |c| c["id"] }
-      expect(config_ids).to eq([config1.id, config2.id, config3.id])
+      expect(config_ids).to eq([ config1.id, config2.id, config3.id ])
     end
   end
 
@@ -77,7 +77,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
             run_mode: "sync",
             priority: 100,
             weight: 1.0,
-            config: { required_keywords: ["hello", "world"] }
+            config: { required_keywords: [ "hello", "world" ] }
           }
         }
       }.to change(PromptTracker::EvaluatorConfig, :count).by(1)
@@ -125,7 +125,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
       }
 
       config = PromptTracker::EvaluatorConfig.last
-      expect(config.config["required_keywords"]).to eq(["hello", "world"])
+      expect(config.config["required_keywords"]).to eq([ "hello", "world" ])
       expect(config.config["case_sensitive"]).to eq(true)
     end
 
@@ -307,7 +307,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
       }
 
       config = PromptTracker::EvaluatorConfig.last
-      expect(config.config["required_keywords"]).to eq(["hello", "world", "test"])
+      expect(config.config["required_keywords"]).to eq([ "hello", "world", "test" ])
     end
 
     it "processes forbidden_keywords from textarea" do
@@ -326,7 +326,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
       }
 
       config = PromptTracker::EvaluatorConfig.last
-      expect(config.config["forbidden_keywords"]).to eq(["bad", "worse"])
+      expect(config.config["forbidden_keywords"]).to eq([ "bad", "worse" ])
     end
 
     it "processes boolean values" do
@@ -475,7 +475,7 @@ RSpec.describe "PromptTracker::EvaluatorConfigsController", type: :request do
         create(:evaluator_config,
                configurable: test2,
                evaluator_type: "PromptTracker::Evaluators::KeywordEvaluator",
-               config: { keywords: ["test"] })
+               config: { keywords: [ "test" ] })
       end
 
       it "copies all evaluators" do

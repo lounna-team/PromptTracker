@@ -10,7 +10,7 @@ module PromptTracker
         name: "greeting",
         description: "Customer greeting prompt",
         category: "support",
-        tags: ["customer-facing", "support"]
+        tags: [ "customer-facing", "support" ]
       )
     end
 
@@ -145,13 +145,13 @@ module PromptTracker
 
         # Missing name
         ab_test = AbTest.new(valid_attributes.merge(
-          variants: [{ "version_id" => version_1.id }]
+          variants: [ { "version_id" => version_1.id } ]
         ))
         expect(ab_test).not_to be_valid
 
         # Missing version_id
         ab_test = AbTest.new(valid_attributes.merge(
-          variants: [{ "name" => "A" }]
+          variants: [ { "name" => "A" } ]
         ))
         expect(ab_test).not_to be_valid
       end
@@ -358,7 +358,7 @@ module PromptTracker
           ab_test = AbTest.create!(valid_attributes)
           variant = ab_test.select_variant
 
-          expect(["A", "B"]).to include(variant)
+          expect([ "A", "B" ]).to include(variant)
         end
 
         it "respects traffic split distribution" do
@@ -392,7 +392,7 @@ module PromptTracker
         it "returns all variant names" do
           ab_test = AbTest.create!(valid_attributes)
 
-          expect(ab_test.variant_names).to eq(["A", "B"])
+          expect(ab_test.variant_names).to eq([ "A", "B" ])
         end
       end
     end

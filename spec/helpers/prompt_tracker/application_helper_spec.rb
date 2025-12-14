@@ -95,7 +95,7 @@ module PromptTracker
         end
 
         it "returns only openai" do
-          expect(helper.available_providers).to eq(["openai"])
+          expect(helper.available_providers).to eq([ "openai" ])
         end
       end
 

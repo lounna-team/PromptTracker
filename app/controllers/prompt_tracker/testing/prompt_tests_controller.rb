@@ -5,7 +5,7 @@ module PromptTracker
     # Controller for managing prompt tests in the Testing section
     class PromptTestsController < ApplicationController
     before_action :set_prompt_version
-    before_action :set_test, only: [:show, :edit, :update, :destroy, :run, :load_more_runs]
+    before_action :set_test, only: [ :show, :edit, :update, :destroy, :run, :load_more_runs ]
 
     # GET /prompts/:prompt_id/versions/:prompt_version_id/tests
     def index

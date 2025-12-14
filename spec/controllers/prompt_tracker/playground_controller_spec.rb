@@ -15,7 +15,7 @@ module PromptTracker
         {
           system_prompt: "You are a professional greeter. Be warm and welcoming.",
           user_prompt: "Greet {{ customer_name }} warmly and ask about {{ topic }}.",
-          suggested_variables: ["customer_name", "topic"],
+          suggested_variables: [ "customer_name", "topic" ],
           explanation: "Enhanced with professional tone and clear variables"
         }
       end
@@ -300,7 +300,7 @@ module PromptTracker
           template = "{{name}} {{age}}"
           variables = controller_instance.send(:extract_variables_from_template, template)
 
-          expect(variables).to match_array(["name", "age"])
+          expect(variables).to match_array([ "name", "age" ])
         end
 
         it "extracts Liquid filter variables" do

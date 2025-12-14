@@ -111,4 +111,3 @@ RSpec.describe "PromptTracker::Monitoring::LlmResponsesController", type: :reque
     end
   end
 end
-

@@ -35,13 +35,13 @@ module PromptTracker
       end
 
       it "enforces name format with lowercase letters, numbers, and underscores only" do
-        valid_names = ["test", "test_prompt", "test123", "test_prompt_123"]
+        valid_names = [ "test", "test_prompt", "test123", "test_prompt_123" ]
         valid_names.each do |name|
           prompt = Prompt.new(valid_attributes.merge(name: name))
           expect(prompt).to be_valid, "Name '#{name}' should be valid"
         end
 
-        invalid_names = ["Test", "test-prompt", "test prompt", "test.prompt", "test@prompt"]
+        invalid_names = [ "Test", "test-prompt", "test prompt", "test.prompt", "test@prompt" ]
         invalid_names.each do |name|
           prompt = Prompt.new(valid_attributes.merge(name: name))
           expect(prompt).not_to be_valid, "Name '#{name}' should be invalid"

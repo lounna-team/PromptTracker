@@ -8,7 +8,7 @@ PromptTracker::Engine.routes.draw do
     get "/", to: "dashboard#index", as: :root
 
     # Standalone playground (not tied to a specific prompt)
-    resource :playground, only: [:show], controller: 'playground' do
+    resource :playground, only: [ :show ], controller: "playground" do
       post :preview, on: :member
       post :save, on: :member
       post :generate, on: :member
@@ -17,27 +17,27 @@ PromptTracker::Engine.routes.draw do
     # Prompt versions (for testing)
     resources :prompts, only: [ :index, :show ] do
       # Playground for editing existing prompts
-      resource :playground, only: [:show], controller: 'playground' do
+      resource :playground, only: [ :show ], controller: "playground" do
         post :preview, on: :member
         post :save, on: :member
         post :generate, on: :member
       end
 
-      resources :prompt_versions, only: [:show], path: "versions" do
+      resources :prompt_versions, only: [ :show ], path: "versions" do
         member do
           get :compare
           post :activate
         end
 
         # Playground for specific version
-        resource :playground, only: [:show], controller: 'playground' do
+        resource :playground, only: [ :show ], controller: "playground" do
           post :preview, on: :member
           post :save, on: :member
           post :generate, on: :member
         end
 
         # Tests nested under prompt versions
-        resources :prompt_tests, only: [:index, :new, :create, :show, :edit, :update, :destroy], path: "tests" do
+        resources :prompt_tests, only: [ :index, :new, :create, :show, :edit, :update, :destroy ], path: "tests" do
           collection do
             post :run_all
           end
@@ -60,9 +60,9 @@ PromptTracker::Engine.routes.draw do
     end
 
     # Test runs (for viewing results)
-    resources :runs, controller: "prompt_test_runs", only: [:index, :show] do
+    resources :runs, controller: "prompt_test_runs", only: [ :index, :show ] do
       # Human evaluations nested under test runs
-      resources :human_evaluations, only: [:create]
+      resources :human_evaluations, only: [ :create ]
     end
   end
 
@@ -74,19 +74,19 @@ PromptTracker::Engine.routes.draw do
 
     # Prompts and versions (for monitoring tracked calls)
     resources :prompts, only: [] do
-      resources :prompt_versions, only: [:show], path: "versions"
+      resources :prompt_versions, only: [ :show ], path: "versions"
     end
 
     # Evaluations (tracked/runtime calls from all environments)
-    resources :evaluations, only: [:index, :show] do
+    resources :evaluations, only: [ :index, :show ] do
       # Human evaluations nested under evaluations
-      resources :human_evaluations, only: [:create]
+      resources :human_evaluations, only: [ :create ]
     end
 
     # LLM Responses (tracked calls from all environments)
-    resources :llm_responses, only: [:index], path: "responses" do
+    resources :llm_responses, only: [ :index ], path: "responses" do
       # Human evaluations nested under llm_responses
-      resources :human_evaluations, only: [:create]
+      resources :human_evaluations, only: [ :create ]
     end
   end
 
@@ -105,7 +105,7 @@ PromptTracker::Engine.routes.draw do
     end
 
     # A/B tests nested under prompts (for creating new tests)
-    resources :ab_tests, only: [:new, :create], path: "ab-tests"
+    resources :ab_tests, only: [ :new, :create ], path: "ab-tests"
   end
 
   # A/B Tests (for managing tests)
@@ -121,9 +121,9 @@ PromptTracker::Engine.routes.draw do
   end
 
   # Evaluations (used by both monitoring and test sections)
-  resources :evaluations, only: [:index, :show] do
+  resources :evaluations, only: [ :index, :show ] do
     # Human evaluations nested under evaluations
-    resources :human_evaluations, only: [:create]
+    resources :human_evaluations, only: [ :create ]
   end
 
   # Evaluator config forms (not nested, for AJAX loading)
@@ -134,5 +134,5 @@ PromptTracker::Engine.routes.draw do
   end
 
   # Test runs (legacy, redirects to /testing/runs)
-  resources :prompt_test_runs, only: [:index, :show], path: "test-runs"
+  resources :prompt_test_runs, only: [ :index, :show ], path: "test-runs"
 end
